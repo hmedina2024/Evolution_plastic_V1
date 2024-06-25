@@ -30,9 +30,10 @@ CREATE TABLE `tbl_empleados` (
   `email_empleado` varchar(50) DEFAULT NULL,
   `cargo` varchar(50) DEFAULT NULL,
   `foto_empleado` mediumtext,
-  `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_empleado`)
-) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ;
 CREATE TABLE `users` (
@@ -40,9 +41,10 @@ CREATE TABLE `users` (
   `name_surname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `email_user` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `pass_user` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `rol` varchar(45) COLLATE utf8mb4_general_ci NOT NULL,
   `created_user` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Creando tabla Actividades
 CREATE TABLE `tbl_actividades` (
@@ -53,7 +55,7 @@ CREATE TABLE `tbl_actividades` (
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_actividad`),
   UNIQUE KEY `codigo_actividad_UNIQUE` (`codigo_actividad`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 ;
@@ -66,8 +68,9 @@ CREATE TABLE `tbl_clientes` (
   `email_cliente` varchar(50) DEFAULT NULL,
   `foto_cliente` mediumtext,
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 ;
@@ -84,7 +87,7 @@ CREATE TABLE `tbl_jornadas` (
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `usuario_registro` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id_jornada`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ;
 CREATE TABLE `tbl_operaciones` (
@@ -95,14 +98,14 @@ CREATE TABLE `tbl_operaciones` (
   `actividad` varchar(50) DEFAULT NULL,
   `codigo_op` int DEFAULT NULL,
   `cantidad` int DEFAULT NULL,
+  `pieza_realizada` varchar(100) DEFAULT NULL,
   `novedad` mediumtext,
   `fecha_hora_inicio` timestamp NOT NULL,
   `fecha_hora_fin` timestamp NOT NULL,
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `usuario_registro` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id_operacion`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ;
 CREATE TABLE `tbl_ordenproduccion` (
@@ -116,8 +119,9 @@ CREATE TABLE `tbl_ordenproduccion` (
   `empleado` varchar(50) DEFAULT NULL,
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `usuario_registro` varchar(50) DEFAULT NULL,
+  `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_op`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ;
 CREATE TABLE `tbl_procesos` (
@@ -128,7 +132,7 @@ CREATE TABLE `tbl_procesos` (
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_proceso`),
   UNIQUE KEY `codigo_proceso_UNIQUE` (`codigo_proceso`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 
@@ -140,7 +144,7 @@ CREATE TABLE `tbl_tipo_documento` (
   `tipo_documento` varchar(45) NOT NULL,
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_tipo_documento`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=0   DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 INSERT INTO evolution_plastic.tbl_tipo_empleado (tipo_empleado)
@@ -152,7 +156,7 @@ CREATE TABLE `tbl_tipo_empleado` (
   `tipo_empleado` varchar(45) NOT NULL,
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_tipo_empleado`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO evolution_plastic.tbl_tipo_documento (td_abreviacion, tipo_documento)
 VALUES ("NIT", "Número de Identificación Tributaria"), ("CC", "Cedula de ciudadanía");
