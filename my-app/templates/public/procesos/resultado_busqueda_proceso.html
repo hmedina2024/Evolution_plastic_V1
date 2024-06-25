@@ -1,0 +1,44 @@
+{% for proceso in dataBusqueda2 %}
+<tr id="proceso_{{ proceso.id_proceso }}">
+  <td>{{ loop.index }}</td>
+  <td>{{ proceso.codigo_proceso }}</td>
+  <td>{{ proceso.nombre_proceso }}</td>
+  <td>{{ proceso.descripcion_proceso }}</td>
+  <td>{{ proceso.fecha_registro }}</td>
+  <td>
+    <a
+      href="/detalles-proceso/{{ proceso.id_proceso }}"
+      title="Ver envio"
+      type="button"
+      class="btn btn-info btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Ver detalles</span>">
+      <i class="bi bi-eye"></i>
+      Ver detalles
+    </a>
+    <a
+      href="{{ url_for('viewEditarProceso', id = proceso.id_proceso) }}"
+      class="btn btn-success btn-sm"
+      tooltip="Actualizar Registro">
+      <i class="bi bi-arrow-clockwise"></i>
+      Actualizar
+    </a>
+    <a
+      href="#"
+      onclick="eliminarproceso('{{ proceso.id_proceso }}');"
+      class="btn btn-danger btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Eliminar proceso {{ proceso.nombre_proceso }}</span>">
+      <i class="bi bi-trash3"></i>
+      Eliminar
+    </a>
+  </td>
+</tr>
+
+{% endfor %}

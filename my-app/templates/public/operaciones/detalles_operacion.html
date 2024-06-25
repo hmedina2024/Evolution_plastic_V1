@@ -1,0 +1,125 @@
+{% extends 'public/base_cpanel.html' %}
+<!--Cambiando el title-->
+{% block title %}Crud con Python 🐍 | Registrar Operacion Diaria{% endblock %}
+<!---->
+{% block customCSS %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+{% endblock %}
+
+<!--Inicio del block-->
+{% block body %}
+<!---->
+{% if (detalle_operacion|length) %}
+<div class="card" style="border-radius: 0px !important">
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <h3 class="text-center mt-5 mb-3">
+        <a href="/lista-de-operaciones">
+          <i class="bi bi-arrow-left-circle"></i>
+        </a>
+        INFORMACIÓN DEL CLIENTE
+      </h3>
+      <hr />
+    </div>
+  </div>
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-10">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <label for="nombre_empleado" class="form-label fw-bold text-primary">
+              Nombre Empleado
+            </label>
+            <br />{{detalle_operacion.nombre_empleado}}
+          </div>
+          <div class="col-md-3">
+            <label for="proceso" class="form-label fw-bold text-primary">
+              Proceso
+            </label>
+            <br />
+            {{ detalle_operacion.proceso}}
+          </div>        
+          <div class="col-md-2">
+            <label for="actividad" class="form-label fw-bold text-primary">
+              Actividad
+            </label>
+            <br />
+            {{ detalle_operacion.actividad}}
+          </div>
+          <div class="col-md-3">
+            <label for="codigo_op" class="form-label fw-bold text-primary">
+              CODIGO OP
+            </label>
+            <br />
+            {{ detalle_operacion.codigo_op}}
+          </div>                   
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-2">
+            <label for="cantidad" class="form-label fw-bold text-primary">
+              cantidad
+            </label>
+            <br />
+            {{ detalle_operacion.cantidad}}
+          </div> 
+          <div class="col-md-3">
+            <label for="pieza" class="form-label fw-bold text-primary">
+              pieza
+            </label>
+            <br />
+            {{ detalle_operacion.pieza_realizada}}
+          </div>
+          <div class="col-md-3">
+            <label for="Fecha_hora_inicio" class="form-label fw-bold text-primary">
+              Fecha y hora de Inicio
+            </label>
+            <br />
+            {{ detalle_operacion.fecha_hora_inicio}}
+          </div>  
+          <div class="col-md-3">
+            <label for="fecha_hora_fin" class="form-label fw-bold text-primary">
+              Fecha y hora fin
+            </label>
+            <br />
+            {{ detalle_operacion.fecha_hora_fin}}
+          </div>           
+        </div>
+        <div class="row mt-4">            
+          <div class="col-md-3">
+            <label for="fecha_registro" class="form-label fw-bold text-primary">
+              Fecha y hora de registro
+            </label>
+            <br />
+            {{ detalle_operacion.fecha_registro}}
+          </div> 
+          <div class="col-md-3">
+            <label for="usuario_registro" class="form-label fw-bold text-primary">
+              Registrado por
+            </label>
+            <br />
+            {{ detalle_operacion.usuario_registro}}
+          </div>
+          <div class="col-md-6">
+            <label for="novedad" class="form-label fw-bold text-primary">
+              Novedad
+            </label>
+            <br />
+            {{ detalle_operacion.novedad}}
+          </div>                                  
+          <div class="row mt-2">
+              
+            
+          </div>
+        </div>        
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<h2 class="text-center">
+  No existe la Operacion 😭
+  <hr />
+</h2>
+{% endif %} {% endblock %}

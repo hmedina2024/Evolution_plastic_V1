@@ -1,0 +1,10 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Crud - Python 🐍 | Lista de Usuarios{% endblock %}
+
+{% block body %}
+{% if resp_usuariosBD %}
+    <iframe width="1000" height="600" src="{{ report_url }}" frameborder="0" allowFullScreen="true"></iframe>
+{% else %}
+    <p>No hay datos disponibles para mostrar el reporte.</p>
+{% endif %}
+{% endblock %}

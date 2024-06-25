@@ -1,0 +1,44 @@
+{% for actividad in dataBusquedaactividad %}
+<tr id="actividad_{{ actividad.id_actividad }}">
+  <td>{{ loop.index }}</td>
+  <td>{{ actividad.codigo_actividad }}</td>
+  <td>{{ actividad.nombre_actividad }}</td>
+  <td>{{ actividad.descripcion_actividad }}</td>
+  <td>{{ actividad.fecha_registro }}</td>
+  <td>
+    <a
+      href="/detalles-actividad/{{ actividad.id_actividad }}"
+      title="Ver envio"
+      type="button"
+      class="btn btn-info btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Ver detalles</span>">
+      <i class="bi bi-eye"></i>
+      Ver detalles
+    </a>
+    <a
+      href="{{ url_for('viewEditarActividad', id = actividad.id_actividad) }}"
+      class="btn btn-success btn-sm"
+      tooltip="Actualizar Registro">
+      <i class="bi bi-arrow-clockwise"></i>
+      Actualizar
+    </a>
+    <a
+      href="#"
+      onclick="eliminaractividad('{{ actividad.id_actividad }}');"
+      class="btn btn-danger btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Eliminar actividad {{ actividad.nombre_actividad }}</span>">
+      <i class="bi bi-trash3"></i>
+      Eliminar
+    </a>
+  </td>
+</tr>
+
+{% endfor %}

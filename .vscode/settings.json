@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/406d52f6-a0d5-4789-9495-e9ab16939de6/resourceGroups/evolution_plastic/providers/Microsoft.Web/sites/web-evolution-plastic",
+    "appService.deploySubpath": "my-app"
+}

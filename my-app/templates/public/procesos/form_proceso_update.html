@@ -1,0 +1,102 @@
+{% extends 'public/base_cpanel.html' %}
+<!--Cambiando el title-->
+{% block title %}Crud con Python 🐍 | Registrar Nuevo Proceso{% endblock %}
+<!---->
+{% block customCSS %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+{% endblock %}
+
+<!--Inicio del block-->
+{% block body %}
+<div class="card" style="border-radius: 0px !important">
+  {% if respuestaProceso|length %}
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <h3 class="text-center mt-5 mb-3">
+        <a href="/lista-de-procesos">
+          <i class="bi bi-arrow-left-circle"></i>
+        </a>
+        ACTUALIZAR DATOS DEL PROCESO
+      </h3>
+      <hr />
+    </div>
+  </div>
+
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-10">
+      <form
+        class="form-horizontal mx-auto"
+        method="POST"
+        action="{{ url_for('actualizarProceso', id = respuestaProceso.id_proceso ) }}"
+        autocomplete="off"
+        enctype="multipart/form-data">
+        <input
+          type="text"
+          class="form-control"
+          name="id_proceso"
+          value="{{ respuestaProceso.id_proceso }}"
+          required
+          hidden />
+
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <label for="codigo_proceso" class="form-label fw-bold text-primary">
+                Codigo de Proceso
+              </label>
+              <input
+                type="text"
+                name="codigo_proceso"
+                value="{{ respuestaProceso.codigo_proceso }}"
+                class="form-control"
+                required />
+            </div>
+            <div class="col-md-6">
+              <label for="nombre_proceso" class="form-label fw-bold text-primary">
+                Nombre Proceso
+              </label>
+              <input
+                class="form-control"
+                type="text"
+                name="nombre_proceso"
+                value="{{ respuestaProceso.nombre_proceso }}"
+                required />
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-6">
+              <label for="descripcion_proceso" class="form-label fw-bold text-primary">
+                Descripción del Proceso
+              </label>
+              <input
+                class="form-control"
+                type="text"
+                name="descripcion_proceso"
+                value="{{ respuestaProceso.descripcion_proceso }}"
+                required />
+            </div>
+          </div>
+          <div class="mb-3 mt-4 text-center">
+            <button type="submit" class="btn rounded-pill btn-primary">
+              Guardar registro ahora
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <h3 class="text-center">No existe el proceso</h3>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %} {% block customJS %}
+<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+{% endblock %}

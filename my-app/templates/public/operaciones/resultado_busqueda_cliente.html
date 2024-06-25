@@ -1,0 +1,43 @@
+{% for cliente in dataBusquedacliente %}
+<tr id="cliente_{{ cliente.id_cliente }}">
+  <td>{{ loop.index }}</td>
+  <td>{{ cliente.nombre_cliente }}</td>
+  <td>{{ cliente.tipo_documento }}</td>
+  <td>$ {{ '{:,.0f}'.format(cliente.documento).replace(',', '.')}}</td>
+  <td>
+    <a
+      href="/detalles-cliente/{{ cliente.id_cliente }}"
+      title="Ver envio"
+      type="button"
+      class="btn btn-info btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Ver detalles</span>">
+      <i class="bi bi-eye"></i>
+      Ver detalles
+    </a>
+    <a
+      href="{{ url_for('viewEditarCliente', id = cliente.id_cliente) }}"
+      class="btn btn-success btn-sm"
+      tooltip="Actualizar Registro">
+      <i class="bi bi-arrow-clockwise"></i>
+      Actualizar
+    </a>
+    <a
+      href="#"
+      onclick="eliminarCliente('{{ cliente.id_cliente }}');"
+      class="btn btn-danger btn-sm"
+      data-bs-toggle="tooltip"
+      data-bs-offset="0,4"
+      data-bs-placement="top"
+      data-bs-html="true"
+      title="<span>Eliminar cliente {{ cliente.nombre_cliente }}</span>">
+      <i class="bi bi-trash3"></i>
+      Eliminar
+    </a>
+  </td>
+</tr>
+
+{% endfor %}

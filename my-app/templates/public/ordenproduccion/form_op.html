@@ -1,0 +1,165 @@
+{% extends 'public/base_cpanel.html' %}
+<!--Cambiando el title-->
+{% block title %}Crud con Python 🐍 | Registrar Orden de Producción{% endblock %}
+<!---->
+{% block customCSS %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css" />
+{% endblock %}
+
+<!--Inicio del block-->
+{% block body %}
+<div class="card" style="border-radius: 0px !important">
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <h3 class="text-center mt-5 mb-3">REGISTRAR NUEVA ORDEN DE PRODUCCION</h3>
+      <hr />
+    </div>
+  </div>
+
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-11">
+      <form
+        class="form-horizontal mx-auto"
+        method="POST"
+        action="/form-registrar-op"
+        autocomplete="off"
+        enctype="multipart/form-data">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-2">
+              <label for="cod_op" class="form-label fw-bold text-primary">
+                COD. OP
+              </label>
+              <input class="form-control" type="INT" name="cod_op" id="documento" required onchange="validateCodigoOp()" />
+              <div id="documento-error" class="text-danger"></div>
+            </div>
+            <div class="col-md-3">
+              <label for="nombre_cliente" class="form-label fw-bold text-primary" required>
+                Nombre Cliente
+              </label>
+              <select name="nombre_cliente" id="nombre_cliente" class="form-control"
+                title="Seleccionar Cliente" data-live-search="true" required>
+                {% for cliente in clientes %}
+                <option value="{{ cliente['nombre_cliente'] }}">{{ cliente['nombre_cliente'] }}</option>
+                {% endfor %}
+              </select>
+            </div> 
+            <div class="col-md-3">
+              <label for="estado" class="form-label fw-bold text-primary">
+                Estado
+              </label>
+              <select name="estado" id="estado" class="form-control"
+                title="Seleccionar estado" data-live-search="true" required>
+                <option value="ANULA">ANULA</option>
+                <option value="FACTU">FACTU</option>
+                <option value="CRUCE">CRUCE</option>
+                <option value="INV">INV</option>
+                <option value="LP">LP</option>
+                <option value="NC">NC</option>
+                <option value="PR">PR</option>
+                <option value="PR CR">PR CR</option>
+                <option value="TER">TER</option>
+              </select> 
+            </div>
+            <div class="col-md-2">
+              <label for="documento" class="form-label fw-bold text-primary">
+                Cantidad
+              </label>
+              <input
+                class="form-control"
+                type="INT"
+                name="cantidad"
+                id="cantidad"
+                required />
+            </div>
+            <div class="col-md-2">
+              <label for="odi" class="form-label fw-bold text-primary">
+                ODI <!--Orden de Desarrollo Industrial -->
+              </label>
+              <input
+                type="text"
+                name="odi"
+                class="form-control"
+                required />
+            </div>
+            <div class="row mt-4">
+              <div class="col-md-3">
+                <label for="vendedor" class="form-label fw-bold text-primary">
+                    Nombre Vendedor
+                </label>
+                <select name="vendedor" id="vendedor" class="form-control"
+                title="Seleccionar Vendedor" data-live-search="true" required>
+                    {% for empleado in empleados %}
+                    <option value="{{ empleado }}">{{ empleado }}</option>
+                    {% endfor %}
+                </select>
+            </div>      
+              <div class="col-md-9">
+                <label for="producto" class="form-label fw-bold text-primary">
+                    DESCRIPCION PRODUCTO
+                </label>
+                <textarea
+                    class="form-control"
+                    name="producto"                  
+                    rows="1" 
+                    required
+                ></textarea>
+            </div>
+
+            </div>
+            
+          </div>          
+          <div class="mb-3 mt-4 text-center">
+            <button type="submit" class="btn rounded-pill btn-primary">
+              Guardar registro ahora
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block customJS %}
+<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
+<script>
+  $(document).ready(function (){
+        $("#nombre_cliente").selectpicker();
+        $("#estado").selectpicker();
+        $("#vendedor").selectpicker();
+    });
+  </script>
+<script>
+  function validateCodigoOp() {
+    const documento = document.getElementById('documento').value;
+    const errorDiv = document.getElementById('documento-error');
+
+    fetch('/validar-codigo-op', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `documento=${documento}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.exists) {
+        errorDiv.textContent = 'La OP ya existe.';
+        document.getElementById('documento').value = '';
+      } else {
+        errorDiv.textContent = '';
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+</script>
+{% endblock %}

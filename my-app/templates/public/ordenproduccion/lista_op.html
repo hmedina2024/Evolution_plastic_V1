@@ -1,0 +1,96 @@
+{% extends 'public/base_cpanel.html' %}
+<!--Cambiando el title-->
+{% block title %}Crud con Python 🐍 | Lista de Ordenes de Producción{% endblock %}
+<!--Inicio del block-->
+{% block body %}
+
+<div class="card" style="border-radius: 0px !important">
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12 mb-4">
+      <h3 class="text-center mt-2 mb-3">LISTA DE ORDENES DE PRODUCCION</h3>
+      <hr />
+    </div>
+
+    <div class="row justify-content-end">
+      <!-- <div class="col-md-6 mt-4 py-2">
+        <input
+          type="search"
+          id="search"
+          class="form-control border-0 shadow-none"
+          placeholder="Buscar proceso..."
+          onkeyup="buscadorTable2('tbl_procesos')" />
+      </div> -->
+    </div>
+
+    <div class="row justify-content-center mb-2">
+      <div class="table-responsive text-nowrap table-hover" style="max-height: 500px; overflow-y: auto;">
+        <table
+          table-hover
+          id="tbl_ordenproduccion"
+          class="table table-striped table-bordered"
+          cellspacing="0"
+          width="100%">
+          <thead>
+            <tr>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. OP</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cliente</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Producto</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for op in op %} 
+            <tr id="op_{{ op.id_op }}"></tr>           
+              <td>{{ loop.index }}</td>
+              <td>{{ op.codigo_op }}</td>
+              <td>{{ op.nombre_cliente }}</td>
+              <th>{{ op.producto }}</th>
+              <td>{{ op.cantidad }}</td>
+              <td>{{ op.estado }}</td>
+              <td width="10px">
+                <a
+                  href="/detalles-op/{{ op.id_op }}"
+                  title="Ver envio"
+                  type="button"
+                  class="btn btn-info btn-sm"
+                  data-bs-toggle="tooltip"
+                  data-bs-offset="0,4"
+                  data-bs-placement="top"
+                  data-bs-html="true"
+                  title="<span>Ver detalles</span>">
+                  <i class="bi bi-eye"></i>
+                  Ver detalles
+                </a>
+                <a
+                  href="{{ url_for('viewEditarop', id = op.id_op) }}"
+                  class="btn btn-success btn-sm"
+                  tooltip="Actualizar Registro">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Actualizar
+                </a>
+                <a
+                  href="#"
+                  onclick="eliminarOp('{{ op.id_op }}');"
+                  class="btn btn-danger btn-sm"
+                  data-bs-toggle="tooltip"
+                  data-bs-offset="0,4"
+                  data-bs-placement="top"
+                  data-bs-html="true"
+                  title="<span>Eliminar Orden De Producción {{ op.id_op }}</span>">
+                  <i class="bi bi-trash3"></i>
+                  Eliminar
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

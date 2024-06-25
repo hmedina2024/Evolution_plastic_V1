@@ -1,0 +1,148 @@
+{% extends 'public/base_cpanel.html' %}
+<!--Cambiando el title-->
+{% block title %}Crud con Python 🐍 | Registrar Cliente{% endblock %}
+<!---->
+{% block customCSS %}
+<link 
+  rel="stylesheet"
+  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+{% endblock %}
+
+<!--Inicio del block-->
+{% block body %}
+<div class="card" style="border-radius: 0px !important">
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12">
+      <h3 class="text-center mt-5 mb-3">REGISTRAR NUEVO CLIENTE</h3>
+      <hr />
+    </div>
+  </div>
+
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-10">
+      <form
+        class="form-horizontal mx-auto"
+        method="POST"
+        action="/form-registrar-cliente"
+        autocomplete="off"
+        enctype="multipart/form-data">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="tipo_cliente" class="form-label fw-bold text-primary">
+                Tipo Documento
+              </label>
+              <select class="form-select" name="tipo_documento" required aria-label="Default select example">
+                <option value="" selected disabled>Seleccione</option>
+                {% for documento in tipo_documento %}
+                    <option value="{{ documento.td_abreviacion }}">{{ documento.td_abreviacion }}</option>
+                {% endfor %}
+            </select>
+            </div>
+            <div class="col-md-4">
+              <label for="documento" class="form-label fw-bold text-primary">Documento</label>
+              <input class="form-control" type="INT" name="documento" id="documento" required onchange="validateDocumentCliente()" />
+              <div id="documento-error" class="text-danger"></div>
+            </div>
+            <div class="col-md-4">
+              <label for="nombre_cliente" class="form-label fw-bold text-primary">
+                Nombre del cliente
+              </label>
+              <input
+                type="text"
+                name="nombre_cliente"
+                class="form-control"
+                required />
+            </div>
+          </div>
+          <div class="row mt-2">            
+            <div class="col-md-4">
+              <label for="telefono_cliente" class="form-label fw-bold text-primary">
+                Telefono del cliente
+              </label>
+              <input
+                class="form-control"
+                type="text"
+                name="telefono_cliente"
+                id="telefono"
+                required />
+            </div>
+            <div class="col-md-4">
+              <label for="email_cliente" class="form-label fw-bold text-primary">
+                Email del Cliente
+              </label>
+              <input
+                class="form-control"
+                type="email"
+                name="email_cliente"
+                required />
+            </div>
+          </div>
+
+          <div class="row mt-2">            
+            <div class="col-md-6">
+              <label for="" class="form-label fw-bold text-primary">
+                CARGAR IMAGEN DEL CLIENTE
+              </label>
+              <div class="avatar-upload">
+                <div class="avatar-edit">
+                  <input
+                    type="file"
+                    name="foto_cliente"
+                    id="imageUpload"
+                    accept=".png, .jpg, .jpeg" />
+                  <label for="imageUpload"><i class="bi bi-pen"></i></label>
+                </div>
+                <div class="avatar-preview">
+                  <div class="avatar-preview">
+                    {% set url_avatar= url_for('static', filename
+                    ='assets/img/avatar.png') %}
+                    <div
+                      id="imagePreview"
+                      style="background-image: url('{{ url_avatar }}')"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3 mt-4 text-center">
+            <button type="submit" class="btn rounded-pill btn-primary">
+              Guardar registro ahora
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block customJS %}
+<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+<script>
+  function validateDocumentCliente() {
+    const documento = document.getElementById('documento').value;
+    const errorDiv = document.getElementById('documento-error');
+
+    fetch('/validar-documento-cliente', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `documento=${documento}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.exists) {
+        errorDiv.textContent = 'El documento ya existe.';
+        document.getElementById('documento').value = '';
+      } else {
+        errorDiv.textContent = '';
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+</script>
+
+{% endblock %}
