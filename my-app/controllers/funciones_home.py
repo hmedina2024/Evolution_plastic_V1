@@ -1258,7 +1258,7 @@ def procesar_form_op(dataForm):
         with connectionBD() as conexion_MySQLdb:
             with conexion_MySQLdb.cursor(dictionary=True) as cursor:
 
-                sql = "INSERT INTO tbl_ordenProduccion (codigo_op, nombre_cliente, producto , estado, cantidad, odi , empleado, usuario_registro) VALUES (%s, %s, %s, %s, %s, %s , %s, %s)"
+                sql = "INSERT INTO tbl_ordenproduccion (codigo_op, nombre_cliente, producto , estado, cantidad, odi , empleado, usuario_registro) VALUES (%s, %s, %s, %s, %s, %s , %s, %s)"
 
                 # Creando una tupla con los valores del INSERT
                 valores = (dataForm['cod_op'], dataForm['nombre_cliente'], dataForm['producto'], dataForm['estado'], dataForm['cantidad'], dataForm['odi'], dataForm['vendedor'],session['name_surname'])
@@ -1298,8 +1298,8 @@ def sql_lista_opBD():
                         p.odi,
                         p.empleado,                     
                         p.fecha_registro
-                    FROM tbl_ordenProduccion AS p
-                    ORDER BY p.fecha_registro DESC
+                    FROM tbl_ordenproduccion AS p
+                    ORDER BY p.codigo_op DESC
                     """
                 cursor.execute(querySQL)
                 opBD = cursor.fetchall()
@@ -1324,9 +1324,9 @@ def sql_detalles_opBD(idOp):
                         p.cantidad, 
                         p.odi,
                         p.empleado,                        
-                        DATE_FORMAT(P.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro,
+                        DATE_FORMAT(p.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro,
                         p.usuario_registro
-                    FROM tbl_ordenProduccion AS p
+                    FROM tbl_ordenproduccion AS p
                     WHERE id_op =%s
                     ORDER BY p.id_op DESC
                     """)
@@ -1355,7 +1355,7 @@ def buscarOpUnico(id):
                             p.odi,
                             p.empleado,                        
                             p.fecha_registro
-                        FROM tbl_ordenProduccion AS p
+                        FROM tbl_ordenproduccion AS p
                         WHERE p.id_op =%s LIMIT 1
                     """)
                 mycursor.execute(querySQL, (id,))
@@ -1380,7 +1380,7 @@ def procesar_actualizar_form_op(data):
                 empleado = data.form['empleado']
                 id_op = data.form['id_op']             
                 querySQL = """
-                    UPDATE tbl_ordenProduccion
+                    UPDATE tbl_ordenproduccion
                     SET 
                         codigo_op = %s,
                         nombre_cliente = %s,
@@ -1406,7 +1406,7 @@ def eliminarOp(id_op):
     try:
         with connectionBD() as conexion_MySQLdb:
             with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_ordenProduccion WHERE id_op=%s"
+                querySQL = "DELETE FROM tbl_ordenproduccion WHERE id_op=%s"
                 cursor.execute(querySQL, (id_op,))
                 conexion_MySQLdb.commit()
                 resultado_eliminar = cursor.rowcount
@@ -1468,7 +1468,7 @@ def procesar_form_jornada(dataForm):
                     id_empleado = result['id_empleado']
                     
                     # Inserción en tbl_jornadas
-                    sql = ("INSERT INTO `evolution_plastic_dev`.`tbl_jornadas`(`id_empleado`, `nombre_empleado`, `novedad_jornada_programada`, `novedad_jornada`, `fecha_hora_llegada_programada`, `fecha_hora_salida_programada`, `fecha_hora_llegada`, `fecha_hora_salida`,`usuario_registro`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
+                    sql = ("INSERT INTO `tbl_jornadas`(`id_empleado`, `nombre_empleado`, `novedad_jornada_programada`, `novedad_jornada`, `fecha_hora_llegada_programada`, `fecha_hora_salida_programada`, `fecha_hora_llegada`, `fecha_hora_salida`,`usuario_registro`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
                     
                     valores = (
                         id_empleado, dataForm['nombre_empleado'], dataForm['novedad_jornada_programada'],

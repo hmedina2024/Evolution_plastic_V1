@@ -8,10 +8,10 @@ def connectionBD():
     try:
         # connection = mysql.connector.connect(
         connection = mysql.connector.connect(
-            host="localhost",
+            host="217.15.171.201",
             user="root",
-            passwd="Yamasaqui2024*",
-            database="evolution_plastic",
+            passwd="Evolution123#",
+            database="evolution_DB",
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci',
             raise_on_warnings=True
