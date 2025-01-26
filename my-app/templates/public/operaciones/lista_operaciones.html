@@ -25,6 +25,7 @@
           <thead>
             <tr>
               <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">ID</th>
               <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
               <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Proceso</th>
               <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Actividad</th>
@@ -40,6 +41,7 @@
             {% for operacion in operaciones %}
             <tr id="operacion_{{ operacion.id_operacion }}">
               <td>{{ loop.index }}</td>
+              <td>{{ operacion.id_operacion }}</td>
               <td>{{ operacion.nombre_empleado }}</td>
               <td>{{ operacion.proceso }}</td>
               <td>{{ operacion.actividad }}</td>
