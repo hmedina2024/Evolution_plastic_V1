@@ -1437,6 +1437,7 @@ def obtener_op():
                     SELECT DISTINCT
                         o.codigo_op
                     FROM tbl_ordenproduccion AS o
+                    WHERE estado IS NOT NULL AND estado NOT IN  ('TER','ANULA','ANULADA')
                     ORDER BY o.codigo_op DESC
                     """)
                 cursor.execute(querySQL,)
