@@ -4,6 +4,10 @@
 <!--Inicio del block-->
 {% block body %}
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-4">
@@ -32,17 +36,17 @@
           width="100%">
           <thead>
             <tr>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. Proceso</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Nombre Proceso</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Descripcion del Proceso</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha de Registro</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. Proceso</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Nombre Proceso</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Descripción del Proceso</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha de Registro</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
           <tbody>
-            {% for proceso in procesos %} 
-            <tr id="proceso_{{ proceso.id_proceso }}"></tr>           
+            {% for proceso in procesos %}
+            <tr id="proceso_{{ proceso.id_proceso }}">
               <td>{{ loop.index }}</td>
               <td>{{ proceso.codigo_proceso }}</td>
               <td>{{ proceso.nombre_proceso }}</td>
@@ -74,8 +78,31 @@
           </tbody>
         </table>
       </div>
+      <!-- Paginación con Flask-Paginate -->
+      <div class="pagination">
+        {{ pagination.links }}
+      </div>
     </div>
   </div>
 </div>
 
 {% endblock %}
+<script>
+  $(document).ready(function() {
+      $('#tbl_procesos').DataTable({
+          "pageLength": 10,  // Registros por página
+          "order": [[1, "desc"]],  // Ordenar por la columna Cod. Proceso (índice 1) descendente
+          "responsive": true,
+          "scrollY": "500px",
+          "scrollCollapse": true,
+          "paging": false  // Desactiva la paginación de DataTables para evitar conflictos con Flask-Paginate
+      });
+  });
+
+  // Función para eliminar proceso (ajusta según tu lógica)
+  function eliminarProceso(id_proceso) {
+      if (confirm('¿Estás seguro de eliminar este proceso?')) {
+          window.location.href = '/borrar-proceso/' + id_proceso;
+      }
+  }
+</script>

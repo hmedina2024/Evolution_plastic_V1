@@ -1,53 +1,41 @@
-
 # Para subir archivo tipo foto al servidor
 from werkzeug.utils import secure_filename
-import uuid  # Modulo de python para crear un string
-
-from conexion.conexionBD import connectionBD  # Conexión a BD
-
+import uuid  # Módulo de Python para crear un string
+import os
+from os import remove, path  # Módulos para manejar archivos
+from app import app  # Importa la instancia de Flask desde app.py
+from conexion.models import db, Operaciones, Empleados, TipoEmpleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa modelos desde models.py
 import datetime
 import re
-import os
-
-from os import remove  # Modulo  para remover archivo
-from os import path  # Modulo para obtener la ruta o directorio
-
-
-import openpyxl  # Para generar el excel
-# biblioteca o modulo send_file para forzar la descarga
-from flask import send_file,session
+import openpyxl  # Para generar el Excel
+from flask import send_file, session, Flask
+from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
     # Formateando documento
     documento_sin_puntos = re.sub('[^0-9]+', '', dataForm['documento'])
-    # Convertir documento a INT
     documento = int(documento_sin_puntos)
 
     result_foto_perfil = procesar_imagen_perfil(foto_perfil)
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                # Verificar si el documento ya existe
-                sql_check = "SELECT COUNT(*) as count FROM tbl_empleados WHERE documento = %s AND fecha_borrado iS NULL"
-                cursor.execute(sql_check, (documento,))
-                resultado_check = cursor.fetchone()
-                
-                if resultado_check['count'] > 0:
-                    return False, "Documento ya existe, no se pudo guardar el empleado."
-
-                # Si el documento no existe, proceder con la inserción
-                sql_insert = "INSERT INTO tbl_empleados (documento, nombre_empleado, apellido_empleado, tipo_empleado, telefono_empleado, email_empleado, cargo, foto_empleado) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-                valores = (documento, dataForm['nombre_empleado'], dataForm['apellido_empleado'], dataForm['tipo_empleado'],
-                            dataForm['telefono_empleado'], dataForm['email_empleado'], dataForm['cargo'], result_foto_perfil)
-                cursor.execute(sql_insert, valores)
-
-                conexion_MySQLdb.commit()
-                return True, "El empleado fue registrado con éxito."
-
+        empleado = Empleados(
+            documento=documento,
+            nombre_empleado=dataForm['nombre_empleado'],
+            apellido_empleado=dataForm['apellido_empleado'],
+            tipo_empleado=dataForm['tipo_empleado'],
+            telefono_empleado=dataForm['telefono_empleado'],
+            email_empleado=dataForm['email_empleado'],
+            cargo=dataForm['cargo'],
+            foto_empleado=result_foto_perfil
+        )
+        db.session.add(empleado)
+        db.session.commit()
+        return True, "El empleado fue registrado con éxito."
     except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_empleado: {str(e)}')
         return False, f'Se produjo un error en procesar_form_empleado: {str(e)}'
-
 
 def procesar_imagen_perfil(foto):
     try:
@@ -76,559 +64,401 @@ def procesar_imagen_perfil(foto):
         return nombreFile
 
     except Exception as e:
-        print("Error al procesar archivo:", e)
+        app.logger.error("Error al procesar archivo:", e)
         return []
-    
+
 def obtener_tipo_empleado():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT DISTINCT
-                        id_tipo_empleado,
-                        tipo_empleado
-                    FROM tbl_tipo_empleado AS t
-                    ORDER BY t.id_tipo_empleado ASC
-                    """)
-                cursor.execute(querySQL)
-                tipo_empleadoBD = cursor.fetchall()
-                
-                # Retornar los resultados directamente
-                return tipo_empleadoBD
+        return TipoEmpleado.query.distinct(TipoEmpleado.id_tipo_empleado, TipoEmpleado.tipo_empleado).order_by(TipoEmpleado.id_tipo_empleado.asc()).all()
     except Exception as e:
-        print(f"Error en la función obtener_tipo_empleado: {e}")
+        app.logger.error(f"Error en la función obtener_tipo_empleado: {e}")
         return None
 
-
-# Lista de Empleados
-def sql_lista_empleadosBD():
+# Lista de Empleados con paginación
+def sql_lista_empleadosBD(page=1, per_page=10):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = (f"""
-                    SELECT 
-                        e.id_empleado,
-                        e.documento,
-                        e.nombre_empleado, 
-                        e.apellido_empleado,                        
-                        e.foto_empleado,
-                        e.cargo,
-                        T.tipo_empleado AS tipo_empleado
-                    FROM tbl_empleados AS e
-                    LEFT JOIN tbl_tipo_empleado AS T ON T.id_tipo_empleado=e.tipo_empleado
-                    WHERE fecha_borrado iS NULL
-                    ORDER BY e.id_empleado DESC
-                    """)
-                cursor.execute(querySQL,)
-                empleadosBD = cursor.fetchall()
-        return empleadosBD
+        offset = (page - 1) * per_page
+        query = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.desc()).limit(per_page).offset(offset)
+        empleadosBD = query.all()
+        return [{'id_empleado': e.id_empleado, 'documento': e.documento, 'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado, 'foto_empleado': e.foto_empleado, 'cargo': e.cargo, 'tipo_empleado': t.tipo_empleado if t else None} for e, t in empleadosBD]
     except Exception as e:
-        print(
-            f"Errro en la función sql_lista_empleadosBD: {e}")
+        app.logger.error(f"Error en la función sql_lista_empleadosBD: {e}")
         return None
-
+    
+    
+# Total empleados:
+def get_total_empleados():
+    try:
+        return db.session.query(Empleados).filter(Empleados.fecha_borrado.is_(None)).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_empleados: {e}")
+        return 0
 
 # Detalles del Empleado
-def sql_detalles_empleadosBD(idEmpleado):
+def sql_detalles_empleadosBD(id_empleado):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        e.id_empleado,
-                        e.documento,
-                        e.nombre_empleado, 
-                        e.apellido_empleado,                        
-                        T.tipo_empleado AS tipo_empleado,
-                        e.telefono_empleado, 
-                        e.email_empleado,
-                        e.cargo,
-                        e.foto_empleado,
-                        DATE_FORMAT(e.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro
-                    FROM tbl_empleados AS e
-                    LEFT JOIN tbl_tipo_empleado AS T ON T.id_tipo_empleado=e.tipo_empleado
-                    WHERE id_empleado =%s
-                    ORDER BY e.id_empleado DESC
-                    """)
-                cursor.execute(querySQL, (idEmpleado,))
-                empleadosBD = cursor.fetchone()
-        return empleadosBD
-    except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_empleadosBD: {e}")
+        empleado = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.id_empleado == id_empleado).first()
+        if empleado:
+            e, t = empleado
+            return {
+                'id_empleado': e.id_empleado,
+                'documento': e.documento,
+                'nombre_empleado': e.nombre_empleado,
+                'apellido_empleado': e.apellido_empleado,
+                'tipo_empleado': t.tipo_empleado if t else None,
+                'telefono_empleado': e.telefono_empleado,
+                'email_empleado': e.email_empleado,
+                'cargo': e.cargo,
+                'foto_empleado': e.foto_empleado,
+                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+            }
         return None
-
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_detalles_empleadosBD: {e}")
+        return None
 
 # Funcion Empleados Informe (Reporte)
-def empleadosReporte():
+def empleados_reporte():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        e.id_empleado,
-                        e.documento,
-                        e.nombre_empleado, 
-                        e.apellido_empleado,                        
-                        e.email_empleado,
-                        e.telefono_empleado,
-                        e.cargo,
-                        DATE_FORMAT(e.fecha_registro, '%d de %b %Y %h:%i %p') AS fecha_registro,
-                        CASE
-                            WHEN e.tipo_empleado = 1 THEN 'Directo'
-                            ELSE 'Temporal'
-                        END AS tipo_empleado
-                    FROM tbl_empleados AS e
-                    ORDER BY e.id_empleado DESC
-                    """)
-                cursor.execute(querySQL,)
-                empleadosBD = cursor.fetchall()
-        return empleadosBD
+        empleados = db.session.query(Empleados).order_by(Empleados.id_empleado.desc()).all()
+        return [{
+            'id_empleado': e.id_empleado,
+            'documento': e.documento,
+            'nombre_empleado': e.nombre_empleado,
+            'apellido_empleado': e.apellido_empleado,
+            'email_empleado': e.email_empleado,
+            'telefono_empleado': e.telefono_empleado,
+            'cargo': e.cargo,
+            'fecha_registro': e.fecha_registro.strftime('%d de %b %Y %I:%M %p'),
+            'tipo_empleado': 'Directo' if e.tipo_empleado == 1 else 'Temporal'
+        } for e in empleados]
     except Exception as e:
-        print(
-            f"Errro en la función empleadosReporte: {e}")
+        app.logger.error(f"Error en la función empleados_reporte: {e}")
         return None
 
-
-def generarReporteExcel():
-    dataEmpleados = empleadosReporte()
+def generar_reporte_excel():
+    data_empleados = empleados_reporte()
     wb = openpyxl.Workbook()
     hoja = wb.active
 
     # Agregar la fila de encabezado con los títulos
-    cabeceraExcel = ("Documento","Nombre", "Apellido", "Tipo Empleado",
-                     "Telefono", "Email", "Profesión", "Fecha de Ingreso")
-
-    hoja.append(cabeceraExcel)
+    cabecera_excel = ("Documento", "Nombre", "Apellido", "Tipo Empleado", "Telefono", "Email", "Profesión", "Fecha de Ingreso")
+    hoja.append(cabecera_excel)
 
     # Formato para números en moneda colombiana y sin decimales
     formato_moneda_colombiana = '#,##0'
 
     # Agregar los registros a la hoja
-    for registro in dataEmpleados:
-        documento = registro['documento']
-        nombre_empleado = registro['nombre_empleado']
-        apellido_empleado = registro['apellido_empleado']
-        tipo_empleado = registro['tipo_empleado']
-        telefono_empleado = registro['telefono_empleado']
-        email_empleado = registro['email_empleado']
-        cargo = registro['cargo']
-        fecha_registro = registro['fecha_registro']
+    for registro in data_empleados:
+        hoja.append((
+            registro['documento'],
+            registro['nombre_empleado'],
+            registro['apellido_empleado'],
+            registro['tipo_empleado'],
+            registro['telefono_empleado'],
+            registro['email_empleado'],
+            registro['cargo'],
+            registro['fecha_registro']
+        ))
 
-        # Agregar los valores a la hoja
-        hoja.append((documento,nombre_empleado, apellido_empleado, tipo_empleado, telefono_empleado, email_empleado, cargo,
-                      fecha_registro))
-
-        # Itera a través de las filas y aplica el formato a la columna G
+        # Itera a través de las filas y aplica el formato a la columna G (Profesión)
         for fila_num in range(2, hoja.max_row + 1):
-            columna = 7  # Columna G
+            columna = 7  # Columna G (Profesión)
             celda = hoja.cell(row=fila_num, column=columna)
             celda.number_format = formato_moneda_colombiana
 
     fecha_actual = datetime.datetime.now()
-    archivoExcel = f"Reporte_empleados_{fecha_actual.strftime('%Y_%m_%d')}.xlsx"
+    archivo_excel = f"Reporte_empleados_{fecha_actual.strftime('%Y_%m_%d')}.xlsx"
     carpeta_descarga = "../static/downloads-excel"
-    ruta_descarga = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), carpeta_descarga)
+    ruta_descarga = os.path.join(os.path.dirname(os.path.abspath(__file__)), carpeta_descarga)
 
     if not os.path.exists(ruta_descarga):
         os.makedirs(ruta_descarga)
         # Dando permisos a la carpeta
         os.chmod(ruta_descarga, 0o755)
 
-    ruta_archivo = os.path.join(ruta_descarga, archivoExcel)
+    ruta_archivo = os.path.join(ruta_descarga, archivo_excel)
     wb.save(ruta_archivo)
 
     # Enviar el archivo como respuesta HTTP
     return send_file(ruta_archivo, as_attachment=True)
 
-
-def buscarEmpleadoBD(search):
+def buscar_empleado_bd(search):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            e.id_empleado,
-                            e.documento,
-                            e.nombre_empleado, 
-                            e.apellido_empleado,
-                            e.cargo,                            
-                            CASE
-                                WHEN e.tipo_empleado = 1 THEN 'Directo'
-                                ELSE 'Temporal'
-                            END AS tipo_empleado
-                        FROM tbl_empleados AS e
-                        WHERE e.apellido_empleado LIKE %s AND fecha_borrado iS NULL
-                        ORDER BY e.id_empleado DESC
-                    """)
-                search_pattern = f"%{search}%"  # Agregar "%" alrededor del término de búsqueda
-                mycursor.execute(querySQL, (search_pattern,))
-                resultado_busqueda = mycursor.fetchall()
-                return resultado_busqueda
-
+        query = db.session.query(Empleados).filter(Empleados.apellido_empleado.ilike(f'%{search}%'), Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.desc()).all()
+        return [{
+            'id_empleado': e.id_empleado,
+            'documento': e.documento,
+            'nombre_empleado': e.nombre_empleado,
+            'apellido_empleado': e.apellido_empleado,
+            'cargo': e.cargo,
+            'tipo_empleado': 'Directo' if e.tipo_empleado == 1 else 'Temporal'
+        } for e in query]
     except Exception as e:
-        print(f"Ocurrió un error en def buscarEmpleadoBD: {e}")
+        app.logger.error(f"Ocurrió un error en def buscar_empleado_bd: {e}")
         return []
-
-
 
 def validate_document(documento):
-    connection = connectionBD()
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM tbl_empleados WHERE documento = %s AND fecha_borrado iS NULL" , (documento,))
-        result = cursor.fetchone()
-    connection.close()
-    return result is not None
-
-
-
-def buscarEmpleadoUnico(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            e.id_empleado,
-                            e.documento,
-                            e.nombre_empleado, 
-                            e.apellido_empleado,
-                            T.tipo_empleado AS tipo_empleado,
-                            T.id_tipo_empleado,
-                            e.telefono_empleado,
-                            e.email_empleado,
-                            e.cargo,                            
-                            e.foto_empleado
-                        FROM tbl_empleados AS e
-                        LEFT JOIN tbl_tipo_empleado AS T ON T.id_tipo_empleado=e.tipo_empleado
-                        WHERE e.id_empleado =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                empleado = mycursor.fetchone()
-                return empleado
-
+        empleado = db.session.query(Empleados).filter_by(documento=documento, fecha_borrado=None).first()
+        return empleado is not None
     except Exception as e:
-        print(f"Ocurrió un error en def buscarEmpleadoUnico: {e}")
-        return []
+        app.logger.error(f"Error en validate_document: {e}")
+        return False
 
+def buscar_empleado_unico(id):
+    try:
+        empleado = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.id_empleado == id).first()
+        if empleado:
+            e, t = empleado
+            return {
+                'id_empleado': e.id_empleado,
+                'documento': e.documento,
+                'nombre_empleado': e.nombre_empleado,
+                'apellido_empleado': e.apellido_empleado,
+                'tipo_empleado': t.tipo_empleado if t else None,
+                'id_tipo_empleado': t.id_tipo_empleado if t else None,
+                'telefono_empleado': e.telefono_empleado,
+                'email_empleado': e.email_empleado,
+                'cargo': e.cargo,
+                'foto_empleado': e.foto_empleado
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Ocurrió un error en def buscar_empleado_unico: {e}")
+        return None
 
 def procesar_actualizacion_form(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                nombre_empleado = data.form['nombre_empleado']
-                apellido_empleado = data.form['apellido_empleado']
-                tipo_empleado = data.form['tipo_empleado']
-                telefono_empleado = data.form['telefono_empleado']
-                email_empleado = data.form['email_empleado']
-                cargo = data.form['cargo']
+        empleado = db.session.query(Empleados).filter_by(id_empleado=data.form['id_empleado']).first()
+        if empleado:
+            documento_sin_puntos = re.sub('[^0-9]+', '', data.form['documento'])
+            documento = int(documento_sin_puntos)
 
-                documento_sin_puntos = re.sub(
-                    '[^0-9]+', '', data.form['documento'])
-                documento = int(documento_sin_puntos)
-                id_empleado = data.form['id_empleado']
+            empleado.documento = documento
+            empleado.nombre_empleado = data.form['nombre_empleado']
+            empleado.apellido_empleado = data.form['apellido_empleado']
+            empleado.tipo_empleado = data.form['tipo_empleado']
+            empleado.telefono_empleado = data.form['telefono_empleado']
+            empleado.email_empleado = data.form['email_empleado']
+            empleado.cargo = data.form['cargo']
 
-                if data.files['foto_empleado']:
-                    file = data.files['foto_empleado']
-                    fotoForm = procesar_imagen_perfil(file)
+            if 'foto_empleado' in data.files and data.files['foto_empleado']:
+                file = data.files['foto_empleado']
+                foto_form = procesar_imagen_perfil(file)
+                empleado.foto_empleado = foto_form
 
-                    querySQL = """
-                        UPDATE tbl_empleados
-                        SET 
-                            documento = %s,
-                            nombre_empleado = %s,
-                            apellido_empleado = %s,
-                            tipo_empleado = %s,
-                            telefono_empleado = %s,
-                            email_empleado = %s,
-                            cargo = %s,                            
-                            foto_empleado = %s
-                        WHERE id_empleado = %s
-                    """
-                    values = (documento,nombre_empleado, apellido_empleado, tipo_empleado,
-                                telefono_empleado, email_empleado, cargo,
-                                fotoForm, id_empleado)
-                else:
-                    querySQL = """
-                        UPDATE tbl_empleados
-                        SET 
-                            documento = %s,
-                            nombre_empleado = %s,
-                            apellido_empleado = %s,
-                            tipo_empleado = %s,
-                            telefono_empleado = %s,
-                            email_empleado = %s,
-                            cargo = %s                            
-                        WHERE id_empleado = %s
-                    """
-                    values = (documento, nombre_empleado, apellido_empleado, tipo_empleado,
-                                telefono_empleado, email_empleado, cargo,
-                                id_empleado)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
-    except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizacion_form: {e}")
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
         return None
-
-
-# Lista de Usuarios creados
-def lista_usuariosBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "SELECT id, name_surname, email_user,rol, created_user FROM users WHERE email_user !='admin@admin.com' ORDER BY created_user DESC"
-                cursor.execute(querySQL,)
-                usuariosBD = cursor.fetchall()
-        return usuariosBD
     except Exception as e:
-        print(f"Error en lista_usuariosBD : {e}")
-        return []
-
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizacion_form: {e}")
+        return None
 
 # Eliminar Empleado
-def eliminarEmpleado(id_empleado, foto_empleado):
+def eliminar_empleado(id_empleado, foto_empleado):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "UPDATE tbl_empleados SET fecha_borrado = CURRENT_TIMESTAMP WHERE id_empleado=%s"
-                cursor.execute(querySQL, (id_empleado,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
+        empleado = db.session.query(Empleados).filter_by(id_empleado=id_empleado).first()
+        if empleado:
+            empleado.fecha_borrado = datetime.datetime.now()
+            db.session.commit()
 
-                if resultado_eliminar:
-                    # Eliminadon foto_empleado desde el directorio
-                    basepath = path.dirname(__file__)
-                    url_File = path.join(
-                        basepath, '../static/fotos_empleados', foto_empleado)
+            # Eliminando foto_empleado desde el directorio
+            basepath = path.dirname(__file__)
+            url_file = path.join(basepath, '../static/fotos_empleados', foto_empleado)
 
-                    if path.exists(url_File):
-                        remove(url_File)  # Borrar foto desde la carpeta
+            if path.exists(url_file):
+                remove(url_file)  # Borrar foto desde la carpeta
 
-        return resultado_eliminar
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminarEmpleado : {e}")
-        return []
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_empleado: {e}")
+        return 0
 
+### Usuarios
+# Lista de Usuarios con paginación
+def sql_lista_usuarios_bd(page=1, per_page=10):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Users).filter(Users.email_user != 'admin@admin.com').order_by(Users.created_user.desc()).limit(per_page).offset(offset)
+        usuarios_bd = query.all()
+        return [{
+            'id': u.id,
+            'name_surname': u.name_surname,
+            'email_user': u.email_user,
+            'rol': u.rol,
+            'created_user': u.created_user
+        } for u in usuarios_bd]
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_lista_usuarios_bd: {e}")
+        return None
+
+# Total Usuarios
+def get_total_usuarios():
+    try:
+        return db.session.query(Users).filter(Users.email_user != 'admin@admin.com').count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_usuarios: {e}")
+        return 0
 
 # Eliminar usuario
-def eliminarUsuario(id):
+def eliminar_usuario(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM users WHERE id=%s"
-                cursor.execute(querySQL, (id,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-
-        return resultado_eliminar
+        usuario = db.session.query(Users).filter_by(id=id).first()
+        if usuario:
+            db.session.delete(usuario)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminarUsuario : {e}")
-        return []
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_usuario: {e}")
+        return 0
 
-
-
-
-
-
-
-### PROCESOS    
+### Procesos
 def procesar_form_proceso(dataForm):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-
-                sql = "INSERT INTO tbl_procesos (codigo_proceso, nombre_proceso, descripcion_proceso) VALUES (%s, %s, %s)"
-
-                # Creando una tupla con los valores del INSERT
-                valores = (dataForm['cod_proceso'], dataForm['nombre_proceso'], dataForm['descripcion_proceso'])
-                cursor.execute(sql, valores)
-
-                conexion_MySQLdb.commit()
-                resultado_insert = cursor.rowcount
-                return resultado_insert
-
+        proceso = Procesos(
+            codigo_proceso=dataForm['cod_proceso'],
+            nombre_proceso=dataForm['nombre_proceso'],
+            descripcion_proceso=dataForm['descripcion_proceso']
+        )
+        db.session.add(proceso)
+        db.session.commit()
+        return 1  # Indica éxito (rowcount)
     except Exception as e:
-        return f'Se produjo un error en procesar_form_proceso: {str(e)}'
-
-
-# Lista de Procesos
-def sql_lista_procesosBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = """
-                    SELECT 
-                        p.id_proceso,
-                        p.codigo_proceso,
-                        p.nombre_proceso,
-                        p.descripcion_proceso,                        
-                        p.fecha_registro
-                    FROM tbl_procesos AS p
-                    ORDER BY p.id_proceso DESC
-                    """
-                cursor.execute(querySQL)
-                procesosBD = cursor.fetchall()
-        return procesosBD
-    except Exception as e:
-        print(f"Error en la función sql_lista_procesosBD: {e}")
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_proceso: {str(e)}')
         return None
 
+# Lista de Procesos con paginación
+def sql_lista_procesos_bd(page=1, per_page=10):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Procesos).order_by(Procesos.id_proceso.desc()).limit(per_page).offset(offset)
+        procesos_bd = query.all()
+        return [{
+            'id_proceso': p.id_proceso,
+            'codigo_proceso': p.codigo_proceso,
+            'nombre_proceso': p.nombre_proceso,
+            'descripcion_proceso': p.descripcion_proceso,
+            'fecha_registro': p.fecha_registro
+        } for p in procesos_bd]
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_lista_procesos_bd: {e}")
+        return None
+
+# Total procesos:
+def get_total_procesos():
+    try:
+        return db.session.query(Procesos).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_procesos: {e}")
+        return 0
 
 # Detalles del Proceso
-def sql_detalles_procesosBD(id_proceso):
+def sql_detalles_procesos_bd(id_proceso):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        p.id_proceso,
-                        p.codigo_proceso,
-                        p.nombre_proceso,
-                        p.descripcion_proceso,
-                        DATE_FORMAT(e.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro
-                    FROM tbl_procesos AS p
-                    WHERE codigo_proceso =%s
-                    ORDER BY p.id_proceso DESC
-                    """)
-                cursor.execute(querySQL, (id_proceso,))
-                procesosBD = cursor.fetchone()
-        return procesosBD
+        proceso = db.session.query(Procesos).filter_by(codigo_proceso=id_proceso).first()
+        if proceso:
+            return {
+                'id_proceso': proceso.id_proceso,
+                'codigo_proceso': proceso.codigo_proceso,
+                'nombre_proceso': proceso.nombre_proceso,
+                'descripcion_proceso': proceso.descripcion_proceso,
+                'fecha_registro': proceso.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+            }
+        return None
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_empleadosBD: {e}")
+        app.logger.error(f"Error en la función sql_detalles_procesos_bd: {e}")
         return None
 
-
-
-def buscarProcesoUnico(id):
+def buscar_proceso_unico(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            p.id_proceso,
-                            p.codigo_proceso,
-                            p.nombre_proceso,
-                            p.descripcion_proceso,                        
-                            p.fecha_registro
-                        FROM tbl_procesos AS p
-                        WHERE p.id_proceso =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                proceso = mycursor.fetchone()
-                return proceso
-
+        proceso = db.session.query(Procesos).filter_by(id_proceso=id).first()
+        if proceso:
+            return {
+                'id_proceso': proceso.id_proceso,
+                'codigo_proceso': proceso.codigo_proceso,
+                'nombre_proceso': proceso.nombre_proceso,
+                'descripcion_proceso': proceso.descripcion_proceso,
+                'fecha_registro': proceso.fecha_registro
+            }
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en def buscarProcesoUnico: {e}")
-        return []
-
+        app.logger.error(f"Ocurrió un error en def buscar_proceso_unico: {e}")
+        return None
 
 def procesar_actualizar_form(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                codigo_proceso = data.form['codigo_proceso']
-                nombre_proceso = data.form['nombre_proceso']
-                descripcion_proceso = data.form['descripcion_proceso']
-                id_proceso = data.form['id_proceso']             
-                querySQL = """
-                    UPDATE tbl_procesos
-                    SET 
-                        codigo_proceso = %s,
-                        nombre_proceso = %s,
-                        descripcion_proceso = %s
-                    WHERE id_proceso = %s
-                """
-                values = (codigo_proceso, nombre_proceso, descripcion_proceso,id_proceso)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
+        proceso = db.session.query(Procesos).filter_by(id_proceso=data.form['id_proceso']).first()
+        if proceso:
+            proceso.codigo_proceso = data.form['codigo_proceso']
+            proceso.nombre_proceso = data.form['nombre_proceso']
+            proceso.descripcion_proceso = data.form['descripcion_proceso']
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizar_form: {e}")
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_form: {e}")
         return None
 
 # Eliminar Procesos
-def eliminarProceso(id_proceso):
+def eliminar_proceso(id_proceso):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_procesos WHERE id_proceso=%s"
-                cursor.execute(querySQL, (id_proceso,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-        return resultado_eliminar
+        proceso = db.session.query(Procesos).filter_by(id_proceso=id_proceso).first()
+        if proceso:
+            db.session.delete(proceso)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminarProceso : {e}")
-        return []
-    
-    
-    
-    
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_proceso: {e}")
+        return 0
 
-
-### CLIENTES    
+### Clientes
 def procesar_form_cliente(dataForm, foto_perfil_cliente):
     # Formateando documento
     documento_sin_puntos = re.sub('[^0-9]+', '', dataForm['documento'])
-    # convertir documento a INT
     documento = int(documento_sin_puntos)
 
     result_foto_cliente = procesar_imagen_cliente(foto_perfil_cliente)
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-
-                sql = "INSERT INTO tbl_clientes (tipo_documento,documento,nombre_cliente, telefono_cliente, email_cliente, foto_cliente) VALUES (%s, %s, %s, %s, %s, %s)"
-
-                # Creando una tupla con los valores del INSERT
-                valores = (dataForm['tipo_documento'],documento,dataForm['nombre_cliente'],dataForm['telefono_cliente'], dataForm['email_cliente'], result_foto_cliente)
-                cursor.execute(sql, valores)
-
-                conexion_MySQLdb.commit()
-                resultado_insert = cursor.rowcount
-                return resultado_insert
-
+        cliente = Clientes(
+            tipo_documento=dataForm['tipo_documento'],
+            documento=documento,
+            nombre_cliente=dataForm['nombre_cliente'],
+            telefono_cliente=dataForm['telefono_cliente'],
+            email_cliente=dataForm['email_cliente'],
+            foto_cliente=result_foto_cliente
+        )
+        db.session.add(cliente)
+        db.session.commit()
+        return 1  # Indica éxito (rowcount)
     except Exception as e:
-        return f'Se produjo un error en procesar_form_cliente: {str(e)}'
-
-
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_cliente: {str(e)}')
+        return None
 
 def validar_documento_cliente(documento):
-    connection = connectionBD()
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM tbl_clientes WHERE documento = %s AND fecha_borrado iS NULL" , (documento,))
-        result = cursor.fetchone()
-    connection.close()
-    return result is not None
-
-
+    try:
+        cliente = db.session.query(Clientes).filter_by(documento=documento, fecha_borrado=None).first()
+        return cliente is not None
+    except Exception as e:
+        app.logger.error(f"Error en validar_documento_cliente: {e}")
+        return False
 
 def obtener_tipo_documento():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT DISTINCT
-                        id_tipo_documento,
-                        td_abreviacion
-                    FROM tbl_tipo_documento AS d
-                    ORDER BY d.id_tipo_documento ASC
-                    """)
-                cursor.execute(querySQL)
-                tipo_documentoBD = cursor.fetchall()
-                
-                # Retornar los resultados directamente
-                return tipo_documentoBD
+        return TipoDocumento.query.distinct(TipoDocumento.id_tipo_documento, TipoDocumento.td_abreviacion).order_by(TipoDocumento.id_tipo_documento.asc()).all()
     except Exception as e:
-        print(f"Error en la función obtener_tipo_documento: {e}")
+        app.logger.error(f"Error en la función obtener_tipo_documento: {e}")
         return None
-
-
 
 def procesar_imagen_cliente(foto):
     try:
@@ -657,964 +487,811 @@ def procesar_imagen_cliente(foto):
         return nombreFile
 
     except Exception as e:
-        print("Error al procesar archivo:", e)
+        app.logger.error("Error al procesar archivo:", e)
         return []
 
-
-# Lista de Clientes
-def sql_lista_clientesBD():
+# Lista de Clientes con paginación
+def sql_lista_clientes_bd(page=1, per_page=10):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = (f"""
-                    SELECT 
-                        e.id_cliente,                        
-                        e.tipo_documento,
-                        e.documento,
-                        e.nombre_cliente, 
-                        e.telefono_cliente,                        
-                        e.foto_cliente,
-                        e.email_cliente                        
-                    FROM tbl_clientes AS e
-                    WHERE fecha_borrado IS NULL
-                    ORDER BY e.id_cliente DESC
-                    """)
-                cursor.execute(querySQL,)
-                clientesBD = cursor.fetchall()
-        return clientesBD
+        offset = (page - 1) * per_page
+        query = db.session.query(Clientes).filter(Clientes.fecha_borrado.is_(None)).order_by(Clientes.id_cliente.desc()).limit(per_page).offset(offset)
+        clientes_bd = query.all()
+        return [{
+            'id_cliente': c.id_cliente,
+            'tipo_documento': c.tipo_documento,
+            'documento': c.documento,
+            'nombre_cliente': c.nombre_cliente,
+            'telefono_cliente': c.telefono_cliente,
+            'foto_cliente': c.foto_cliente,
+            'email_cliente': c.email_cliente
+        } for c in clientes_bd]
     except Exception as e:
-        print(
-            f"Errro en la función sql_lista_clientesBD: {e}")
+        app.logger.error(f"Error en la función sql_lista_clientes_bd: {e}")
         return None
+
+# Total clientes:
+def get_total_clientes():
+    try:
+        return db.session.query(Clientes).filter(Clientes.fecha_borrado.is_(None)).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_clientes: {e}")
+        return 0
 
 
 # Detalles del Cliente
-def sql_detalles_clientesBD(idCliente):
+def sql_detalles_clientes_bd(id_cliente):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        e.id_cliente,
-                        e.tipo_documento,
-                        e.documento,
-                        e.nombre_cliente,                      
-                        e.telefono_cliente, 
-                        e.email_cliente,
-                        e.foto_cliente,
-                        DATE_FORMAT(e.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro
-                    FROM tbl_clientes AS e
-                    WHERE id_cliente =%s
-                    ORDER BY e.id_cliente DESC
-                    """)
-                cursor.execute(querySQL, (idCliente,))
-                clientesBD = cursor.fetchone()
-        return clientesBD
+        cliente = db.session.query(Clientes).filter_by(id_cliente=id_cliente).first()
+        if cliente:
+            return {
+                'id_cliente': cliente.id_cliente,
+                'tipo_documento': cliente.tipo_documento,
+                'documento': cliente.documento,
+                'nombre_cliente': cliente.nombre_cliente,
+                'telefono_cliente': cliente.telefono_cliente,
+                'email_cliente': cliente.email_cliente,
+                'foto_cliente': cliente.foto_cliente,
+                'fecha_registro': cliente.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+            }
+        return None
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_clientesBD: {e}")
+        app.logger.error(f"Error en la función sql_detalles_clientes_bd: {e}")
         return None
 
-
-def buscarClienteBD(search):
+def buscar_cliente_bd(search):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            e.id_cliente,
-                            e.tipo_documento,
-                            e.documento,
-                            e.nombre_cliente, 
-                            e.email_cliente,            
-                        FROM tbl_clientes AS e
-                        WHERE e.nombre_cliente LIKE %s  
-                        ORDER BY e.id_cliente DESC
-                    """)
-                search_pattern = f"%{search}%"  # Agregar "%" alrededor del término de búsqueda
-                mycursor.execute(querySQL, (search_pattern,))
-                resultado_busqueda = mycursor.fetchall()
-                return resultado_busqueda
-
+        query = db.session.query(Clientes).filter(Clientes.nombre_cliente.ilike(f'%{search}%')).order_by(Clientes.id_cliente.desc()).all()
+        return [{
+            'id_cliente': c.id_cliente,
+            'tipo_documento': c.tipo_documento,
+            'documento': c.documento,
+            'nombre_cliente': c.nombre_cliente,
+            'email_cliente': c.email_cliente
+        } for c in query]
     except Exception as e:
-        print(f"Ocurrió un error en def buscarClienteBD: {e}")
+        app.logger.error(f"Ocurrió un error en def buscar_cliente_bd: {e}")
         return []
 
-
-def buscarClienteUnico(id):
+def buscar_cliente_unico(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            e.id_cliente,
-                            e.documento,
-                            e.nombre_cliente, 
-                            e.tipo_documento,
-                            e.telefono_cliente,
-                            e.email_cliente,
-                            e.foto_cliente
-                        FROM tbl_clientes AS e
-                        WHERE e.id_cliente =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                cliente = mycursor.fetchone()
-                return cliente
-
+        cliente = db.session.query(Clientes).filter_by(id_cliente=id).first()
+        if cliente:
+            return {
+                'id_cliente': cliente.id_cliente,
+                'documento': cliente.documento,
+                'nombre_cliente': cliente.nombre_cliente,
+                'tipo_documento': cliente.tipo_documento,
+                'telefono_cliente': cliente.telefono_cliente,
+                'email_cliente': cliente.email_cliente,
+                'foto_cliente': cliente.foto_cliente
+            }
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en def buscarClienteUnico: {e}")
-        return []
-
+        app.logger.error(f"Ocurrió un error en def buscar_cliente_unico: {e}")
+        return None
 
 def procesar_actualizacion_cliente(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                tipo_documento = data.form['tipo_documento']
-                nombre_cliente = data.form['nombre_cliente']               
-                telefono_cliente = data.form['telefono_cliente']
-                email_cliente = data.form['email_cliente']
-                documento_sin_puntos = re.sub(
-                    '[^0-9]+', '', data.form['documento'])
-                documento = int(documento_sin_puntos)
-                id_cliente = data.form['id_cliente']
-                if data.files['foto_cliente']:
-                    file = data.files['foto_cliente']
-                    fotoForm = procesar_imagen_cliente(file)
-                    querySQL = """
-                        UPDATE tbl_clientes
-                        SET 
-                            tipo_documento = %s,
-                            nombre_cliente = %s,                                                       
-                            telefono_cliente = %s,
-                            email_cliente = %s,
-                            documento = %s,                            
-                            foto_cliente = %s
-                        WHERE id_cliente = %s
-                    """
-                    values = (tipo_documento,nombre_cliente,telefono_cliente, email_cliente,documento,
-                                fotoForm, id_cliente)
-                else:
-                    querySQL = """
-                        UPDATE tbl_clientes
-                        SET 
-                            tipo_documento = %s,
-                            nombre_cliente = %s,                                                       
-                            telefono_cliente = %s,
-                            email_cliente = %s,
-                            documento = %s                            
-                        WHERE id_cliente = %s
-                    """
-                    values = (tipo_documento,nombre_cliente,telefono_cliente, email_cliente,documento,id_cliente)
+        cliente = db.session.query(Clientes).filter_by(id_cliente=data.form['id_cliente']).first()
+        if cliente:
+            documento_sin_puntos = re.sub('[^0-9]+', '', data.form['documento'])
+            documento = int(documento_sin_puntos)
 
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
+            cliente.tipo_documento = data.form['tipo_documento']
+            cliente.nombre_cliente = data.form['nombre_cliente']
+            cliente.telefono_cliente = data.form['telefono_cliente']
+            cliente.email_cliente = data.form['email_cliente']
+            cliente.documento = documento
 
-        return cursor.rowcount or []
-    except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizacion_cliente: {e}")
+            if 'foto_cliente' in data.files and data.files['foto_cliente']:
+                file = data.files['foto_cliente']
+                foto_form = procesar_imagen_cliente(file)
+                cliente.foto_cliente = foto_form
+
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
         return None
-
-
-# # Lista de Usuarios creados
-# def lista_usuariosBD():
-#     try:
-#         with connectionBD() as conexion_MySQLdb:
-#             with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-#                 querySQL = "SELECT id, name_surname, email_user, created_user,rol FROM users"
-#                 cursor.execute(querySQL,)
-#                 usuariosBD = cursor.fetchall()
-#         return usuariosBD
-#     except Exception as e:
-#         print(f"Error en lista_usuariosBD : {e}")
-#         return []
-
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizacion_cliente: {e}")
+        return None
 
 # Eliminar Cliente
-def eliminarCliente(id_cliente, foto_cliente):
+def eliminar_cliente(id_cliente, foto_cliente):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "UPDATE tbl_clientes SET fecha_borrado = CURRENT_TIMESTAMP WHERE id_cliente=%s"               
-                cursor.execute(querySQL, (id_cliente,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
+        cliente = db.session.query(Clientes).filter_by(id_cliente=id_cliente).first()
+        if cliente:
+            cliente.fecha_borrado = datetime.datetime.now()
+            db.session.commit()
 
-                if resultado_eliminar:
-                    # Eliminadon foto_empleado desde el directorio
-                    basepath = path.dirname(__file__)
-                    url_File = path.join(
-                        basepath, '../static/fotos_clientes', foto_cliente)
+            # Eliminando foto_cliente desde el directorio
+            basepath = path.dirname(__file__)
+            url_file = path.join(basepath, '../static/fotos_clientes', foto_cliente)
 
-                    if path.exists(url_File):
-                        remove(url_File)  # Borrar foto desde la carpeta
+            if path.exists(url_file):
+                remove(url_file)  # Borrar foto desde la carpeta
 
-        return resultado_eliminar
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminarCliente : {e}")
-        return []
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_cliente: {e}")
+        return 0
 
-
-
-
-
-
-
-
-
-
-
-
-
-### ACTIVIDADES    
+### Actividades
 def procesar_form_actividad(dataForm):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-
-                sql = "INSERT INTO tbl_actividades (codigo_actividad, nombre_actividad, descripcion_actividad) VALUES (%s, %s, %s)"
-
-                # Creando una tupla con los valores del INSERT
-                valores = (dataForm['cod_actividad'], dataForm['nombre_actividad'], dataForm['descripcion_actividad'])
-                cursor.execute(sql, valores)
-
-                conexion_MySQLdb.commit()
-                resultado_insert = cursor.rowcount
-                return resultado_insert
-
+        actividad = Actividades(
+            codigo_actividad=dataForm['cod_actividad'],
+            nombre_actividad=dataForm['nombre_actividad'],
+            descripcion_actividad=dataForm['descripcion_actividad']
+        )
+        db.session.add(actividad)
+        db.session.commit()
+        return 1  # Indica éxito (rowcount)
     except Exception as e:
-        return f'Se produjo un error en procesar_form_actividad: {str(e)}'
-
-
-# Lista de Actividades
-def sql_lista_actividadesBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = """
-                    SELECT 
-                        a.id_actividad,
-                        a.codigo_actividad,
-                        a.nombre_actividad,
-                        a.descripcion_actividad,                        
-                        a.fecha_registro
-                    FROM tbl_actividades AS a
-                    ORDER BY a.id_actividad DESC
-                    """
-                cursor.execute(querySQL)
-                actividadesBD = cursor.fetchall()
-        return actividadesBD
-    except Exception as e:
-        print(f"Error en la función sql_lista_actividadesBD: {e}")
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_actividad: {str(e)}')
         return None
+
+# Lista de Actividades con paginación
+def sql_lista_actividades_bd(page=1, per_page=10):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Actividades).order_by(Actividades.id_actividad.desc()).limit(per_page).offset(offset)
+        actividades_bd = query.all()
+        return [{
+            'id_actividad': a.id_actividad,
+            'codigo_actividad': a.codigo_actividad,
+            'nombre_actividad': a.nombre_actividad,
+            'descripcion_actividad': a.descripcion_actividad,
+            'fecha_registro': a.fecha_registro
+        } for a in actividades_bd]
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_lista_actividades_bd: {e}")
+        return None
+
+# Total actividades:
+def get_total_actividades():
+    try:
+        return db.session.query(Actividades).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_actividades: {e}")
+        return 0
 
 
 # Detalles de la actividad
-def sql_detalles_actividadesBD(id_actividad):
+def sql_detalles_actividades_bd(id_actividad):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        a.id_actividad,
-                        a.codigo_actividad,
-                        a.nombre_actividad,
-                        a.descripcion_actividad,
-                        DATE_FORMAT(a.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro
-                    FROM tbl_actividades AS a
-                    WHERE codigo_actividad =%s
-                    ORDER BY a.id_actividad DESC
-                    """)
-                cursor.execute(querySQL, (id_actividad,))
-                actividadBD = cursor.fetchone()
-        return actividadBD
+        actividad = db.session.query(Actividades).filter_by(codigo_actividad=id_actividad).first()
+        if actividad:
+            return {
+                'id_actividad': actividad.id_actividad,
+                'codigo_actividad': actividad.codigo_actividad,
+                'nombre_actividad': actividad.nombre_actividad,
+                'descripcion_actividad': actividad.descripcion_actividad,
+                'fecha_registro': actividad.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+            }
+        return None
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_actividadesBD: {e}")
+        app.logger.error(f"Error en la función sql_detalles_actividades_bd: {e}")
         return None
 
-
-def buscarActividadUnico(id):
+def buscar_actividad_unico(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            a.id_actividad,
-                            a.codigo_actividad,
-                            a.nombre_actividad,
-                            a.descripcion_actividad,                        
-                            a.fecha_registro
-                        FROM tbl_actividades AS a
-                        WHERE a.id_actividad =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                actividad = mycursor.fetchone()
-                return actividad
-
+        actividad = db.session.query(Actividades).filter_by(id_actividad=id).first()
+        if actividad:
+            return {
+                'id_actividad': actividad.id_actividad,
+                'codigo_actividad': actividad.codigo_actividad,
+                'nombre_actividad': actividad.nombre_actividad,
+                'descripcion_actividad': actividad.descripcion_actividad,
+                'fecha_registro': actividad.fecha_registro
+            }
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en def buscarActividadUnico: {e}")
-        return []
-
+        app.logger.error(f"Ocurrió un error en def buscar_actividad_unico: {e}")
+        return None
 
 def procesar_actualizar_actividad(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                codigo_actividad = data.form['codigo_actividad']
-                nombre_actividad = data.form['nombre_actividad']
-                descripcion_actividad = data.form['descripcion_actividad']
-                id_actividad = data.form['id_actividad']             
-                querySQL = """
-                    UPDATE tbl_actividades
-                    SET 
-                        codigo_actividad = %s,
-                        nombre_actividad = %s,
-                        descripcion_actividad = %s
-                    WHERE id_actividad = %s
-                """
-                values = (codigo_actividad, nombre_actividad, descripcion_actividad,id_actividad)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
-    except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizar_actividad: {e}")
+        actividad = db.session.query(Actividades).filter_by(id_actividad=data.form['id_actividad']).first()
+        if actividad:
+            actividad.codigo_actividad = data.form['codigo_actividad']
+            actividad.nombre_actividad = data.form['nombre_actividad']
+            actividad.descripcion_actividad = data.form['descripcion_actividad']
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
         return None
-
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_actividad: {e}")
+        return None
 
 # Eliminar Actividades
-def eliminarActividad(id_actividad):
+def eliminar_actividad(id_actividad):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_actividades WHERE id_actividad=%s"
-                cursor.execute(querySQL, (id_actividad,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-        return resultado_eliminar
+        actividad = db.session.query(Actividades).filter_by(id_actividad=id_actividad).first()
+        if actividad:
+            db.session.delete(actividad)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminaractividad : {e}")
-        return []
-    
-    
-    
-    
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_actividad: {e}")
+        return 0
 
-
-### OPERACION DIARIA    
+### Operación Diaria
 def obtener_id_empleados():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        DISTINCT 
-                        concat(e.nombre_empleado," ",e.apellido_empleado) as nombre_empleado,
-                        e.id_empleado
-                    FROM tbl_empleados AS e
-                    WHERE fecha_borrado IS NULL
-                    ORDER BY e.id_empleado ASC
-                    """)
-                cursor.execute(querySQL,)
-                empleadosBD = cursor.fetchall()
-                
-                # Extraer solo los valores de id_empleado de los diccionarios
-                id_empleados = [empleado['nombre_empleado'] for empleado in empleadosBD]
-        return id_empleados
+        empleados = db.session.query(Empleados).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.asc()).all()
+        return [f"{e.nombre_empleado} {e.apellido_empleado}" for e in empleados]
     except Exception as e:
-        print(f"Error en la función obtener_id_empleados: {e}")
+        app.logger.error(f"Error en la función obtener_id_empleados: {e}")
         return None
-    
+
 def obtener_nombre_empleado(id_empleado):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                consulta = ("""SELECT CONCAT(nombre_empleado, ' ', apellido_empleado) as nombre_empleado FROM tbl_empleados WHERE id_empleado = %s""")
-                cursor.execute(consulta, (id_empleado,))
-
-                # Obtiene el resultado de la consulta
-                resultado = cursor.fetchone()
-                # Retorna el nombre del empleado si hay un resultado
-                return resultado
-
+        empleado = db.session.query(Empleados).filter_by(id_empleado=id_empleado).first()
+        if empleado:
+            return {'nombre_empleado': f"{empleado.nombre_empleado} {empleado.apellido_empleado}"}
+        return {'nombre_empleado': None}
     except Exception as e:
-        print(f"Error al obtener el nombre del empleado: {e}")
-        return None
+        app.logger.error(f"Error en obtener_nombre_empleado: {e}")
+        return {'nombre_empleado': None}
 
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-    
-    
-    
 def obtener_proceso():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT DISTINCT
-                        nombre_proceso  
-                    FROM tbl_procesos AS e
-                    ORDER BY e.nombre_proceso ASC
-                    """)
-                cursor.execute(querySQL,)
-                procesosBD = cursor.fetchall()                
-                # Extraer solo los valores de procesos de los diccionarios
-                nombre_proceso = [proceso['nombre_proceso'] for proceso in procesosBD]
-        return nombre_proceso
+        procesos = db.session.query(Procesos.nombre_proceso).all()
+        return [p[0] for p in procesos]
     except Exception as e:
-        print(f"Error en la función obtener_nombre_proceso: {e}")
-        return None
-    
-    
+        app.logger.error(f"Error en obtener_proceso: {e}")
+        return []
+
 def obtener_actividad():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT DISTINCT
-                        codigo_actividad
-                    FROM tbl_actividades AS e
-                    ORDER BY e.codigo_actividad ASC
-                    """)
-                cursor.execute(querySQL,)
-                actividadBD = cursor.fetchall()                
-                # Extraer solo los valores de actividad de los diccionarios
-                nombre_actividad = [actividad['codigo_actividad'] for actividad in actividadBD]
-        return nombre_actividad
+        actividades = db.session.query(Actividades.nombre_actividad).all()
+        return [a[0] for a in actividades]
     except Exception as e:
-        print(f"Error en la función obtener_nombre_actividad: {e}")
-        return None
-
+        app.logger.error(f"Error en obtener_actividad: {e}")
+        return []
 
 def procesar_form_operacion(dataForm):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                # Obtener el id_empleado basado en el nombre_empleado
-                query_id = "SELECT id_empleado FROM tbl_empleados WHERE CONCAT(nombre_empleado, ' ', apellido_empleado) = %s"
-                nombre_completo = dataForm['nombre_empleado']
-                
-                cursor.execute(query_id, (nombre_completo,))
-                result = cursor.fetchone()
-                
-                if result:
-                    id_empleado = result['id_empleado']
-                    
-                    # Inserción en tbl_operaciones
-                    sql = ("INSERT INTO `tbl_operaciones` (`id_empleado`,`nombre_empleado`, `proceso`,`actividad`, `codigo_op`, `cantidad`,`pieza_realizada`, `novedad`, `fecha_hora_inicio`,`fecha_hora_fin`, `usuario_registro`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
-                    
-                    valores = (
-                        id_empleado, dataForm['nombre_empleado'], dataForm['nombre_proceso'],
-                        dataForm['nombre_actividad'], dataForm['cod_op'], dataForm['cantidad'],
-                        dataForm['pieza'], dataForm['novedades'], dataForm['hora_inicio'], dataForm['hora_fin'], session['name_surname']
-                    )
-                    
-                    cursor.execute(sql, valores)
-                    conexion_MySQLdb.commit()
-                    resultado_insert = cursor.rowcount
-                    return resultado_insert
-                else:
-                    return 'No se encontró el empleado con el nombre especificado.'
+        # Obtener y validar los datos del formulario
+        nombre_empleado = dataForm.get('nombre_empleado')
+        nombre_proceso = dataForm.get('nombre_proceso')
+        nombre_actividad = dataForm.get('nombre_actividad')
+        cod_op = dataForm.get('cod_op')  # Corregimos el nombre del campo enviado desde el formulario
+        cantidad = dataForm.get('cantidad')
+        pieza = dataForm.get('pieza')
+        novedades = dataForm.get('novedades')
+        hora_inicio = dataForm.get('hora_inicio')
+        hora_fin = dataForm.get('hora_fin')
+
+        # Validar que todos los campos requeridos estén presentes
+        if not all([nombre_empleado, nombre_proceso, nombre_actividad, cod_op, cantidad, hora_inicio, hora_fin]):
+            return None  # Indica error si falta algún campo obligatorio
+
+        # Convertir cantidad a entero si es necesario
+        try:
+            cantidad = int(cantidad)
+        except (ValueError, TypeError):
+            return None  # Indica error si cantidad no es un número válido
+
+        # Buscar el empleado por nombre completo
+        empleado = db.session.query(Empleados).filter(
+            db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) = :nombre_completo")
+        ).params(nombre_completo=nombre_empleado).first()
+
+        if not empleado:
+            return 'No se encontró el empleado con el nombre especificado.'
+
+        # Convertir cod_op a entero si es necesario (asumiendo que es un ID de OrdenProduccion)
+        try:
+            codigo_op = int(cod_op)
+        except (ValueError, TypeError):
+            return 'El código de la orden de producción no es válido.'
+
+        # Crear nueva operación
+        operacion = Operaciones(
+            id_empleado=empleado.id_empleado,
+            nombre_empleado=nombre_empleado,
+            proceso=nombre_proceso,
+            actividad=nombre_actividad,
+            codigo_op=codigo_op,  # Usamos el nombre correcto del campo en el modelo
+            cantidad=cantidad,
+            pieza_realizada=pieza,
+            novedad=novedades,
+            fecha_hora_inicio=datetime.datetime.strptime(hora_inicio, '%Y-%m-%dT%H:%M'),
+            fecha_hora_fin=datetime.datetime.strptime(hora_fin, '%Y-%m-%dT%H:%M'),
+            usuario_registro=session.get('name_surname', 'Usuario desconocido')  # Asegura que siempre haya un valor
+        )
+
+        # Guardar en la base de datos
+        db.session.add(operacion)
+        db.session.commit()
+        return 1  # Indica éxito (rowcount)
     except Exception as e:
-        return f'Se produjo un error en procesar_form_operacion: {str(e)}'
-    
-    
-def sql_lista_operacionesBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = """
-                    SELECT 
-                        o.id_operacion,
-                        o.id_empleado,
-                        o.nombre_empleado,
-                        o.proceso,
-                        o.actividad,
-                        o.codigo_op,
-                        o.cantidad,
-                        o.novedad,
-                        o.fecha_hora_inicio,
-                        o.fecha_hora_fin,
-                        o.fecha_registro
-                    FROM tbl_operaciones as o
-                    ORDER BY fecha_registro DESC
-                    """
-                cursor.execute(querySQL)
-                operacionesBD = cursor.fetchall()
-        return operacionesBD
-    except Exception as e:
-        print(f"Error en la función sql_lista_operacionesBD: {e}")
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_operacion: {str(e)}')
         return None
 
-def sql_detalles_operacionesBD(id_operacion):
+# Lista de Operaciones con paginación
+def sql_lista_operaciones_bd(page=1, per_page=10):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        o.id_operacion,
-                        o.id_empleado,
-                        o.nombre_empleado,
-                        o.proceso,
-                        o.actividad,
-                        o.codigo_op,
-                        o.cantidad,
-                        o.pieza_realizada,
-                        o.novedad,
-                        o.fecha_hora_inicio,
-                        o.fecha_hora_fin,
-                        DATE_FORMAT(o.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro,
-                        o.usuario_registro
-                    FROM tbl_operaciones AS o
-                    WHERE id_operacion =%s
-                    """)
-                cursor.execute(querySQL, (id_operacion,))
-                operacionBD = cursor.fetchone()
-        return operacionBD
+        offset = (page - 1) * per_page
+        query = db.session.query(Operaciones).order_by(Operaciones.fecha_registro.desc()).limit(per_page).offset(offset)
+        operaciones_bd = query.all()
+        return [{
+            'id_operacion': o.id_operacion,
+            'nombre_empleado': o.nombre_empleado,
+            'proceso': o.proceso,
+            'actividad': o.actividad,
+            'codigo_op': o.codigo_op,
+            'cantidad': o.cantidad
+        } for o in operaciones_bd]
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_operacionesBD: {e}")
+        app.logger.error(f"Error en la función sql_lista_operaciones_bd: {e}")
         return None
     
-def buscarOperacionUnico(id):
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            o.id_operacion,
-                            o.id_empleado,
-                            o.nombre_empleado,
-                            o.proceso,
-                            o.actividad,
-                            o.codigo_op,
-                            o.cantidad,
-                            o.novedad,
-                            o.fecha_hora_inicio,
-                            o.fecha_hora_fin,
-                            o.fecha_registro
-                        FROM tbl_operaciones AS o
-                        WHERE o.id_operacion =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                operacion = mycursor.fetchone()
-                return operacion
-
-    except Exception as e:
-        print(f"Ocurrió un error en def buscarOperacionUnico: {e}")
-        return []
     
+def get_total_operaciones():
+    try:
+        return db.session.query(Operaciones).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_operaciones: {e}")
+        return 0
+
+# Detalles de la Operación
+def sql_detalles_operaciones_bd(id_operacion):
+    try:
+        operacion = db.session.query(Operaciones).filter_by(id_operacion=id_operacion).first()
+        if operacion:
+            return {
+                'id_operacion': operacion.id_operacion,
+                'id_empleado': operacion.id_empleado,
+                'nombre_empleado': operacion.nombre_empleado,
+                'proceso': operacion.proceso,
+                'actividad': operacion.actividad,
+                'codigo_op': operacion.codigo_op,
+                'cantidad': operacion.cantidad,
+                'pieza_realizada': operacion.pieza_realizada,
+                'novedad': operacion.novedad,
+                'fecha_hora_inicio': operacion.fecha_hora_inicio,
+                'fecha_hora_fin': operacion.fecha_hora_fin,
+                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'usuario_registro': operacion.usuario_registro
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_detalles_operaciones_bd: {e}")
+        return None
+
+def buscar_operacion_unico(id):
+    try:
+        operacion = db.session.query(Operaciones).filter_by(id_operacion=id).first()
+        if operacion:
+            return {
+                'id_operacion': operacion.id_operacion,
+                'id_empleado': operacion.id_empleado,
+                'nombre_empleado': operacion.nombre_empleado,
+                'proceso': operacion.proceso,
+                'actividad': operacion.actividad,
+                'codigo_op': operacion.codigo_op,
+                'cantidad': operacion.cantidad,
+                'novedad': operacion.novedad,
+                'fecha_hora_inicio': operacion.fecha_hora_inicio,
+                'fecha_hora_fin': operacion.fecha_hora_fin,
+                'fecha_registro': operacion.fecha_registro
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Ocurrió un error en def buscar_operacion_unico: {e}")
+        return None
+
 def procesar_actualizacion_operacion(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                id_operacion = data.form['id_operacion']
-                proceso = data.form['proceso']
-                actividad = data.form['actividad']
-                cantidad = data.form['cantidad']
-                novedad = data.form['novedad']             
-                querySQL = """
-                    UPDATE tbl_operaciones
-                    SET 
-                        proceso = %s,
-                        actividad = %s,
-                        cantidad = %s,
-                        novedad = %s
-                    WHERE id_operacion = %s
-                """
-                values = (proceso, actividad, cantidad,novedad,id_operacion)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
-    except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizar_actividad: {e}")
+        operacion = db.session.query(Operaciones).filter_by(id_operacion=data.form['id_operacion']).first()
+        if operacion:
+            operacion.proceso = data.form['proceso']
+            operacion.actividad = data.form['actividad']
+            operacion.cantidad = data.form['cantidad']
+            operacion.novedad = data.form['novedad']
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
         return None
-    
-# Eliminar OPeracion
-def eliminarOperacion(id_operacion):
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_operaciones WHERE id_operacion=%s"
-                cursor.execute(querySQL, (id_operacion,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-        return resultado_eliminar
     except Exception as e:
-        print(f"Error en eliminar operacion : {e}")
-        return []
-    
-    
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_actividad: {e}")
+        return None
 
+# Eliminar Operación
+def eliminar_operacion(id_operacion):
+    try:
+        operacion = db.session.query(Operaciones).filter_by(id_operacion=id_operacion).first()
+        if operacion:
+            db.session.delete(operacion)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_operacion: {e}")
+        return 0
 
-### ORDEN DE PRODUCCION
+### Orden de Producción
 def procesar_form_op(dataForm):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-
-                sql = "INSERT INTO tbl_ordenproduccion (codigo_op, nombre_cliente, producto , estado, cantidad, odi , empleado, usuario_registro) VALUES (%s, %s, %s, %s, %s, %s , %s, %s)"
-
-                # Creando una tupla con los valores del INSERT
-                valores = (dataForm['cod_op'], dataForm['nombre_cliente'], dataForm['producto'], dataForm['estado'], dataForm['cantidad'], dataForm['odi'], dataForm['vendedor'],session['name_surname'])
-                cursor.execute(sql, valores)
-
-                conexion_MySQLdb.commit()
-                resultado_insert = cursor.rowcount
-                return resultado_insert
-
+        orden = OrdenProduccion(
+            codigo_op=dataForm['cod_op'],
+            nombre_cliente=dataForm['nombre_cliente'],
+            producto=dataForm['producto'],
+            estado=dataForm['estado'],
+            cantidad=dataForm['cantidad'],
+            odi=dataForm['odi'],
+            empleado=dataForm['vendedor'],
+            usuario_registro=session['name_surname']
+        )
+        db.session.add(orden)
+        db.session.commit()
+        return 1  # Indica éxito (rowcount)
     except Exception as e:
-        return f'Se produjo un error en procesar_form_op: {str(e)}'
-
-
-
-def validar_cod_op(documento):
-    connection = connectionBD()
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM tbl_ordenproduccion WHERE codigo_op = %s AND fecha_borrado iS NULL" , (documento,))
-        result = cursor.fetchone()
-    connection.close()
-    return result is not None
-
-
-# Lista de Orden de Producción
-def sql_lista_opBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = """
-                    SELECT 
-                        p.id_op,
-                        p.codigo_op,
-                        p.nombre_cliente,
-                        p.producto,
-                        p.estado,
-                        p.cantidad, 
-                        p.odi,
-                        p.empleado,                     
-                        p.fecha_registro
-                    FROM tbl_ordenproduccion AS p
-                    ORDER BY p.codigo_op DESC
-                    """
-                cursor.execute(querySQL)
-                opBD = cursor.fetchall()
-        return opBD
-    except Exception as e:
-        print(f"Error en la función sql_lista_opBD: {e}")
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_op: {str(e)}')
         return None
 
-
-# Detalles del Orden de producción
-def sql_detalles_opBD(idOp):
+def validar_cod_op(codigo_op):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        p.id_op,
-                        p.codigo_op,
-                        p.nombre_cliente,
-                        p.producto,
-                        p.estado,
-                        p.cantidad, 
-                        p.odi,
-                        p.empleado,                        
-                        DATE_FORMAT(p.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro,
-                        p.usuario_registro
-                    FROM tbl_ordenproduccion AS p
-                    WHERE id_op =%s
-                    ORDER BY p.id_op DESC
-                    """)
-                cursor.execute(querySQL, (idOp,))
-                opBD = cursor.fetchone()
-        return opBD
+        orden = db.session.query(OrdenProduccion).filter_by(codigo_op=codigo_op, fecha_borrado=None).first()
+        return orden is not None
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_opBD: {e}")
+        app.logger.error(f"Error en validar_cod_op: {e}")
+        return False
+
+# Lista de Orden de Producción con paginación
+def sql_lista_op_bd(page=1, per_page=10):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(OrdenProduccion).order_by(OrdenProduccion.codigo_op.desc()).limit(per_page).offset(offset)
+        op_bd = query.all()
+        return [{
+            'id_op': o.id_op,
+            'codigo_op': o.codigo_op,
+            'nombre_cliente': o.nombre_cliente,
+            'producto': o.producto,
+            'estado': o.estado,
+            'cantidad': o.cantidad,
+            'odi': o.odi,
+            'empleado': o.empleado,
+            'fecha_registro': o.fecha_registro
+        } for o in op_bd]
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_lista_op_bd: {e}")
+        return None
+    
+def get_total_op():
+    try:
+        return db.session.query(OrdenProduccion).count()
+    except Exception as e:
+        app.logger.error(f"Error en get_total_op: {e}")
+        return 0
+
+# Detalles del Orden de Producción
+def sql_detalles_op_bd(id_op):
+    try:
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
+        if orden:
+            return {
+                'id_op': orden.id_op,
+                'codigo_op': orden.codigo_op,
+                'nombre_cliente': orden.nombre_cliente,
+                'producto': orden.producto,
+                'estado': orden.estado,
+                'cantidad': orden.cantidad,
+                'odi': orden.odi,
+                'empleado': orden.empleado,
+                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'usuario_registro': orden.usuario_registro
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_detalles_op_bd: {e}")
         return None
 
-
-
-def buscarOpUnico(id):
+def buscar_op_unico(id):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            p.id_op,
-                            p.codigo_op,
-                            p.nombre_cliente,
-                            p.producto,
-                            p.estado,
-                            p.cantidad, 
-                            p.odi,
-                            p.empleado,                        
-                            p.fecha_registro
-                        FROM tbl_ordenproduccion AS p
-                        WHERE p.id_op =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                op = mycursor.fetchone()
-                return op
-
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=id).first()
+        if orden:
+            return {
+                'id_op': orden.id_op,
+                'codigo_op': orden.codigo_op,
+                'nombre_cliente': orden.nombre_cliente,
+                'producto': orden.producto,
+                'estado': orden.estado,
+                'cantidad': orden.cantidad,
+                'odi': orden.odi,
+                'empleado': orden.empleado,
+                'fecha_registro': orden.fecha_registro
+            }
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en def buscarOpUnico: {e}")
-        return []
-
+        app.logger.error(f"Ocurrió un error en def buscar_op_unico: {e}")
+        return None
 
 def procesar_actualizar_form_op(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                codigo_op = data.form['codigo_op']
-                nombre_cliente = data.form['nombre_cliente']
-                producto = data.form['producto']
-                estado = data.form['estado']
-                cantidad = data.form['cantidad']
-                odi = data.form['odi']
-                empleado = data.form['empleado']
-                id_op = data.form['id_op']             
-                querySQL = """
-                    UPDATE tbl_ordenproduccion
-                    SET 
-                        codigo_op = %s,
-                        nombre_cliente = %s,
-                        producto = %s,
-                        estado = %s,
-                        cantidad = %s,
-                        odi = %s,
-                        empleado = %s
-                    WHERE id_op = %s
-                """
-                values = (codigo_op, nombre_cliente, producto,estado,cantidad,odi,empleado,id_op)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=data.form['id_op']).first()
+        if orden:
+            orden.codigo_op = data.form['codigo_op']
+            orden.nombre_cliente = data.form['nombre_cliente']
+            orden.producto = data.form['producto']
+            orden.estado = data.form['estado']
+            orden.cantidad = data.form['cantidad']
+            orden.odi = data.form['odi']
+            orden.empleado = data.form['empleado']
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return None
     except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizar_form_op: {e}")
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_form_op: {e}")
         return None
 
 # Eliminar Orden de Producción
-def eliminarOp(id_op):
+def eliminar_op(id_op):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_ordenproduccion WHERE id_op=%s"
-                cursor.execute(querySQL, (id_op,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-        return resultado_eliminar
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
+        if orden:
+            db.session.delete(orden)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
     except Exception as e:
-        print(f"Error en eliminarOp : {e}")
-        return []
-    
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_op: {e}")
+        return 0
+
 def obtener_vendedor():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""SELECT DISTINCT CONCAT(nombre_empleado, ' ', apellido_empleado) as nombre_empleado FROM tbl_empleados where fecha_borrado is null order by nombre_empleado ASC""")
-                cursor.execute(querySQL,)
-                empleadoBD = cursor.fetchall()                
-                # Extraer solo los valores de actividad de los diccionarios
-                empleado = [empleado['nombre_empleado'] for empleado in empleadoBD]
-        return empleado
+        empleados = db.session.query(Empleados).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.nombre_empleado.asc()).all()
+        return [f"{e.nombre_empleado} {e.apellido_empleado}" for e in empleados]
     except Exception as e:
-        print(f"Error en la función obtener_nombre_empleado: {e}")
+        app.logger.error(f"Error en la función obtener_nombre_empleado: {e}")
         return None
-    
+
 def obtener_op():
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT DISTINCT
-                        o.codigo_op
-                    FROM tbl_ordenproduccion AS o
-                    WHERE estado IS NOT NULL AND estado NOT IN  ('TER','ANULA','ANULADA')
-                    ORDER BY o.codigo_op DESC
-                    """)
-                cursor.execute(querySQL,)
-                opBD = cursor.fetchall()                
-                # Extraer solo los valores de actividad de los diccionarios
-                op = [op['codigo_op'] for op in opBD]
-        return op
+        ops = db.session.query(OrdenProduccion.codigo_op).all()
+        return [o[0] for o in ops]
     except Exception as e:
-        print(f"Error en la función obtener_nombre_op: {e}")
-        return None
-    
-    
-    
+        app.logger.error(f"Error en obtener_op: {e}")
+        return []
 
-
-### JORNADA DIARIA    
+### Jornada Diaria
 def procesar_form_jornada(dataForm):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                # Obtener el id_empleado basado en el nombre_empleado
-                query_id = "SELECT id_empleado FROM tbl_empleados WHERE CONCAT(nombre_empleado, ' ', apellido_empleado) = %s"
-                nombre_completo = dataForm['nombre_empleado']
-                
-                cursor.execute(query_id, (nombre_completo,))
-                result = cursor.fetchone()
-                
-                if result:
-                    id_empleado = result['id_empleado']
-                    
-                    # Inserción en tbl_jornadas
-                    sql = ("INSERT INTO `tbl_jornadas`(`id_empleado`, `nombre_empleado`, `novedad_jornada_programada`, `novedad_jornada`, `fecha_hora_llegada_programada`, `fecha_hora_salida_programada`, `fecha_hora_llegada`, `fecha_hora_salida`,`usuario_registro`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
-                    
-                    valores = (
-                        id_empleado, dataForm['nombre_empleado'], dataForm['novedad_jornada_programada'],
-                        dataForm['novedad_jornada'], dataForm['fecha_hora_llegada_programada'],
-                        dataForm['fecha_hora_salida_programada'], dataForm['fecha_hora_llegada'],
-                        dataForm['fecha_hora_salida'], session['name_surname']
-                    )
-                    
-                    cursor.execute(sql, valores)
-                    conexion_MySQLdb.commit()
-                    resultado_insert = cursor.rowcount
-                    return resultado_insert
-                else:
-                    return 'No se encontró el empleado con el nombre especificado.'
+        nombre_completo = dataForm['nombre_empleado']
+        empleado = db.session.query(Empleados).filter(db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) = :nombre_completo")).params(nombre_completo=nombre_completo).first()
+        
+        if empleado:
+            jornada = Jornadas(
+                id_empleado=empleado.id_empleado,
+                nombre_empleado=nombre_completo,
+                novedad_jornada_programada=dataForm['novedad_jornada_programada'],
+                novedad_jornada=dataForm['novedad_jornada'],
+                fecha_hora_llegada_programada=dataForm['fecha_hora_llegada_programada'],
+                fecha_hora_salida_programada=dataForm['fecha_hora_salida_programada'],
+                fecha_hora_llegada=dataForm['fecha_hora_llegada'],
+                fecha_hora_salida=dataForm['fecha_hora_salida'],
+                usuario_registro=session['name_surname']
+            )
+            db.session.add(jornada)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        else:
+            return 'No se encontró el empleado con el nombre especificado.'
     except Exception as e:
-        return f'Se produjo un error en procesar_form_jornada: {str(e)}'
-    
-    
-def sql_lista_jornadasBD():
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = """
-                    SELECT 
-                        o.id_jornada,
-                        o.id_empleado,
-                        o.nombre_empleado,
-                        o.novedad_jornada_programada,
-                        o.novedad_jornada,
-                        o.fecha_hora_llegada_programada,
-                        o.fecha_hora_salida_programada,
-                        o.fecha_hora_llegada,
-                        o.fecha_hora_salida,
-                        o.fecha_registro
-                    FROM tbl_jornadas as o
-                    ORDER BY fecha_registro DESC
-                    """
-                cursor.execute(querySQL)
-                jornadasBD = cursor.fetchall()
-        return jornadasBD
-    except Exception as e:
-        print(f"Error en la función sql_lista_jornadasBD: {e}")
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_jornada: {str(e)}')
         return None
 
-def sql_detalles_jornadasBD(id_jornada):
+# Lista de Jornadas con paginación
+def sql_lista_jornadas_bd(page=1, per_page=10):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = ("""
-                    SELECT 
-                        o.id_jornada,
-                        o.id_empleado,
-                        o.nombre_empleado,
-                        o.novedad_jornada_programada,
-                        o.novedad_jornada,
-                        o.fecha_hora_llegada_programada,
-                        o.fecha_hora_salida_programada,
-                        o.fecha_hora_llegada,
-                        o.fecha_hora_salida,
-                        DATE_FORMAT(o.fecha_registro, '%Y-%m-%d %h:%i %p') AS fecha_registro,
-                        o.usuario_registro
-                    FROM tbl_jornadas AS o
-                    WHERE id_jornada =%s
-                    """)
-                cursor.execute(querySQL, (id_jornada,))
-                jornadaBD = cursor.fetchone()
-        return jornadaBD
+        offset = (page - 1) * per_page
+        query = db.session.query(Jornadas).order_by(Jornadas.fecha_registro.desc()).limit(per_page).offset(offset)
+        jornadas_bd = query.all()
+        return [{
+            'id_jornada': j.id_jornada,
+            'id_empleado': j.id_empleado,
+            'nombre_empleado': j.nombre_empleado,
+            'novedad_jornada_programada': j.novedad_jornada_programada,
+            'novedad_jornada': j.novedad_jornada,
+            'fecha_hora_llegada_programada': j.fecha_hora_llegada_programada,
+            'fecha_hora_salida_programada': j.fecha_hora_salida_programada,
+            'fecha_hora_llegada': j.fecha_hora_llegada,
+            'fecha_hora_salida': j.fecha_hora_salida,
+            'fecha_registro': j.fecha_registro
+        } for j in jornadas_bd]
     except Exception as e:
-        print(
-            f"Errro en la función sql_detalles_jornadasBD: {e}")
+        app.logger.error(f"Error en la función sql_lista_jornadas_bd: {e}")
         return None
-    
-def buscarJornadaUnico(id):
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as mycursor:
-                querySQL = ("""
-                        SELECT 
-                            o.id_jornada,
-                            o.id_empleado,
-                            o.nombre_empleado,
-                            o.novedad_jornada_programada,
-                            o.novedad_jornada,
-                            o.fecha_hora_llegada_programada,
-                            o.fecha_hora_salida_programada,
-                            o.fecha_hora_llegada,
-                            o.fecha_hora_salida,
-                            o.fecha_registro
-                        FROM tbl_jornadas AS o
-                        WHERE o.id_jornada =%s LIMIT 1
-                    """)
-                mycursor.execute(querySQL, (id,))
-                jornada = mycursor.fetchone()
-                return jornada
 
+
+# Total Jornadas:
+def get_total_jornadas():
+    try:
+        return db.session.query(Jornadas).count()
     except Exception as e:
-        print(f"Ocurrió un error en def buscarjornadaUnico: {e}")
-        return []
-    
+        app.logger.error(f"Error en get_total_jornadas: {e}")
+        return 0
+
+# Detalles de la Jornada
+def sql_detalles_jornadas_bd(id_jornada):
+    try:
+        jornada = db.session.query(Jornadas).filter_by(id_jornada=id_jornada).first()
+        if jornada:
+            return {
+                'id_jornada': jornada.id_jornada,
+                'id_empleado': jornada.id_empleado,
+                'nombre_empleado': jornada.nombre_empleado,
+                'novedad_jornada_programada': jornada.novedad_jornada_programada,
+                'novedad_jornada': jornada.novedad_jornada,
+                'fecha_hora_llegada_programada': jornada.fecha_hora_llegada_programada,
+                'fecha_hora_salida_programada': jornada.fecha_hora_salida_programada,
+                'fecha_hora_llegada': jornada.fecha_hora_llegada,
+                'fecha_hora_salida': jornada.fecha_hora_salida,
+                'fecha_registro': jornada.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'usuario_registro': jornada.usuario_registro
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_detalles_jornadas_bd: {e}")
+        return None
+
+def buscar_jornada_unico(id):
+    try:
+        jornada = db.session.query(Jornadas).filter_by(id_jornada=id).first()
+        if jornada:
+            return {
+                'id_jornada': jornada.id_jornada,
+                'id_empleado': jornada.id_empleado,
+                'nombre_empleado': jornada.nombre_empleado,
+                'novedad_jornada_programada': jornada.novedad_jornada_programada,
+                'novedad_jornada': jornada.novedad_jornada,
+                'fecha_hora_llegada_programada': jornada.fecha_hora_llegada_programada,
+                'fecha_hora_salida_programada': jornada.fecha_hora_salida_programada,
+                'fecha_hora_llegada': jornada.fecha_hora_llegada,
+                'fecha_hora_salida': jornada.fecha_hora_salida,
+                'fecha_registro': jornada.fecha_registro
+            }
+        return None
+    except Exception as e:
+        app.logger.error(f"Ocurrió un error en def buscar_jornada_unico: {e}")
+        return None
+
 def procesar_actualizacion_jornada(data):
     try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                id_jornada = data.form['id_jornada']
-                id_empleado = data.form['id_empleado']
-                nombre_empleado = data.form['nombre_empleado']
-                novedad_jornada_programada = data.form['novedad_jornada_programada']
-                novedad_jornada = data.form['novedad_jornada']
-                fecha_hora_llegada_programada = data.form['fecha_hora_llegada_programada']
-                fecha_hora_salida_programada = data.form['fecha_hora_salida_programada']  
-                fecha_hora_llegada = data.form['fecha_hora_llegada']
-                fecha_hora_salida = data.form['fecha_hora_salida']             
-                querySQL = """
-                    UPDATE tbl_jornadas
-                    SET 
-                        id_empleado = %s,
-                        nombre_empleado = %s,
-                        novedad_jornada_programada = %s,
-                        novedad_jornada = %s,
-                        fecha_hora_llegada_programada = %s,
-                        fecha_hora_salida_programada = %s,
-                        fecha_hora_llegada = %s,
-                        fecha_hora_salida = %s
-                    WHERE id_jornada = %s
-                """
-                values = (id_empleado, nombre_empleado, novedad_jornada_programada,novedad_jornada,fecha_hora_llegada_programada,fecha_hora_salida_programada,fecha_hora_llegada,fecha_hora_salida,id_jornada)
-
-                cursor.execute(querySQL, values)
-                conexion_MySQLdb.commit()
-
-        return cursor.rowcount or []
-    except Exception as e:
-        print(f"Ocurrió un error en procesar_actualizar_jornada: {e}")
+        jornada = db.session.query(Jornadas).filter_by(id_jornada=data.form['id_jornada']).first()
+        if jornada:
+            jornada.id_empleado = data.form['id_empleado']
+            jornada.nombre_empleado = data.form['nombre_empleado']
+            jornada.novedad_jornada_programada = data.form['novedad_jornada_programada']
+            jornada.novedad_jornada = data.form['novedad_jornada']
+            jornada.fecha_hora_llegada_programada = data.form['fecha_hora_llegada_programada']
+            jornada.fecha_hora_salida_programada = data.form['fecha_hora_salida_programada']
+            jornada.fecha_hora_llegada = data.form['fecha_hora_llegada']
+            jornada.fecha_hora_salida = data.form['fecha_hora_salida']
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
         return None
-    
-# Eliminar OPeracion
-def eliminarJornada(id_jornada):
-    try:
-        with connectionBD() as conexion_MySQLdb:
-            with conexion_MySQLdb.cursor(dictionary=True) as cursor:
-                querySQL = "DELETE FROM tbl_jornadas WHERE id_jornada=%s"
-                cursor.execute(querySQL, (id_jornada,))
-                conexion_MySQLdb.commit()
-                resultado_eliminar = cursor.rowcount
-        return resultado_eliminar
     except Exception as e:
-        print(f"Error en eliminar jornada : {e}")
+        db.session.rollback()
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_jornada: {e}")
+        return None
+
+# Eliminar Jornada
+def eliminar_jornada(id_jornada):
+    try:
+        jornada = db.session.query(Jornadas).filter_by(id_jornada=id_jornada).first()
+        if jornada:
+            db.session.delete(jornada)
+            db.session.commit()
+            return 1  # Indica éxito (rowcount)
+        return 0
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_jornada: {e}")
+        return 0
+    
+
+
+
+
+## Funciones paginados filtros
+def get_empleados_paginados(page, per_page, search=None):
+    try:
+        query = db.session.query(Empleados).order_by(Empleados.id_empleado.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search),
+                    Empleados.apellido_empleado.like(search),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(search=search)
+                )
+            )
+        if page and per_page:
+            offset = (page - 1) * per_page
+            empleados = query.limit(per_page).offset(offset).all()
+        else:
+            empleados = query.all()  # Devolver todos los registros si no hay paginación
+        return [{'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_empleados_paginados: {e}")
+        return []
+
+def get_procesos_paginados(page, per_page, search=None):
+    try:
+        query = db.session.query(Procesos).order_by(Procesos.id_proceso.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Procesos.codigo_proceso.like(search),
+                    Procesos.nombre_proceso.like(search)
+                )
+            )
+        if page and per_page:
+            offset = (page - 1) * per_page
+            procesos = query.limit(per_page).offset(offset).all()
+        else:
+            procesos = query.all()  # Devolver todos los registros si no hay paginación
+        return [{'nombre_proceso': p.nombre_proceso} for p in procesos]
+    except Exception as e:
+        app.logger.error(f"Error en get_procesos_paginados: {e}")
+        return []
+
+def get_actividades_paginados(page, per_page, search=None):
+    try:
+        query = db.session.query(Actividades).order_by(Actividades.id_actividad.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Actividades.codigo_actividad.like(search),
+                    Actividades.nombre_actividad.like(search)
+                )
+            )
+        if page and per_page:
+            offset = (page - 1) * per_page
+            actividades = query.limit(per_page).offset(offset).all()
+        else:
+            actividades = query.all()  # Devolver todos los registros si no hay paginación
+        return [{'nombre_actividad': a.nombre_actividad} for a in actividades]
+    except Exception as e:
+        app.logger.error(f"Error en get_actividades_paginados: {e}")
+        return []
+
+def get_ordenes_paginadas(page, per_page, search=None):
+    try:
+        query = db.session.query(OrdenProduccion).order_by(OrdenProduccion.codigo_op.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    OrdenProduccion.codigo_op.cast(db.String).like(search),
+                    OrdenProduccion.nombre_cliente.like(search)
+                )
+            )
+        if page and per_page:
+            offset = (page - 1) * per_page
+            ordenes = query.limit(per_page).offset(offset).all()
+        else:
+            ordenes = query.all()  # Devolver todos los registros si no hay paginación
+        return [{'cod_op': o.codigo_op} for o in ordenes]
+    except Exception as e:
+        app.logger.error(f"Error en get_ordenes_paginadas: {e}")
         return []

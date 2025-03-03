@@ -4,6 +4,10 @@
 <!--Inicio del block-->
 {% block body %}
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-4">
@@ -32,18 +36,18 @@
           width="100%">
           <thead>
             <tr>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. OP</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cliente</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Producto</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. OP</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cliente</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Producto</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
           <tbody>
-            {% for op in op %} 
-            <tr id="op_{{ op.id_op }}"></tr>           
+            {% for op in op %}
+            <tr id="op_{{ op.id_op }}">
               <td>{{ loop.index }}</td>
               <td>{{ op.codigo_op }}</td>
               <td>{{ op.nombre_cliente }}</td>
@@ -89,8 +93,31 @@
           </tbody>
         </table>
       </div>
+      <!-- Paginación con Flask-Paginate -->
+      <div class="pagination">
+        {{ pagination.links }}
+      </div>
     </div>
   </div>
 </div>
 
 {% endblock %}
+<script>
+  $(document).ready(function() {
+      $('#tbl_ordenproduccion').DataTable({
+          "pageLength": 10,  // Registros por página
+          "order": [[1, "desc"]],  // Ordenar por la columna Cod. OP (índice 1) descendente
+          "responsive": true,
+          "scrollY": "500px",
+          "scrollCollapse": true,
+          "paging": false  // Desactiva la paginación de DataTables para evitar conflictos con Flask-Paginate
+      });
+  });
+
+  // Función para eliminar orden de producción (ajusta según tu lógica)
+  function eliminarOp(id_op) {
+      if (confirm('¿Estás seguro de eliminar esta orden de producción?')) {
+          window.location.href = '/borrar-op/' + id_op;
+      }
+  }
+</script>

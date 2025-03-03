@@ -9,13 +9,3 @@
 
 <script src="{{ url_for('static', filename ='assets/customJS/home.js') }}"></script>
 <script src="{{ url_for('static', filename ='assets/customJS/buscador.js') }}"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var form = document.querySelector('form');
-        var button = document.querySelector('button[type="submit"]');
-
-        form.addEventListener('submit', function() {
-            button.disabled = true;
-        });
-    });
-</script>

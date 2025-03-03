@@ -32,46 +32,41 @@
               <label for="nombre_empleado" class="form-label fw-bold text-primary">
                 Nombre Empleado
               </label>
-              <select name="nombre_empleado" id="nombre_empleado" class="form-control"
-                      title="Seleccionar Empleado" data-live-search="true"
+              <select name="nombre_empleado" id="nombre_empleado" class="form-control selectpicker"
+                      title="Seleccionar Empleado" data-live-search="true"  <!-- Habilitar búsqueda local -->
                       data-hide-disabled="true" required>
-                  {% for empleado in id_empleados %}
-                  <option value="{{ empleado }}">{{ empleado }}</option>
-                  {% endfor %}
+                  <option value="">Cargando...</option>  <!-- Placeholder inicial -->
               </select>
             </div>
             <div class="col-md-3">
               <label for="nombre_proceso" class="form-label fw-bold text-primary" required>
                 PROCESO
               </label>
-              <select name="nombre_proceso" id="nombre_proceso" class="form-control"
-                title="Seleccionar Proceso" data-live-search="true" required>
-                {% for proceso in nombre_proceso %}
-                <option value="{{ proceso }}">{{ proceso}}</option>
-                {% endfor %}
+              <select name="nombre_proceso" id="nombre_proceso" class="form-control selectpicker"
+                title="Seleccionar Proceso" data-live-search="true"  <!-- Habilitar búsqueda local -->
+                required>
+                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
               </select>
             </div>
             <div class="col-md-2">
               <label for="nombre_actividad" class="form-label fw-bold text-primary">
                 Actividad
               </label>
-              <select name="nombre_actividad" id="nombre_actividad" class="form-control"
-                title="Seleccionar Actividad" data-live-search="true" required>
-                {% for actividad in nombre_actividad %}
-                <option value="{{ actividad }}">{{ actividad}}</option>
-                {% endfor %}
+              <select name="nombre_actividad" id="nombre_actividad" class="form-control selectpicker"
+                title="Seleccionar Actividad" data-live-search="true"  <!-- Habilitar búsqueda local -->
+                required>
+                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
               </select>
             </div>
             <div class="col-md-3">
               <label for="orden_produccion" class="form-label fw-bold text-primary">
-                Orden de Produccion
+                Orden de Producción
               </label>
-              <select name="cod_op" id="cod_op" class="form-control"
-              title="Seleccionar OP" data-live-search="true" required>
-              {% for op in codigo_op %}
-              <option value="{{ op }}">{{ op}}</option>
-              {% endfor %}
-            </select>
+              <select name="cod_op" id="cod_op" class="form-control selectpicker"
+              title="Seleccionar OP" data-live-search="true"  <!-- Habilitar búsqueda local -->
+              required>
+                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
+              </select>
             </div> 
             <div class="row mt-3">                          
               <div class="col-md-2">
@@ -80,7 +75,7 @@
                 </label>
                 <input
                   class="form-control"
-                  type="INT"
+                  type="number" 
                   name="cantidad"
                   id="documento"
                   required />
@@ -139,7 +134,8 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block customJS %}
+{% endblock %} 
+{% block customJS %}
 <script
   src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
 <script
@@ -149,34 +145,105 @@
 <script
   src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
 <script>
-  $(document).ready(function (){
-        $("#nombre_empleado").selectpicker();
-        $("#nombre_proceso").selectpicker();
-        $("#nombre_actividad").selectpicker();
-        $("#cod_op").selectpicker();
+  $(document).ready(function () {
+    console.log("Documento listo, inicializando selectpickers...");
 
-        // Manejar el evento de cambio en el campo id_empleado
-        $("#id_empleado").change(function() {
-            var id_empleado = $(this).val();
-            
+    // Verificar carga de dependencias
+    if (typeof jQuery === 'undefined') console.error("jQuery no se cargó correctamente");
+    if (typeof bootstrap === 'undefined') console.error("Bootstrap no se cargó correctamente");
+    if (typeof $.fn.selectpicker === 'undefined') console.error("Bootstrap Select no se cargó correctamente");
 
-            // Realizar una solicitud AJAX para obtener el nombre del empleado
-            $.ajax({
-                url: "/registrar-operacion",
-                method: "POST",
-                data: { id_empleado: id_empleado },
-                dataType: "json",
-                success: function (data) {
-                  console.log(data.nombre_empleado['nombre_empleado']);
-                    // Actualizar el valor del campo nombre_empleado con el nombre obtenido
-                    $("#nombre_empleado").val(data.nombre_empleado['nombre_empleado']);
-                },
-                error: function (xhr, status, error) {
-                    console.error("Error al obtener el nombre del empleado:", error);
-                }
-            });
-            console.log(data.nombre_empleado)
-        });
+    // Inicializar selectpickers
+    $(".selectpicker").selectpicker({
+        liveSearch: true,
+        liveSearchStyle: 'contains',
+        liveSearchNormalize: true,
+        size: 10,
+        noneSelectedText: 'Seleccionar...',
+        actionsBox: true
     });
-  </script>
+
+    // Función para cargar todas las opciones
+    function loadOptions(selectId, url, dataKey, valueKey, textKey) {
+        console.log(`Cargando opciones para ${selectId} desde ${url}`);
+        $.ajax({
+            url: url,
+            method: "GET",
+            dataType: "json",
+            success: function(data) {
+                console.log(`Datos recibidos para ${selectId}:`, data);
+                let options = '<option value="">Seleccionar...</option>';
+                if (data[dataKey] && Array.isArray(data[dataKey]) && data[dataKey].length > 0) {
+                    data[dataKey].forEach(item => {
+                        options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
+                    });
+                } else {
+                    options += '<option value="">No hay opciones disponibles</option>';
+                }
+                $(`#${selectId}`).html(options).selectpicker('refresh');
+            },
+            error: function(xhr, status, error) {
+                console.error(`Error al cargar opciones para ${selectId}:`, error, xhr.responseText);
+                $(`#${selectId}`).html('<option value="">Error al cargar...</option>').selectpicker('refresh');
+            }
+        });
+    }
+
+    // Función para búsqueda dinámica sin limitar a 10 registros
+    function searchOptions(selectId, url, dataKey, valueKey, textKey, searchTerm) {
+        console.log(`Buscando en ${selectId} con término: ${searchTerm}`);
+        $.ajax({
+            url: url,
+            method: "GET",
+            data: { search: searchTerm },
+            dataType: "json",
+            success: function(data) {
+                console.log(`Resultados de búsqueda para ${selectId}:`, data);
+                let options = '<option value="">Seleccionar...</option>';
+                if (data[dataKey] && Array.isArray(data[dataKey])) {
+                    data[dataKey].forEach(item => {
+                        options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
+                    });
+                } else {
+                    options += '<option value="">No se encontraron resultados</option>';
+                }
+                $(`#${selectId}`).html(options).selectpicker('refresh');
+            },
+            error: function(xhr, status, error) {
+                console.error(`Error al buscar en ${selectId}:`, error, xhr.responseText);
+                $(`#${selectId}`).html('<option value="">Error al buscar...</option>').selectpicker('refresh');
+            }
+        });
+    }
+
+    // Eventos para búsqueda dinámica
+    $("#nombre_empleado, #nombre_proceso, #nombre_actividad, #cod_op").on('input', '.bs-searchbox input', function(e) {
+        let selectId = $(this).closest('.bootstrap-select').find('select').attr('id');
+        let searchTerm = e.target.value.trim();
+        let urlMap = {
+            nombre_empleado: "/api/empleados",
+            nombre_proceso: "/api/procesos",
+            nombre_actividad: "/api/actividades",
+            cod_op: "/api/ordenes-produccion"
+        };
+        let dataKeyMap = {
+            nombre_empleado: "empleados",
+            nombre_proceso: "procesos",
+            nombre_actividad: "actividades",
+            cod_op: "ordenes"
+        };
+
+        if (urlMap[selectId]) {
+            searchOptions(selectId, urlMap[selectId], dataKeyMap[selectId], selectId, selectId, searchTerm);
+        }
+    });
+
+    // Cargar datos iniciales
+    loadOptions("nombre_empleado", "/api/empleados", "empleados", "nombre_empleado", "nombre_empleado");
+    loadOptions("nombre_proceso", "/api/procesos", "procesos", "nombre_proceso", "nombre_proceso");
+    loadOptions("nombre_actividad", "/api/actividades", "actividades", "nombre_actividad", "nombre_actividad");
+    loadOptions("cod_op", "/api/ordenes-produccion", "ordenes", "cod_op", "cod_op");
+});
+
+</script>
 {% endblock %}

@@ -4,6 +4,10 @@
 <!--Inicio del block-->
 {% block body %}
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-4">
@@ -24,12 +28,12 @@
           width="100%">
           <thead>
             <tr>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Llegada Real</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Salida Real</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Novedad en Jornada Real</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Llegada Real</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Salida Real</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Novedad en Jornada Real</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
               <!-- <th>Novedad</th> -->
             </tr>
           </thead>
@@ -83,8 +87,31 @@
           </tbody>
         </table>
       </div>
+      <!-- Paginación con Flask-Paginate -->
+      <div class="pagination">
+        {{ pagination.links }}
+      </div>
     </div>
   </div>
 </div>
 
 {% endblock %}
+<script>
+  $(document).ready(function() {
+      $('#tbl_clientes').DataTable({
+          "pageLength": 10,  // Registros por página (ajusta a 10 si prefieres)
+          "order": [[1, "desc"]],  // Ordenar por la columna Empleado (índice 1) descendente
+          "responsive": true,
+          "scrollY": "500px",
+          "scrollCollapse": true,
+          "paging": false  // Desactiva la paginación de DataTables para evitar conflictos con Flask-Paginate
+      });
+  });
+
+  // Función para eliminar jornada (ajusta según tu lógica)
+  function eliminarJornada(id_jornada) {
+      if (confirm('¿Estás seguro de eliminar esta jornada?')) {
+          window.location.href = '/borrar-jornada/' + id_jornada;
+      }
+  }
+</script>

@@ -4,27 +4,16 @@
 <!--Inicio del block-->
 {% block body %}
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-4">
       <h3 class="text-center mt-2 mb-3">LISTA DE CLIENTES</h3>
       <hr />
-    <!-- </div> 
-      <div class="row justify-content-end">
-      <div class="col-md-6 mt-4 py-2 menu-item {% if request.path == '/registrar-cliente' %} active {% endif %}" style="text-align: left;">
-        <a href="{{ url_for('viewFormCliente') }}" class="btn btn-info btn-sm">
-            <i class="bi bi-person-vcard"></i> Registrar Nuevo Cliente
-        </a>
-     </div>
-       <div class="col-md-6 mt-4 py-2">
-        <input
-          type="search"
-          id="search"
-          class="form-control border-0 shadow-none"
-          placeholder="Buscar cliente..."
-          onkeyup="buscadorTable('tbl_clientes')" />
-      </div> 
-    </div> -->
+    </div>
 
     <div class="row justify-content-center mb-2">
       <div class="table-responsive text-nowrap table-hover" style="max-height: 500px; overflow-y: auto;">
@@ -36,12 +25,12 @@
           width="100%">
           <thead>
             <tr>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Tipo Documento</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Documento</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Nombre</th>
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Correo</th>              
-              <th style=" position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Tipo Documento</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Documento</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Nombre</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Correo</th>              
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -91,8 +80,31 @@
           </tbody>
         </table>
       </div>
+      <!-- Paginación con Flask-Paginate -->
+      <div class="pagination">
+        {{ pagination.links }}
+      </div>
     </div>
   </div>
 </div>
 
 {% endblock %}
+<script>
+  $(document).ready(function() {
+      $('#tbl_clientes').DataTable({
+          "pageLength": 10,  // Registros por página
+          "order": [[1, "desc"]],  // Ordenar por la columna Tipo Documento (índice 1) descendente
+          "responsive": true,
+          "scrollY": "500px",
+          "scrollCollapse": true,
+          "paging": false  // Desactiva la paginación de DataTables para evitar conflictos con Flask-Paginate
+      });
+  });
+
+  // Función para eliminar cliente (ajusta según tu lógica)
+  function eliminarCliente(id_cliente, foto_cliente) {
+      if (confirm('¿Estás seguro de eliminar este cliente?')) {
+          window.location.href = '/borrar-cliente/' + id_cliente + '/' + encodeURIComponent(foto_cliente);
+      }
+  }
+</script>
