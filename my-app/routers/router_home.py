@@ -103,9 +103,9 @@ def validate_document_route():
 @app.route("/editar-empleado/<int:id>", methods=['GET'])
 def viewEditarEmpleado(id):
     if 'conectado' in session:
-        respuesta_empleado = buscar_empleado_unico(id)
-        if respuesta_empleado:
-            return render_template(f'{PATH_URL}/form_empleado_update.html', respuesta_empleado=respuesta_empleado)
+        respuestaEmpleado = buscar_empleado_unico(id)
+        if respuestaEmpleado:
+            return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado)
         else:
             flash('El empleado no existe.', 'error')
             return redirect(url_for('inicio'))
@@ -537,10 +537,11 @@ def detalle_op(id_op=None):
 
 @app.route("/editar-op/<int:id>", methods=['GET'])
 def viewEditarop(id):
+    print(f"Recibido ID: {id}")
     if 'conectado' in session:
-        respuesta_op = buscar_op_unico(id)
-        if respuesta_op:
-            return render_template('public/ordenproduccion/form_op_update.html', respuesta_op=respuesta_op)
+        respuestaOp = buscar_op_unico(id)
+        if respuestaOp:
+            return render_template('public/ordenproduccion/form_op_update.html', respuestaOp=respuestaOp)
         else:
             flash('La Orden de Producción no existe.', 'error')
             return redirect(url_for('inicio'))

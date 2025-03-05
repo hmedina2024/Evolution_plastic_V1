@@ -53,7 +53,7 @@
           <tbody>
             {% for empleado in empleados %}
             <tr id="empleado_{{ empleado.id_empleado }}">
-              <td>{{ loop.index }}</td>
+              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
               <td>{{ empleado.documento }}</td>
               <td>{{ empleado.nombre_empleado }}</td>
               <td>{{ empleado.apellido_empleado }}</td>

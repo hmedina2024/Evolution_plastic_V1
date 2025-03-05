@@ -34,7 +34,7 @@
           <tbody>
             {% for operacion in operaciones %}
             <tr>
-              <td>{{ loop.index }}</td>
+              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
               <td>{{ operacion.id_operacion }}</td>
               <td>{{ operacion.nombre_empleado }}</td>
               <td>{{ operacion.proceso }}</td>

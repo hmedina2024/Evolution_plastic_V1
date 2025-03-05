@@ -29,17 +29,15 @@
         enctype="multipart/form-data">
         <div class="row">          
           <div class="col-md-4">
-            <label for="nombre_empleado"
-              class="form-label fw-bold text-primary">
+            <label for="nombre_empleado" class="form-label fw-bold text-primary">
               Nombre Empleado
             </label>
-            <select name="nombre_empleado" id="nombre_empleado" class="form-control"
-                      title="Seleccionar Empleado" data-live-search="true"
-                      data-hide-disabled="true" required>
-                  {% for empleado in id_empleados %}
-                  <option value="{{ empleado }}">{{ empleado }}</option>
-                  {% endfor %}
-              </select>
+            <select name="nombre_empleado" id="nombre_empleado" class="form-control selectpicker"
+                    title="Seleccionar Empleado" data-live-search="true" data-hide-disabled="true" required>
+              {% for empleado in id_empleados %}
+                <option value="{{ empleado }}">{{ empleado }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="row mt-4">
             <div class="col-md-3">
