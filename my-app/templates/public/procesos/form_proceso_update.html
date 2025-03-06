@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 <!--Cambiando el title-->
-{% block title %}Registrar Nuevo Proceso{% endblock %}
+{% block title %}Crud con Python 🐍 | Registrar Nuevo Proceso{% endblock %}
 <!---->
 {% block customCSS %}
 <link
@@ -29,7 +29,7 @@
       <form
         class="form-horizontal mx-auto"
         method="POST"
-        action="{{ url_for('actualizarProceso', id = respuestaProceso.id_proceso ) }}"
+        action="{{ url_for('actualizar_proceso', id = respuestaProceso.id_proceso ) }}"
         autocomplete="off"
         enctype="multipart/form-data">
         <input

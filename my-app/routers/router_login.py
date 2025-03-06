@@ -35,7 +35,7 @@ def cpanelRecoveryPassUser():
         return render_template(f'{PATH_URL_LOGIN}/auth_forgot_password.html')
 
 # Crear cuenta de usuario
-@app.route('/saved-register', methods=['POST'])
+@app.route('/saved-register', methods=['GET', 'POST'])
 def cpanel_register_user_bd():
     if request.method == 'POST' and 'name_surname' in request.form and 'pass_user' in request.form:
         name_surname = request.form['name_surname']
@@ -131,6 +131,6 @@ def cerraSesion():
 @app.route('/powerbi')
 def powerbi_report():
     report_url = "https://app.powerbi.com/view?r=eyJrIjoiZGRiZTlhMzQtYmE4Zi00NzQ4LThjYjgtMWRjOTRiNzI5Mjk0IiwidCI6IjNlN2ZhYzYyLWNkZTUtNGY2Yy04NDZhLWJiYzUxNTdjYjBjMiIsImMiOjR9"
-    resp_usuarios_bd = True  # Asegúrate de que este valor refleja la existencia de datos
-    print(f'resp_usuarios_bd: {resp_usuarios_bd}')  # Añade esto para depuración
-    return render_template('public/reporte/powerbi_report.html', report_url=report_url, resp_usuarios_bd=resp_usuarios_bd)
+    resp_usuariosBD = True  # Asegúrate de que este valor refleja la existencia de datos
+    print(f'resp_usuariosBD: {resp_usuariosBD}')  # Añade esto para depuración
+    return render_template('public/reporte/powerbi_report.html', report_url=report_url, resp_usuariosBD=resp_usuariosBD)

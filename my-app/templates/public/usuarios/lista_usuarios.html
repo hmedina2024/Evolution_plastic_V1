@@ -34,24 +34,12 @@
           <tbody>
             {% for usuario in resp_usuariosBD %}
             <tr id="usuario_{{ usuario.id }}">
-              <td>{{ loop.index }}</td>
+              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
               <td>{{ usuario.name_surname }}</td>
               <td>{{ usuario.email_user }}</td>
               <td>{{ usuario.rol }}</td>
               <td>{{ usuario.created_user }}</td>
               <td width="10px">
-                <a
-                  href="/detalles-usuario/{{ usuario.id }}"
-                  title="Ver detalles"
-                  class="btn btn-info btn-sm"
-                  data-bs-toggle="tooltip"
-                  data-bs-offset="0,4"
-                  data-bs-placement="top"
-                  data-bs-html="true"
-                  title="<span>Ver detalles</span>">
-                  <i class="bi bi-eye"></i>
-                  Ver detalles
-                </a>
                 <a
                   href="#"
                   onclick="eliminarUsuario('{{ usuario.id }}');"

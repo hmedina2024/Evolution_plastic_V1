@@ -47,7 +47,7 @@
           <tbody>
             {% for proceso in procesos %}
             <tr id="proceso_{{ proceso.id_proceso }}">
-              <td>{{ loop.index }}</td>
+              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
               <td>{{ proceso.codigo_proceso }}</td>
               <td>{{ proceso.nombre_proceso }}</td>
               <th>{{ proceso.descripcion_proceso }}</th>

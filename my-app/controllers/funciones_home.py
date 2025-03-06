@@ -10,6 +10,7 @@ import re
 import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask
 from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
+from sqlalchemy import or_
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
@@ -185,7 +186,14 @@ def generar_reporte_excel():
 
 def buscar_empleado_bd(search):
     try:
-        query = db.session.query(Empleados).filter(Empleados.apellido_empleado.ilike(f'%{search}%'), Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.desc()).all()
+        query = db.session.query(Empleados).filter(
+            db.or_(
+                Empleados.nombre_empleado.ilike(f'%{search}%'),
+                Empleados.apellido_empleado.ilike(f'%{search}%')
+            ),
+            Empleados.fecha_borrado.is_(None)
+        ).order_by(Empleados.id_empleado.desc()).all()
+
         return [{
             'id_empleado': e.id_empleado,
             'documento': e.documento,
@@ -195,8 +203,9 @@ def buscar_empleado_bd(search):
             'tipo_empleado': 'Directo' if e.tipo_empleado == 1 else 'Temporal'
         } for e in query]
     except Exception as e:
-        app.logger.error(f"Ocurrió un error en def buscar_empleado_bd: {e}")
+        app.logger.error(f"Ocurrió un error en buscar_empleado_bd: {e}")
         return []
+
 
 def validate_document(documento):
     try:
@@ -379,6 +388,7 @@ def sql_detalles_procesos_bd(id_proceso):
 def buscar_proceso_unico(id):
     try:
         proceso = db.session.query(Procesos).filter_by(id_proceso=id).first()
+        print(proceso)
         if proceso:
             return {
                 'id_proceso': proceso.id_proceso,

@@ -17,7 +17,7 @@ from controllers.funciones_home import (
     sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,
     buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
     eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso,
-    sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form as procesar_actualizar_form_proceso,
+    sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form,
     eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
     procesar_imagen_cliente, sql_lista_clientes_bd, sql_detalles_clientes_bd, buscar_cliente_bd,
     buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
@@ -87,10 +87,11 @@ def detalle_empleado(id_empleado=None):
 @app.route("/buscando-empleado", methods=['POST'])
 def view_buscar_empleado_bd():
     resultado_busqueda = buscar_empleado_bd(request.json['busqueda'])
+    
     if resultado_busqueda:
-        return render_template(f'{PATH_URL}/resultado_busqueda_empleado.html', data_busqueda=resultado_busqueda)
+        return jsonify({'data': resultado_busqueda})
     else:
-        return jsonify({'fin': 0})
+        return jsonify({'data': [], 'fin': 0})
 
 @app.route('/validate-document', methods=['POST'])
 def validate_document_route():
@@ -203,9 +204,9 @@ def detalle_proceso(codigo_proceso=None):
 @app.route("/editar-proceso/<int:id>", methods=['GET'])
 def viewEditarproceso(id):
     if 'conectado' in session:
-        respuesta_proceso = buscar_proceso_unico(id)
-        if respuesta_proceso:
-            return render_template('public/procesos/form_proceso_update.html', respuesta_proceso=respuesta_proceso)
+        respuestaProceso = buscar_proceso_unico(id)
+        if respuestaProceso:
+            return render_template('public/procesos/form_proceso_update.html', respuestaProceso=respuestaProceso)
         else:
             flash('El Proceso no existe.', 'error')
             return redirect(url_for('inicio'))
@@ -215,7 +216,7 @@ def viewEditarproceso(id):
 
 @app.route('/actualizar-proceso', methods=['POST'])
 def actualizar_proceso():
-    result_data = procesar_actualizar_form_proceso(request)
+    result_data = procesar_actualizar_form(request)
     if result_data:
         return redirect(url_for('lista_procesos'))
 
@@ -296,9 +297,9 @@ def view_buscar_cliente_bd():
 @app.route("/editar-cliente/<int:id>", methods=['GET'])
 def viewEditarCliente(id):
     if 'conectado' in session:
-        respuesta_cliente = buscar_cliente_unico(id)
-        if respuesta_cliente:
-            return render_template('public/clientes/form_cliente_update.html', respuesta_cliente=respuesta_cliente)
+        respuestaCliente = buscar_cliente_unico(id)
+        if respuestaCliente:
+            return render_template('public/clientes/form_cliente_update.html', respuestaCliente=respuestaCliente)
         else:
             flash('El cliente no existe.', 'error')
             return redirect(url_for('inicio'))
@@ -371,7 +372,7 @@ def viewEditaractividad(id):
     if 'conectado' in session:
         respuesta_actividad = buscar_actividad_unico(id)
         if respuesta_actividad:
-            return render_template('public/actividades/form_actividad_update.html', respuesta_actividad=respuesta_actividad)
+            return render_template('public/actividades/form_actividad_update.html', respuestaActividad=respuesta_actividad)
         else:
             flash('La Actividad no existe.', 'error')
             return redirect(url_for('inicio'))

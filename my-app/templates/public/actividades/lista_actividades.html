@@ -47,7 +47,7 @@
           <tbody>
             {% for actividad in actividades %}
             <tr id="actividad_{{ actividad.id_actividad }}">
-              <td>{{ loop.index }}</td>
+              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
               <td>{{ actividad.codigo_actividad }}</td>
               <td>{{ actividad.nombre_actividad }}</td>
               <th>{{ actividad.descripcion_actividad }}</th>
