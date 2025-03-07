@@ -1,9 +1,7 @@
 {% extends 'public/base_cpanel.html' %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block body %}
@@ -20,10 +18,7 @@
         <div class="row">
           <div class="col-md-4">
             <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
-            <select name="nombre_empleado" id="nombre_empleado" class="form-control selectpicker"
-                    title="Seleccionar Empleado" data-live-search="true" data-hide-disabled="true" required>
-              <option value="">Cargando...</option> <!-- Placeholder inicial -->
-            </select>
+            <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
           </div>
           <div class="row mt-4">
             <div class="col-md-3">
@@ -69,111 +64,63 @@
 {% endblock %}
 
 {% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
 <script>
-$(document).ready(function () {
-  console.log("Documento listo, inicializando selectpicker...");
-
-  // Verificar carga de dependencias
-  if (typeof jQuery === 'undefined') console.error("jQuery no se cargó correctamente");
-  if (typeof bootstrap === 'undefined') console.error("Bootstrap no se cargó correctamente");
-  if (typeof $.fn.selectpicker === 'undefined') console.error("Bootstrap Select no se cargó correctamente");
-
-  // Inicializar selectpicker
-  $("#nombre_empleado").selectpicker({
-    liveSearch: true,
-    liveSearchStyle: 'contains',
-    liveSearchNormalize: true,
-    size: 10,
-    noneSelectedText: 'Seleccionar...',
-    actionsBox: true
-  });
-
-  // Función para cargar opciones
-  function loadOptions(selectId, url, dataKey, valueKey, textKey) {
-    console.log(`Cargando opciones para ${selectId} desde ${url}`);
-    $.ajax({
-      url: url,
-      method: "GET",
-      dataType: "json",
-      success: function(data) {
-        console.log(`Datos recibidos para ${selectId}:`, data);
-        let options = '<option value="">Seleccionar...</option>';
-        if (data[dataKey] && Array.isArray(data[dataKey]) && data[dataKey].length > 0) {
-          data[dataKey].forEach(item => {
-            options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
-          });
-        } else {
-          options += '<option value="">No hay opciones disponibles</option>';
+  $(document).ready(function () {
+    // Configuración genérica para Select2 con AJAX
+    function setupSelect2(selectId, url, placeholder, dataKey) {
+      $(`#${selectId}`).select2({
+        placeholder: placeholder,
+        allowClear: true,
+        minimumInputLength: 1, // Requiere al menos 1 carácter para buscar
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250, // Retraso para evitar consultas excesivas
+          data: function (params) {
+            return {
+              search: params.term || '', // Término de búsqueda
+              page: params.page || 1,    // Paginación
+              per_page: 10              // Límite por página
+            };
+          },
+          processResults: function (data) {
+            console.log(`Datos recibidos para ${selectId}:`, data); // Para depuración
+            return {
+              results: data[dataKey].map(item => ({
+                id: Object.values(item)[0], // El valor (ej. "nombre_empleado")
+                text: Object.values(item)[0] // El texto visible
+              })),
+              pagination: {
+                more: data[dataKey].length === 10 // Si hay más resultados
+              }
+            };
+          },
+          cache: true
         }
-        $(`#${selectId}`).html(options).selectpicker('refresh');
-      },
-      error: function(xhr, status, error) {
-        console.error(`Error al cargar opciones para ${selectId}:`, error, xhr.responseText);
-        $(`#${selectId}`).html('<option value="">Error al cargar...</option>').selectpicker('refresh');
-      }
-    });
-  }
-
-  // Función para búsqueda dinámica
-  function searchOptions(selectId, url, dataKey, valueKey, textKey, searchTerm) {
-    console.log(`Buscando en ${selectId} con término: ${searchTerm}`);
-    $.ajax({
-      url: url,
-      method: "GET",
-      data: { search: searchTerm },
-      dataType: "json",
-      success: function(data) {
-        console.log(`Resultados de búsqueda para ${selectId}:`, data);
-        let options = '<option value="">Seleccionar...</option>';
-        if (data[dataKey] && Array.isArray(data[dataKey])) {
-          data[dataKey].forEach(item => {
-            options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
-          });
-        } else {
-          options += '<option value="">No se encontraron resultados</option>';
-        }
-        $(`#${selectId}`).html(options).selectpicker('refresh');
-      },
-      error: function(xhr, status, error) {
-        console.error(`Error al buscar en ${selectId}:`, error, xhr.responseText);
-        $(`#${selectId}`).html('<option value="">Error al buscar...</option>').selectpicker('refresh');
-      }
-    });
-  }
-
-  // Evento para búsqueda dinámica
-  $("#nombre_empleado").on('input', '.bs-searchbox input', function(e) {
-    let selectId = $(this).closest('.bootstrap-select').find('select').attr('id');
-    let searchTerm = e.target.value.trim();
-    if (searchTerm.length > 0) {  // Solo buscar si hay al menos un carácter
-      searchOptions(selectId, "/api/empleados", "empleados", "nombre_empleado", "nombre_empleado", searchTerm);
-    } else {
-      loadOptions(selectId, "/api/empleados", "empleados", "nombre_empleado", "nombre_empleado");
+      });
     }
+
+    // Inicializar el campo de empleados con Select2
+    setupSelect2('nombre_empleado', '/api/empleados', 'Seleccionar Empleado', 'empleados');
   });
 
-  // Cargar datos iniciales
-  loadOptions("nombre_empleado", "/api/empleados", "empleados", "nombre_empleado", "nombre_empleado");
-});
+  // Mantener las funciones de fecha por defecto
+  document.addEventListener('DOMContentLoaded', function() {
+    const fechaHoraLlegada = document.getElementById('fecha_hora_llegada_programada');
+    const fechaHoraSalida = document.getElementById('fecha_hora_salida_programada');
+    const now = new Date();
+    const año = now.getFullYear();
+    const mes = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dia = now.getDate().toString().padStart(2, '0');
 
-// Mantener las funciones de fecha por defecto
-document.addEventListener('DOMContentLoaded', function() {
-  const fechaHoraLlegada = document.getElementById('fecha_hora_llegada_programada');
-  const fechaHoraSalida = document.getElementById('fecha_hora_salida_programada');
-  const now = new Date();
-  const año = now.getFullYear();
-  const mes = (now.getMonth() + 1).toString().padStart(2, '0');
-  const dia = now.getDate().toString().padStart(2, '0');
+    const llegadaDefault = `${año}-${mes}-${dia}T06:00`;
+    const salidaDefault = `${año}-${mes}-${dia}T14:00`;
 
-  const llegadaDefault = `${año}-${mes}-${dia}T06:00`;
-  const salidaDefault = `${año}-${mes}-${dia}T14:00`;
-
-  fechaHoraLlegada.value = llegadaDefault;
-  fechaHoraSalida.value = salidaDefault;
-});
+    fechaHoraLlegada.value = llegadaDefault;
+    fechaHoraSalida.value = salidaDefault;
+  });
 </script>
 {% endblock %}

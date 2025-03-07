@@ -650,8 +650,8 @@ def borrar_jornada(id_jornada):
 # Rutas API para cargar opciones dinámicamente
 @app.route('/api/empleados', methods=['GET'])
 def api_empleados():
-    page = request.args.get('page', None, type=int)
-    per_page = request.args.get('per_page', None, type=int)
+    page = request.args.get('page', 1, type=int)  # Por defecto página 1
+    per_page = request.args.get('per_page', 10, type=int)  # Por defecto 10 registros
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     empleados = get_empleados_paginados(page, per_page, search)
@@ -659,8 +659,8 @@ def api_empleados():
 
 @app.route('/api/procesos', methods=['GET'])
 def api_procesos():
-    page = request.args.get('page', None, type=int)
-    per_page = request.args.get('per_page', None, type=int)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     procesos = get_procesos_paginados(page, per_page, search)
@@ -668,8 +668,8 @@ def api_procesos():
 
 @app.route('/api/actividades', methods=['GET'])
 def api_actividades():
-    page = request.args.get('page', None, type=int)
-    per_page = request.args.get('per_page', None, type=int)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     actividades = get_actividades_paginados(page, per_page, search)
@@ -677,8 +677,8 @@ def api_actividades():
 
 @app.route('/api/ordenes-produccion', methods=['GET'])
 def api_ordenes_produccion():
-    page = request.args.get('page', None, type=int)
-    per_page = request.args.get('per_page', None, type=int)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     ordenes = get_ordenes_paginadas(page, per_page, search)

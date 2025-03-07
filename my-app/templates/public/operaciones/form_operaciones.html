@@ -1,16 +1,10 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
 
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
-<link rel="stylesheet"
-  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
-<link rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
-<!--Inicio del block-->
+
 {% block body %}
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
@@ -21,229 +15,106 @@
   </div>
   <div class="row justify-content-center mb-2">
     <div class="col-md-11">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="/form-registrar-operacion"
-        autocomplete="off"
-        enctype="multipart/form-data">
-          <div class="row">
-            <div class="col-md-4">
-              <label for="nombre_empleado" class="form-label fw-bold text-primary">
-                Nombre Empleado
-              </label>
-              <select name="nombre_empleado" id="nombre_empleado" class="form-control selectpicker"
-                      title="Seleccionar Empleado" data-live-search="true"  <!-- Habilitar búsqueda local -->
-                      data-hide-disabled="true" required>
-                  <option value="">Cargando...</option>  <!-- Placeholder inicial -->
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label for="nombre_proceso" class="form-label fw-bold text-primary" required>
-                PROCESO
-              </label>
-              <select name="nombre_proceso" id="nombre_proceso" class="form-control selectpicker"
-                title="Seleccionar Proceso" data-live-search="true"  <!-- Habilitar búsqueda local -->
-                required>
-                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label for="nombre_actividad" class="form-label fw-bold text-primary">
-                Actividad
-              </label>
-              <select name="nombre_actividad" id="nombre_actividad" class="form-control selectpicker"
-                title="Seleccionar Actividad" data-live-search="true"  <!-- Habilitar búsqueda local -->
-                required>
-                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label for="orden_produccion" class="form-label fw-bold text-primary">
-                Orden de Producción
-              </label>
-              <select name="cod_op" id="cod_op" class="form-control selectpicker"
-              title="Seleccionar OP" data-live-search="true"  <!-- Habilitar búsqueda local -->
-              required>
-                <option value="">Cargando...</option>  <!-- Placeholder inicial -->
-              </select>
-            </div> 
-            <div class="row mt-3">                          
-              <div class="col-md-2">
-                <label for="documento" class="form-label fw-bold text-primary">
-                  Cantidad Realizada
-                </label>
-                <input
-                  class="form-control"
-                  type="number" 
-                  name="cantidad"
-                  id="documento"
-                  required />
-              </div>
-              <div class="col-md-3">
-                <label for="hora_inicio" class="form-label fw-bold text-primary" >
-                  Fecha y Hora Inicio
-                </label>
-                <input
-                  class="form-control"
-                  type="datetime-local"
-                  name="hora_inicio"
-                  required />
-              </div>
-              <div class="col-md-3">
-                <label for="hora_fin" class="form-label fw-bold text-primary">
-                  Fecha y Hora Fin
-                </label>
-                <input
-                  class="form-control"
-                  type="datetime-local"
-                  name="hora_fin"
-                  required />
-              </div> 
-
-          <div class="row mt-2">
-            <div class="col-md-5">
-              <br />
-              <label for="pieza" class="form-label fw-bold text-primary">
-                PIEZA REALIZADA
-              </label>
-              <textarea
-                class="form-control"
-                name="pieza"
-                rows="1"></textarea>
-            </div> 
-            <div class="col-md-7">
-              <br />
-              <label for="novedades" class="form-label fw-bold text-primary">
-                NOVEDADES
-              </label>
-              <textarea
-                class="form-control"
-                name="novedades"
-                rows="1"></textarea>
-            </div>
+      <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-operacion" autocomplete="off" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-4">
+            <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
+            <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
           </div>
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
+          <div class="col-md-3">
+            <label for="nombre_proceso" class="form-label fw-bold text-primary">PROCESO</label>
+            <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required></select>
           </div>
+          <div class="col-md-2">
+            <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad</label>
+            <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required></select>
+          </div>
+          <div class="col-md-3">
+            <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción</label>
+            <select name="cod_op" id="cod_op" class="form-control select2" required></select>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-2">
+            <label for="cantidad" class="form-label fw-bold text-primary">Cantidad Realizada</label>
+            <input class="form-control" type="number" name="cantidad" id="cantidad" required />
+          </div>
+          <div class="col-md-3">
+            <label for="hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio</label>
+            <input class="form-control" type="datetime-local" name="hora_inicio" required />
+          </div>
+          <div class="col-md-3">
+            <label for="hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin</label>
+            <input class="form-control" type="datetime-local" name="hora_fin" required />
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-5">
+            <br />
+            <label for="pieza" class="form-label fw-bold text-primary">PIEZA REALIZADA</label>
+            <textarea class="form-control" name="pieza" rows="1"></textarea>
+          </div>
+          <div class="col-md-7">
+            <br />
+            <label for="novedades" class="form-label fw-bold text-primary">NOVEDADES</label>
+            <textarea class="form-control" name="novedades" rows="1"></textarea>
+          </div>
+        </div>
+        <div class="mb-3 mt-4 text-center">
+          <button type="submit" class="btn rounded-pill btn-primary">
+            Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
 {% block customJS %}
-<script
-  src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
-<script
-  src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
-<script
-  src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-<script
-  src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
   $(document).ready(function () {
-    console.log("Documento listo, inicializando selectpickers...");
-
-    // Verificar carga de dependencias
-    if (typeof jQuery === 'undefined') console.error("jQuery no se cargó correctamente");
-    if (typeof bootstrap === 'undefined') console.error("Bootstrap no se cargó correctamente");
-    if (typeof $.fn.selectpicker === 'undefined') console.error("Bootstrap Select no se cargó correctamente");
-
-    // Inicializar selectpickers
-    $(".selectpicker").selectpicker({
-        liveSearch: true,
-        liveSearchStyle: 'contains',
-        liveSearchNormalize: true,
-        size: 10,
-        noneSelectedText: 'Seleccionar...',
-        actionsBox: true
-    });
-
-    // Función para cargar todas las opciones
-    function loadOptions(selectId, url, dataKey, valueKey, textKey) {
-        console.log(`Cargando opciones para ${selectId} desde ${url}`);
-        $.ajax({
-            url: url,
-            method: "GET",
-            dataType: "json",
-            success: function(data) {
-                console.log(`Datos recibidos para ${selectId}:`, data);
-                let options = '<option value="">Seleccionar...</option>';
-                if (data[dataKey] && Array.isArray(data[dataKey]) && data[dataKey].length > 0) {
-                    data[dataKey].forEach(item => {
-                        options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
-                    });
-                } else {
-                    options += '<option value="">No hay opciones disponibles</option>';
-                }
-                $(`#${selectId}`).html(options).selectpicker('refresh');
-            },
-            error: function(xhr, status, error) {
-                console.error(`Error al cargar opciones para ${selectId}:`, error, xhr.responseText);
-                $(`#${selectId}`).html('<option value="">Error al cargar...</option>').selectpicker('refresh');
-            }
-        });
-    }
-
-    // Función para búsqueda dinámica sin limitar a 10 registros
-    function searchOptions(selectId, url, dataKey, valueKey, textKey, searchTerm) {
-        console.log(`Buscando en ${selectId} con término: ${searchTerm}`);
-        $.ajax({
-            url: url,
-            method: "GET",
-            data: { search: searchTerm },
-            dataType: "json",
-            success: function(data) {
-                console.log(`Resultados de búsqueda para ${selectId}:`, data);
-                let options = '<option value="">Seleccionar...</option>';
-                if (data[dataKey] && Array.isArray(data[dataKey])) {
-                    data[dataKey].forEach(item => {
-                        options += `<option value="${item[valueKey] || ''}">${item[textKey] || ''}</option>`;
-                    });
-                } else {
-                    options += '<option value="">No se encontraron resultados</option>';
-                }
-                $(`#${selectId}`).html(options).selectpicker('refresh');
-            },
-            error: function(xhr, status, error) {
-                console.error(`Error al buscar en ${selectId}:`, error, xhr.responseText);
-                $(`#${selectId}`).html('<option value="">Error al buscar...</option>').selectpicker('refresh');
-            }
-        });
-    }
-
-    // Eventos para búsqueda dinámica
-    $("#nombre_empleado, #nombre_proceso, #nombre_actividad, #cod_op").on('input', '.bs-searchbox input', function(e) {
-        let selectId = $(this).closest('.bootstrap-select').find('select').attr('id');
-        let searchTerm = e.target.value.trim();
-        let urlMap = {
-            nombre_empleado: "/api/empleados",
-            nombre_proceso: "/api/procesos",
-            nombre_actividad: "/api/actividades",
-            cod_op: "/api/ordenes-produccion"
-        };
-        let dataKeyMap = {
-            nombre_empleado: "empleados",
-            nombre_proceso: "procesos",
-            nombre_actividad: "actividades",
-            cod_op: "ordenes"
-        };
-
-        if (urlMap[selectId]) {
-            searchOptions(selectId, urlMap[selectId], dataKeyMap[selectId], selectId, selectId, searchTerm);
+    // Configuración genérica para Select2 con AJAX
+    function setupSelect2(selectId, url, placeholder, dataKey) {
+      $(`#${selectId}`).select2({
+        placeholder: placeholder,
+        allowClear: true,
+        minimumInputLength: 1, // Requiere al menos 1 carácter para buscar
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250, // Retraso para evitar consultas excesivas
+          data: function (params) {
+            return {
+              search: params.term || '', // Término de búsqueda
+              page: params.page || 1,    // Paginación
+              per_page: 10              // Límite por página
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data[dataKey].map(item => ({
+                id: Object.values(item)[0], // El valor (ej. "nombre_empleado")
+                text: Object.values(item)[0] // El texto visible
+              })),
+              pagination: {
+                more: data[dataKey].length === 10 // Si hay más resultados
+              }
+            };
+          },
+          cache: true
         }
-    });
+      });
+    }
 
-    // Cargar datos iniciales
-    loadOptions("nombre_empleado", "/api/empleados", "empleados", "nombre_empleado", "nombre_empleado");
-    loadOptions("nombre_proceso", "/api/procesos", "procesos", "nombre_proceso", "nombre_proceso");
-    loadOptions("nombre_actividad", "/api/actividades", "actividades", "nombre_actividad", "nombre_actividad");
-    loadOptions("cod_op", "/api/ordenes-produccion", "ordenes", "cod_op", "cod_op");
-});
-
+    // Inicializar cada campo con Select2
+    setupSelect2('nombre_empleado', '/api/empleados', 'Seleccionar Empleado', 'empleados');
+    setupSelect2('nombre_proceso', '/api/procesos', 'Seleccionar Proceso', 'procesos');
+    setupSelect2('nombre_actividad', '/api/actividades', 'Seleccionar Actividad', 'actividades');
+    setupSelect2('cod_op', '/api/ordenes-produccion', 'Seleccionar OP', 'ordenes');
+  });
 </script>
 {% endblock %}
