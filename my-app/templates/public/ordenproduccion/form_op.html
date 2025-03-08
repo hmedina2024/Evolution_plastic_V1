@@ -3,11 +3,8 @@
 {% block title %}Registrar Orden de Producción{% endblock %}
 <!---->
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
-<link rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 <!--Inicio del block-->
@@ -31,22 +28,13 @@
         <div class="card-body">
           <div class="row">
             <div class="col-md-2">
-              <label for="cod_op" class="form-label fw-bold text-primary">
-                COD. OP
-              </label>
-              <input class="form-control" type="INT" name="cod_op" id="documento" required onchange="validateCodigoOp()" />
+              <label for="cod_op" class="form-label fw-bold text-primary">COD. OP</label>
+              <input class="form-control" type="number" name="cod_op" id="documento" required onchange="validateCodigoOp()" />
               <div id="documento-error" class="text-danger"></div>
             </div>
             <div class="col-md-3">
-              <label for="nombre_cliente" class="form-label fw-bold text-primary" required>
-                Nombre Cliente
-              </label>
-              <select name="nombre_cliente" id="nombre_cliente" class="form-control"
-                title="Seleccionar Cliente" data-live-search="true" required>
-                {% for cliente in clientes %}
-                <option value="{{ cliente['nombre_cliente'] }}">{{ cliente['nombre_cliente'] }}</option>
-                {% endfor %}
-              </select>
+              <label for="nombre_cliente" class="form-label fw-bold text-primary" required>Nombre Cliente</label>
+              <select name="nombre_cliente" id="nombre_cliente" class="form-control select2" required></select>
             </div> 
             <div class="col-md-3">
               <label for="estado" class="form-label fw-bold text-primary">
@@ -66,57 +54,27 @@
               </select> 
             </div>
             <div class="col-md-2">
-              <label for="documento" class="form-label fw-bold text-primary">
-                Cantidad
-              </label>
-              <input
-                class="form-control"
-                type="INT"
-                name="cantidad"
-                id="cantidad"
-                required />
+              <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+              <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
             </div>
             <div class="col-md-2">
-              <label for="odi" class="form-label fw-bold text-primary">
-                ODI <!--Orden de Desarrollo Industrial -->
-              </label>
-              <input
-                type="text"
-                name="odi"
-                class="form-control"
-                required />
+              <label for="odi" class="form-label fw-bold text-primary">ODI</label>
+              <input type="text" name="odi" class="form-control" required />
             </div>
             <div class="row mt-4">
               <div class="col-md-3">
-                <label for="vendedor" class="form-label fw-bold text-primary">
-                    Nombre Vendedor
-                </label>
-                <select name="vendedor" id="vendedor" class="form-control"
-                title="Seleccionar Vendedor" data-live-search="true" required>
-                    {% for empleado in empleados %}
-                    <option value="{{ empleado }}">{{ empleado }}</option>
-                    {% endfor %}
-                </select>
-            </div>      
+                <label for="vendedor" class="form-label fw-bold text-primary">Nombre Vendedor</label>
+                <select name="vendedor" id="vendedor" class="form-control select2" required></select>
+              </div>      
               <div class="col-md-9">
-                <label for="producto" class="form-label fw-bold text-primary">
-                    DESCRIPCION PRODUCTO
-                </label>
-                <textarea
-                    class="form-control"
-                    name="producto"                  
-                    rows="1" 
-                    required
-                ></textarea>
+                <label for="producto" class="form-label fw-bold text-primary">DESCRIPCION PRODUCTO</label>
+                <textarea class="form-control" name="producto" rows="1" required></textarea>
+              </div>
             </div>
-
-            </div>
-            
           </div>          
           <div class="mb-3 mt-4 text-center">
             <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
+              Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
             </button>
           </div>
         </div>
@@ -124,18 +82,57 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block customJS %}
-<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
-  $(document).ready(function (){
-        $("#nombre_cliente").selectpicker();
-        $("#estado").selectpicker();
-        $("#vendedor").selectpicker();
-    });
-  </script>
+  $(document).ready(function () {
+    // Configuración genérica para Select2 con AJAX
+    function setupSelect2(selectId, url, placeholder, dataKey) {
+      $(`#${selectId}`).select2({
+        placeholder: placeholder,
+        allowClear: true,
+        minimumInputLength: 1, // Requiere al menos 1 carácter para buscar
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250, // Retraso para evitar consultas excesivas
+          data: function (params) {
+            return {
+              search: params.term || '', // Término de búsqueda
+              page: params.page || 1,    // Paginación
+              per_page: 10              // Límite por página
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data[dataKey].map(item => ({
+                id: Object.values(item)[0], // El valor
+                text: Object.values(item)[0] // El texto visible
+              })),
+              pagination: {
+                more: data[dataKey].length === 10 // Si hay más resultados
+              }
+            };
+          },
+          cache: true
+        }
+      });
+    }
+
+    // Inicializar campos con Select2
+    setupSelect2('nombre_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes');
+    setupSelect2('vendedor', '/api/empleados', 'Seleccionar Vendedor', 'empleados');
+
+    // Eliminar la inicialización de bootstrap-select ya que usamos Select2
+    // $("#nombre_cliente").selectpicker();
+    // $("#estado").selectpicker();
+    // $("#vendedor").selectpicker();
+  });
+</script>
 <script>
   function validateCodigoOp() {
     const documento = document.getElementById('documento').value;

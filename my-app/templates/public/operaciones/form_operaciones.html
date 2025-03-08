@@ -25,11 +25,11 @@
             <label for="nombre_proceso" class="form-label fw-bold text-primary">PROCESO</label>
             <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required></select>
           </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad</label>
             <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required></select>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción</label>
             <select name="cod_op" id="cod_op" class="form-control select2" required></select>
           </div>
@@ -37,7 +37,7 @@
         <div class="row mt-3">
           <div class="col-md-2">
             <label for="cantidad" class="form-label fw-bold text-primary">Cantidad Realizada</label>
-            <input class="form-control" type="number" name="cantidad" id="cantidad" required />
+            <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
           </div>
           <div class="col-md-3">
             <label for="hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio</label>

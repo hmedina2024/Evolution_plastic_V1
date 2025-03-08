@@ -51,3 +51,18 @@
   text-align: center;
   color: #222;
 }
+
+
+#nombre_cliente {
+  height: auto !important; /* Permite que el tamaño se ajuste según las opciones visibles */
+  min-height: 100px !important; /* Altura mínima deseada */
+}
+#nombre_cliente.select2-container .select2-selection--single {
+  min-height: 100px !important;
+  line-height: 100px !important;
+}
+#nombre_cliente.select2-container .select2-selection--single .select2-selection__rendered {
+  line-height: 100px !important;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}

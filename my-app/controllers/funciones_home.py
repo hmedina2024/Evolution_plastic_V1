@@ -1305,3 +1305,20 @@ def get_ordenes_paginadas(page, per_page, search=None):
     except Exception as e:
         app.logger.error(f"Error en get_ordenes_paginadas: {e}")
         return []
+    
+
+def get_clientes_paginados(page, per_page, search=None):
+    try:
+        query = db.session.query(Clientes).order_by(Clientes.id_cliente.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(Clientes.nombre_cliente.like(search))
+        if page and per_page:
+            offset = (page - 1) * per_page
+            clientes = query.limit(per_page).offset(offset).all()
+        else:
+            clientes = query.all()
+        return [{'nombre_cliente': c.nombre_cliente} for c in clientes]
+    except Exception as e:
+        app.logger.error(f"Error en get_clientes_paginados: {e}")
+        return []

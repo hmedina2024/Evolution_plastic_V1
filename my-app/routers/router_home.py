@@ -8,7 +8,7 @@ from controllers.funciones_home import sql_lista_clientes_bd, get_total_clientes
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
 
-from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas
+from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas,get_clientes_paginados
 
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
@@ -683,3 +683,13 @@ def api_ordenes_produccion():
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     ordenes = get_ordenes_paginadas(page, per_page, search)
     return jsonify({'ordenes': ordenes})
+
+
+@app.route('/api/clientes', methods=['GET'])
+def api_clientes():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    clientes = get_clientes_paginados(page, per_page, search)
+    return jsonify({'clientes': clientes})
