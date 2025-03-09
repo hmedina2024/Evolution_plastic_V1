@@ -3,70 +3,74 @@
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+  .select2-container .select2-selection--single {
+    height: 38px;
+    padding: 6px 12px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 26px;
+  }
+</style>
 {% endblock %}
 
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3 fw-bold">REGISTRO OPERACION DIARIA</h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="mt-3 mb-4 fw-bold">REGISTRO OPERACIÓN DIARIA</h3>
   </div>
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-11">
-      <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-operacion" autocomplete="off" enctype="multipart/form-data">
-        <div class="row">
-          <div class="col-md-4">
-            <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
-            <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
-          </div>
-          <div class="col-md-3">
-            <label for="nombre_proceso" class="form-label fw-bold text-primary">PROCESO</label>
-            <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required></select>
-          </div>
-          <div class="col-md-3">
-            <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad</label>
-            <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required></select>
-          </div>
-          <div class="col-md-2">
-            <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción</label>
-            <select name="cod_op" id="cod_op" class="form-control select2" required></select>
-          </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-operacion" autocomplete="off" enctype="multipart/form-data" id="registroForm">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
+          <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
         </div>
-        <div class="row mt-3">
-          <div class="col-md-2">
-            <label for="cantidad" class="form-label fw-bold text-primary">Cantidad Realizada</label>
-            <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
-          </div>
-          <div class="col-md-3">
-            <label for="hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio</label>
-            <input class="form-control" type="datetime-local" name="hora_inicio" required />
-          </div>
-          <div class="col-md-3">
-            <label for="hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin</label>
-            <input class="form-control" type="datetime-local" name="hora_fin" required />
-          </div>
+        <div class="col-md-3">
+          <label for="nombre_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required></select>
         </div>
-        <div class="row mt-2">
-          <div class="col-md-5">
-            <br />
-            <label for="pieza" class="form-label fw-bold text-primary">PIEZA REALIZADA</label>
-            <textarea class="form-control" name="pieza" rows="1"></textarea>
-          </div>
-          <div class="col-md-7">
-            <br />
-            <label for="novedades" class="form-label fw-bold text-primary">NOVEDADES</label>
-            <textarea class="form-control" name="novedades" rows="1"></textarea>
-          </div>
+        <div class="col-md-3">
+          <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required></select>
         </div>
-        <div class="mb-3 mt-4 text-center">
-          <button type="submit" class="btn rounded-pill btn-primary">
-            Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
-          </button>
+        <div class="col-md-2">
+          <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
+          <select name="cod_op" id="cod_op" class="form-control select2" required></select>
         </div>
-      </form>
-    </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-2">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad Realizada <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+        </div>
+        <div class="col-md-3 position-relative">
+          <label for="hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
+          <input class="form-control" type="datetime-local" name="hora_inicio" id="hora_inicio" required />
+          <div class="invalid-feedback" id="hora_inicio_feedback"></div>
+        </div>
+        <div class="col-md-3 position-relative">
+          <label for="hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin <span class="text-danger">*</span></label>
+          <input class="form-control" type="datetime-local" name="hora_fin" id="hora_fin" required />
+          <div class="invalid-feedback" id="hora_fin_feedback"></div>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-5">
+          <label for="pieza" class="form-label fw-bold text-primary">Pieza Realizada</label>
+          <textarea class="form-control" name="pieza" rows="2" ></textarea>
+        </div>
+        <div class="col-md-7">
+          <label for="novedades" class="form-label fw-bold text-primary">Novedades</label>
+          <textarea class="form-control" name="novedades" rows="2" ></textarea>
+        </div>
+      </div>
+      <div class="text-center mt-5">
+        <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn" disabled>
+          Guardar Registro <i class="bi bi-save ms-2"></i>
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}
@@ -77,44 +81,111 @@
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
   $(document).ready(function () {
-    // Configuración genérica para Select2 con AJAX
+    // Configuración de Select2 (sin cambios aquí)
     function setupSelect2(selectId, url, placeholder, dataKey) {
       $(`#${selectId}`).select2({
         placeholder: placeholder,
         allowClear: true,
-        minimumInputLength: 1, // Requiere al menos 1 carácter para buscar
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
         ajax: {
           url: url,
           dataType: 'json',
-          delay: 250, // Retraso para evitar consultas excesivas
+          delay: 250,
           data: function (params) {
             return {
-              search: params.term || '', // Término de búsqueda
-              page: params.page || 1,    // Paginación
-              per_page: 10              // Límite por página
+              search: params.term || '',
+              page: params.page || 1,
+              per_page: 10
             };
           },
           processResults: function (data) {
             return {
               results: data[dataKey].map(item => ({
-                id: Object.values(item)[0], // El valor (ej. "nombre_empleado")
-                text: Object.values(item)[0] // El texto visible
+                id: Object.values(item)[0],
+                text: Object.values(item)[0]
               })),
-              pagination: {
-                more: data[dataKey].length === 10 // Si hay más resultados
-              }
+              pagination: { more: data[dataKey].length === 10 }
             };
           },
           cache: true
+        },
+        templateResult: function (data) {
+          return data.text;
+        },
+        templateSelection: function (data) {
+          return data.text || data.id;
         }
+      }).on('select2:open', function () {
+        setTimeout(() => {
+          document.querySelector('.select2-search__field').focus();
+        }, 50);
       });
     }
 
-    // Inicializar cada campo con Select2
-    setupSelect2('nombre_empleado', '/api/empleados', 'Seleccionar Empleado', 'empleados');
-    setupSelect2('nombre_proceso', '/api/procesos', 'Seleccionar Proceso', 'procesos');
-    setupSelect2('nombre_actividad', '/api/actividades', 'Seleccionar Actividad', 'actividades');
-    setupSelect2('cod_op', '/api/ordenes-produccion', 'Seleccionar OP', 'ordenes');
+    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados');
+    setupSelect2('nombre_proceso', '/api/procesos', 'Buscar proceso...', 'procesos');
+    setupSelect2('nombre_actividad', '/api/actividades', 'Buscar actividad...', 'actividades');
+    setupSelect2('cod_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes');
+
+    // Validaciones de fechas
+    const horaInicioInput = $('#hora_inicio');
+    const horaFinInput = $('#hora_fin');
+    const submitBtn = $('#submitBtn');
+    const today = new Date();
+    const maxDate = today.toISOString().slice(0, 16);
+    const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
+
+    // Configurar límites iniciales para hora_inicio
+    horaInicioInput.attr('max', maxDate);
+    horaInicioInput.attr('min', minDate);
+
+    function validateDates() {
+      const horaInicio = new Date(horaInicioInput.val());
+      const horaFin = new Date(horaFinInput.val());
+      let isValid = true;
+
+      // Validar hora_inicio
+      if (horaInicio > new Date()) {
+        $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
+        isValid = false;
+      } else if (horaInicio < new Date(minDate)) {
+        $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
+        isValid = false;
+      } else {
+        $('#hora_inicio_feedback').removeClass('show');
+      }
+
+      // Validar hora_fin
+      if (horaFinInput.val()) {
+        if (horaFin < horaInicio) {
+          $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
+          isValid = false;
+        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
+          $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
+          isValid = false;
+        } else {
+          $('#hora_fin_feedback').removeClass('show');
+        }
+      }
+
+      // Habilitar/deshabilitar botón
+      submitBtn.prop('disabled', !isValid);
+    }
+
+    horaInicioInput.on('change', validateDates);
+    horaFinInput.on('change', validateDates);
+
+    // Validar al intentar enviar el formulario
+    $('#registroForm').on('submit', function (e) {
+      validateDates();
+      if (!submitBtn.prop('disabled')) {
+        return true;
+      } else {
+        e.preventDefault();
+        return false;
+      }
+    });
   });
 </script>
 {% endblock %}

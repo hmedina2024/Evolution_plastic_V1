@@ -1,85 +1,79 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+
 {% block title %}Registrar Orden de Producción{% endblock %}
-<!---->
+
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container .select2-selection--single {
+    height: 38px;
+    padding: 6px 12px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 26px;
+  }
+
+</style>
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">REGISTRAR NUEVA ORDEN DE PRODUCCION</h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">REGISTRAR NUEVA ORDEN DE PRODUCCIÓN</h3>
   </div>
-
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-11">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="/form-registrar-op"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-2">
-              <label for="cod_op" class="form-label fw-bold text-primary">COD. OP</label>
-              <input class="form-control" type="number" name="cod_op" id="documento" required onchange="validateCodigoOp()" />
-              <div id="documento-error" class="text-danger"></div>
-            </div>
-            <div class="col-md-3">
-              <label for="nombre_cliente" class="form-label fw-bold text-primary" required>Nombre Cliente</label>
-              <select name="nombre_cliente" id="nombre_cliente" class="form-control select2" required></select>
-            </div> 
-            <div class="col-md-3">
-              <label for="estado" class="form-label fw-bold text-primary">
-                Estado
-              </label>
-              <select name="estado" id="estado" class="form-control"
-                title="Seleccionar estado" data-live-search="true" required>
-                <option value="ANULA">ANULA</option>
-                <option value="FACTU">FACTU</option>
-                <option value="CRUCE">CRUCE</option>
-                <option value="INV">INV</option>
-                <option value="LP">LP</option>
-                <option value="NC">NC</option>
-                <option value="PR">PR</option>
-                <option value="PR CR">PR CR</option>
-                <option value="TER">TER</option>
-              </select> 
-            </div>
-            <div class="col-md-2">
-              <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
-              <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
-            </div>
-            <div class="col-md-2">
-              <label for="odi" class="form-label fw-bold text-primary">ODI</label>
-              <input type="text" name="odi" class="form-control" required />
-            </div>
-            <div class="row mt-4">
-              <div class="col-md-3">
-                <label for="vendedor" class="form-label fw-bold text-primary">Nombre Vendedor</label>
-                <select name="vendedor" id="vendedor" class="form-control select2" required></select>
-              </div>      
-              <div class="col-md-9">
-                <label for="producto" class="form-label fw-bold text-primary">DESCRIPCION PRODUCTO</label>
-                <textarea class="form-control" name="producto" rows="1" required></textarea>
-              </div>
-            </div>
-          </div>          
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm">
+      <div class="row g-4">
+        <div class="col-md-2">
+          <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cod_op" id="documento" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" onchange="validateCodigoOp()" />
+          <div id="documento-error" class="text-danger"></div>
         </div>
-      </form>
-    </div>
+        <div class="col-md-3">
+          <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente <span class="text-danger">*</span></label>
+          <select name="nombre_cliente" id="nombre_cliente" class="form-control select2" required></select>
+        </div>
+        <div class="col-md-3">
+          <label for="estado" class="form-label fw-bold text-primary">Estado <span class="text-danger">*</span></label>
+          <select name="estado" id="estado" class="form-control select2" required>
+            <option value="" disabled selected>Seleccionar Estado</option> <!-- Opción predeterminada -->
+            <option value="ANULA">ANULA</option>
+            <option value="FACTU">FACTU</option>
+            <option value="CRUCE">CRUCE</option>
+            <option value="INV">INV</option>
+            <option value="LP">LP</option>
+            <option value="NC">NC</option>
+            <option value="PR">PR</option>
+            <option value="PR CR">PR CR</option>
+            <option value="TER">TER</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+        </div>
+        <div class="col-md-2">
+          <label for="odi" class="form-label fw-bold text-primary">ODI <span class="text-danger">*</span></label>
+          <input type="text" name="odi" class="form-control" required />
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label for="vendedor" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
+          <select name="vendedor" id="vendedor" class="form-control select2" required></select>
+        </div>
+        <div class="col-md-9">
+          <label for="producto" class="form-label fw-bold text-primary">DESCRIPCION PRODUCTO <span class="text-danger">*</span></label>
+          <textarea class="form-control" name="producto" rows="2" required></textarea>
+        </div>
+      </div>
+      <div class="text-center mt-5">
+        <button type="submit" class="btn btn-primary rounded-pill px-4">
+          Guardar Registro <i class="bi bi-save ms-2"></i>
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}
@@ -95,45 +89,53 @@
       $(`#${selectId}`).select2({
         placeholder: placeholder,
         allowClear: true,
-        minimumInputLength: 1, // Requiere al menos 1 carácter para buscar
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
         ajax: {
           url: url,
           dataType: 'json',
-          delay: 250, // Retraso para evitar consultas excesivas
+          delay: 250,
           data: function (params) {
             return {
-              search: params.term || '', // Término de búsqueda
-              page: params.page || 1,    // Paginación
-              per_page: 10              // Límite por página
+              search: params.term || '',
+              page: params.page || 1,
+              per_page: 10
             };
           },
           processResults: function (data) {
             return {
               results: data[dataKey].map(item => ({
-                id: Object.values(item)[0], // El valor
-                text: Object.values(item)[0] // El texto visible
+                id: Object.values(item)[0],
+                text: Object.values(item)[0]
               })),
-              pagination: {
-                more: data[dataKey].length === 10 // Si hay más resultados
-              }
+              pagination: { more: data[dataKey].length === 10 }
             };
           },
           cache: true
+        },
+        templateResult: function (data) {
+          return data.text;
+        },
+        templateSelection: function (data) {
+          return data.text || data.id;
         }
+      }).on('select2:open', function () {
+        setTimeout(() => {
+          document.querySelector('.select2-search__field').focus();
+        }, 50);
       });
     }
 
     // Inicializar campos con Select2
     setupSelect2('nombre_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes');
     setupSelect2('vendedor', '/api/empleados', 'Seleccionar Vendedor', 'empleados');
-
-    // Eliminar la inicialización de bootstrap-select ya que usamos Select2
-    // $("#nombre_cliente").selectpicker();
-    // $("#estado").selectpicker();
-    // $("#vendedor").selectpicker();
+    $('#estado').select2({
+      placeholder: 'Seleccionar Estado',
+      allowClear: true,
+      minimumResultsForSearch: Infinity // Desactiva la búsqueda en el select estático
+    });
   });
-</script>
-<script>
+
   function validateCodigoOp() {
     const documento = document.getElementById('documento').value;
     const errorDiv = document.getElementById('documento-error');

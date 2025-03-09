@@ -1,107 +1,78 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+<!-- Cambiando el title -->
 {% block title %}Registrar Orden Producción{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+
 {% endblock %}
 
-<!--Inicio del block-->
+<!-- Inicio del block -->
 {% block body %}
-<!---->
 {% if (detalle_op|length) %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-op">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        INFORMACIÓN DE LA ORDEN DE PRODUCICON
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-op" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DE LA ORDEN DE PRODUCCIÓN
+    </h3>
   </div>
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-2">
-            <label for="id_op" class="form-label fw-bold text-primary">
-              Codigo OP
-            </label>
-            <br />
-            {{ detalle_op.codigo_op}}
-          </div>
-          <div class="col-md-3">
-            <label for="nombre_cliente" class="form-label fw-bold text-primary">
-              Nombre Cliente
-            </label>
-            <br />{{detalle_op.nombre_cliente}}
-          </div>
-          <div class="col-md-7">
-            <label for="producto" class="form-label fw-bold text-primary">
-              Producto
-            </label>
-            <br />
-            {{ detalle_op.producto}}
-          </div>          
-        </div>         
-        <div class="row mt-3">                 
-          <div class="col-md-3">
-            <label for="estado" class="form-label fw-bold text-primary">
-              Estado
-            </label>
-            <br />
-            {{ detalle_op.estado}}
-          </div>
-          <div class="col-md-2">
-            <label for="cantidad" class="form-label fw-bold text-primary">
-              cantidad
-            </label>
-            <br />
-            {{ detalle_op.cantidad}}
-          </div>
-        </div>
-        <div class="row mt-4">            
-          <div class="col-md-3">
-            <label for="odi" class="form-label fw-bold text-primary">
-              ODI
-            </label>
-            <br />
-            {{ detalle_op.odi}}
-          </div>  
-          <div class="col-md-3">
-            <label for="empleado" class="form-label fw-bold text-primary">
-              Vendedor
-            </label>
-            <br />
-            {{ detalle_op.empleado}}
-          </div> 
-          <div class="col-md-3">
-            <label for="fecha_registro" class="form-label fw-bold text-primary">
-              Fecha y hora de registro
-            </label>
-            <br />
-            {{ detalle_op.fecha_registro}}
-          </div>
-          <div class="col-md-3">
-            <label for="usuario_registro" class="form-label fw-bold text-primary">
-              Registrado por
-            </label>
-            <br />
-            {{ detalle_op.usuario_registro}}
-          </div>                         
-        </div>        
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-md-2">
+        <label for="id_op" class="form-label fw-bold text-primary">Código OP</label>
+        <div class="form-control" readonly>{{ detalle_op.codigo_op }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_cliente }}</div>
+      </div>
+      <div class="col-md-7">
+        <label for="producto" class="form-label fw-bold text-primary">Producto</label>
+        <div class="form-control" readonly>{{ detalle_op.producto }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-3">
+        <label for="estado" class="form-label fw-bold text-primary">Estado</label>
+        <div class="form-control" readonly>{{ detalle_op.estado }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+        <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-3">
+        <label for="odi" class="form-label fw-bold text-primary">ODI</label>
+        <div class="form-control" readonly>{{ detalle_op.odi }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
+        <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+        <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_op.usuario_registro }}</div>
       </div>
     </div>
   </div>
 </div>
 {% else %}
-<h2 class="text-center">
-  No existe la Operacion 😭
-  <hr />
-</h2>
-{% endif %} {% endblock %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DE LA ORDEN DE PRODUCCIÓN</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe la Operación 😭</h2>
+    <hr />
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,90 +1,76 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+<!-- Cambiando el title -->
 {% block title %}Registrar Cliente{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<style>
+  .card-header {
+    padding: 0.25rem 1rem; /* Misma reducción de altura que el formulario de operación diaria */
+    line-height: 1.2;
+  }
+  .card-header h3 {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+  }
+</style>
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<!---->
 {% if (detalle_cliente|length) %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-clientes">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        INFORMACIÓN DEL CLIENTE
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;"> 
+  <div class="card-header bg-primary text-white text-center"> 
+    <h3 class="fw-bold">
+      <a href="/lista-de-clientes" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DEL CLIENTE
+    </h3>
   </div>
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <label for="tipo_documento" class="form-label fw-bold text-primary">
-              Tipo Documento
-            </label>
-            <br />
-            {{ detalle_cliente.tipo_documento}}
-          </div>
-          <div class="col-md-6">
-            <label for="documento" class="form-label fw-bold text-primary">
-              No. Documento
-            </label>
-            <br />{{detalle_cliente.documento}}
-          </div>          
+  <div class="card-body p-4"> 
+    <div class="row g-4">
+      <div class="col-md-6">
+        <label for="tipo_documento" class="form-label fw-bold text-primary">Tipo Documento</label>
+        <div class="form-control" readonly>{{ detalle_cliente.tipo_documento }}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="documento" class="form-label fw-bold text-primary">No. Documento</label>
+        <div class="form-control" readonly>{{ detalle_cliente.documento }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-6">
+        <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre del Cliente</label>
+        <div class="form-control" readonly>{{ detalle_cliente.nombre_cliente }}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="telefono_cliente" class="form-label fw-bold text-primary">Teléfono del Cliente</label>
+        <div class="form-control" readonly>{{ detalle_cliente.telefono_cliente }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-6">
+        <label for="email_cliente" class="form-label fw-bold text-primary">Email del Cliente</label>
+        <div class="form-control" readonly>{{ detalle_cliente.email_cliente }}</div>
+      </div>
+      <div class="col-md-6 text-center">
+        <label for="foto_cliente" class="form-label fw-bold text-primary">Imagen del Cliente</label>
+        <div>
+          <img style="width: 200px; border-radius: 10px;" src="/static/fotos_clientes/{{ detalle_cliente.foto_cliente }}" alt="imagen-cliente" class="img-thumbnail" />
         </div>
-        <div class="row mt-2">
-          <div class="col-md-6">
-            <label for="nombre_cliente" class="form-label fw-bold text-primary">
-              Nombre del Cliente
-            </label>
-            <br />
-            {{ detalle_cliente.nombre_cliente}}
-          </div>        
-          <div class="col-md-6">
-            <label for="telefono_cliente" class="form-label fw-bold text-primary">
-              Telefono del cliente
-            </label>
-            <br />
-            {{ detalle_cliente.telefono_cliente}}
-          </div>
-        </div>
-        <div class="row mt-2">
-          <div class="col-md-6">
-            <label for="email_cliente" class="form-label fw-bold text-primary">
-              Email del Cliente
-            </label>
-            <br />
-            {{ detalle_cliente.email_cliente}}
-          </div>
-          <div class="col-md-6">
-            <label for="" class="form-label fw-bold text-primary"> IMAGEN DEL CLIENTE </label>
-            <br />
-            <img
-              style="width: 200px"
-              src="/static/fotos_clientes/{{ detalle_cliente.foto_cliente }}"
-              alt="imagen-cliente" />
-          </div>
-          <div class="row mt-2">          
-            
-          </div>
-        </div>        
       </div>
     </div>
   </div>
 </div>
 {% else %}
-<h2 class="text-center">
-  No existe el Cliente 😭
-  <hr />
-</h2>
-{% endif %} {% endblock %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DEL CLIENTE</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe el Cliente 😭</h2>
+    <hr />
+  </div>
+</div>
+{% endif %}
+{% endblock %}

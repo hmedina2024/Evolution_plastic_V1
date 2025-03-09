@@ -1,113 +1,87 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+
 {% block title %}Registrar Empleado{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<style>
+  .card-header {
+    padding: 0.25rem 1rem;
+    line-height: 1.2;
+  }
+  .card-header h3 {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+  }
+</style>
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<!---->
 {% if (detalle_empleado|length) %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-empleados">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        INFORMACIÓN DEL EMPLEADO
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-empleados" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DEL EMPLEADO
+    </h3>
   </div>
-
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <label for="nombre_empleado" class="form-label fw-bold text-primary">
-              Nombre del empleado
-            </label>
-            <br />
-            {{ detalle_empleado.nombre_empleado}}
-          </div>
-          <div class="col-md-6">
-            <label for="apellido_empleado" class="form-label fw-bold text-primary">
-              Apellido del empleado
-            </label>
-            <br />
-            {{ detalle_empleado.apellido_empleado}}
-          </div>
-        </div>
-
-        <div class="row mt-2">
-          <div class="col-md-6">
-            <label for="tipo_empleado" class="form-label fw-bold text-primary">
-              Tipo Empleado
-            </label>
-            <br />
-            {{ detalle_empleado.tipo_empleado}}
-          </div>
-          <div class="col-md-6">
-            <label for="telefono_empleado" class="form-label fw-bold text-primary">
-              Telefono del empleado
-            </label>
-            <br />
-            {{ detalle_empleado.telefono_empleado}}
-          </div>
-        </div>
-
-        <div class="row mt-2">
-          <div class="col-md-6">
-            <label for="email_empleado" class="form-label fw-bold text-primary">
-              Email del empleado
-            </label>
-            <br />
-            {{ detalle_empleado.email_empleado}}
-          </div>
-          <div class="col-md-6">
-            <label for="cargo" class="form-label fw-bold text-primary">
-              Cargo
-            </label>
-            <br />
-            {{ detalle_empleado.cargo}}
-          </div>
-        </div>
-
-        <div class="row mt-2">
-          <div class="col-md-6">
-            <label for="documento" class="form-label fw-bold text-primary">
-              No. Documento
-            </label>
-            <br />{{detalle_empleado.documento}}
-          </div>
-          <div class="col-md-6">
-            <label for="id_empleado" class="form-label fw-bold text-primary">
-              ID
-            </label>
-            <br />{{detalle_empleado.id_empleado}}
-          </div>
-          <div class="col-md-6">
-            <label for="" class="form-label fw-bold text-primary"> IMAGEN DEL EMPLEADO </label>
-            <br />
-            <img
-              style="width: 200px"
-              src="/static/fotos_empleados/{{ detalle_empleado.foto_empleado }}"
-              alt="imagen-empleado" />
-          </div>
-        </div>
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
+        <div class="form-control" readonly>{{ detalle_empleado.nombre_empleado }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="apellido_empleado" class="form-label fw-bold text-primary">Apellido Empleado</label>
+        <div class="form-control" readonly>{{ detalle_empleado.apellido_empleado }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado</label>
+        <div class="form-control" readonly>{{ detalle_empleado.tipo_empleado }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <label for="telefono_empleado" class="form-label fw-bold text-primary">Teléfono</label>
+        <div class="form-control" readonly>{{ detalle_empleado.telefono_empleado }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="email_empleado" class="form-label fw-bold text-primary">Email</label>
+        <div class="form-control" readonly>{{ detalle_empleado.email_empleado }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="cargo" class="form-label fw-bold text-primary">Cargo</label>
+        <div class="form-control" readonly>{{ detalle_empleado.cargo }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <label for="documento" class="form-label fw-bold text-primary">No. Documento</label>
+        <div class="form-control" readonly>{{ detalle_empleado.documento }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="id_empleado" class="form-label fw-bold text-primary">ID</label>
+        <div class="form-control" readonly>{{ detalle_empleado.id_empleado }}</div>
+      </div>
+      <div class="col-md-4 text-center">
+        <label class="form-label fw-bold text-primary">Imagen del Empleado</label>
+        <br />
+        <img style="width: 200px; border-radius: 10px;" src="/static/fotos_empleados/{{ detalle_empleado.foto_empleado }}" alt="imagen-empleado" class="img-thumbnail" />
       </div>
     </div>
   </div>
 </div>
 {% else %}
-<h2 class="text-center">
-  No existe el Empleado 😭
-  <hr />
-</h2>
-{% endif %} {% endblock %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DEL EMPLEADO</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe el Empleado 😭</h2>
+    <hr />
+  </div>
+</div>
+{% endif %}
+{% endblock %}

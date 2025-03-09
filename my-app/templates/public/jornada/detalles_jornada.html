@@ -1,108 +1,78 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+
 {% block title %}Detalle Jornadas{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<!---->
 {% if (detalle_jornada|length) %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-jornadas">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        INFORMACIÓN DE LA JORNADA
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-jornadas" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DE LA JORNADA
+    </h3>
   </div>
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4">
-            <label for="nombre_empleado" class="form-label fw-bold text-primary">
-              Nombre Empleado
-            </label>
-            <br />{{detalle_jornada.nombre_empleado}}
-          </div>          
-        </div>
-        <div class="row mt-3">
-          <div class="col-md-3">
-            <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">
-              FH. LLegada Programada
-            </label>
-            <br />
-            {{ detalle_jornada.fecha_hora_llegada_programada}}
-          </div>        
-          <div class="col-md-3">
-            <label for="fecha_hora_salida_programada" class="form-label fw-bold text-primary">
-              FH. Salida Programada
-            </label>
-            <br />
-            {{ detalle_jornada.fecha_hora_salida_programada}}
-          </div>
-          <div class="col-md-6">
-            <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">
-              NOVEDAD JORNADA PROGRAMADA
-            </label>
-            <br />
-            {{ detalle_jornada.novedad_jornada_programada}}
-          </div>
-        </div>
-        <div class="row mt-4">            
-          <div class="col-md-3">
-            <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">
-              FH. LLegada Real
-            </label>
-            <br />
-            {{ detalle_jornada.fecha_hora_llegada}}
-          </div>        
-          <div class="col-md-3">
-            <label for="fecha_hora_salida" class="form-label fw-bold text-primary">
-              FH. Salida Real
-            </label>
-            <br />
-            {{ detalle_jornada.fecha_hora_salida}}
-          </div>
-          <div class="col-md-6">
-            <label for="novedad_jornada" class="form-label fw-bold text-primary">
-              NOVEDAD JORNADA REAL
-            </label>
-            <br />
-            {{ detalle_jornada.novedad_jornada}}
-          </div>
-          <div class="row mt-4"> 
-          <div class="col-md-3">
-            <label for="fecha_registro" class="form-label fw-bold text-primary">
-              Fecha y hora de registro
-            </label>
-            <br />
-            {{ detalle_jornada.fecha_registro}}
-          </div>
-          <div class="col-md-4">
-            <label for="usuario_registro" class="form-label fw-bold text-primary">
-              registrado por
-            </label>
-            <br />{{detalle_jornada.usuario_registro}}
-          </div> 
-          </div>
-        </div>        
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
+        <div class="form-control" readonly>{{ detalle_jornada.nombre_empleado }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-3">
+        <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">FH. Llegada Programada</label>
+        <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_llegada_programada }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="fecha_hora_salida_programada" class="form-label fw-bold text-primary">FH. Salida Programada</label>
+        <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_salida_programada }}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">NOVEDAD JORNADA PROGRAMADA</label>
+        <div class="form-control" readonly>{{ detalle_jornada.novedad_jornada_programada }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-3">
+        <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Llegada Real</label>
+        <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_llegada }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Salida Real</label>
+        <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_salida }}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="novedad_jornada" class="form-label fw-bold text-primary">NOVEDAD JORNADA REAL</label>
+        <div class="form-control" readonly>{{ detalle_jornada.novedad_jornada }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-3">
+        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+        <div class="form-control" readonly>{{ detalle_jornada.fecha_registro }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_jornada.usuario_registro }}</div>
       </div>
     </div>
   </div>
 </div>
 {% else %}
-<h2 class="text-center">
-  No existe la Operacion 😭
-  <hr />
-</h2>
-{% endif %} {% endblock %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DE LA JORNADA</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe la Jornada 😭</h2>
+    <hr />
+  </div>
+</div>
+{% endif %}
+{% endblock %}

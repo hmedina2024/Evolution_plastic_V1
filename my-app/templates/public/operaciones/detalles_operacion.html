@@ -1,125 +1,84 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
-{% block title %}Registrar Operacion Diaria{% endblock %}
-<!---->
+<!-- Cambiando el title -->
+{% block title %}Registrar Operación Diaria{% endblock %}
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<!---->
 {% if (detalle_operacion|length) %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-operaciones">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        INFORMACIÓN DEL CLIENTE
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;"> <!-- Añadimos sombra y bordes redondeados -->
+  <div class="card-header bg-primary text-white text-center"> <!-- Aplicamos estilo del header -->
+    <h3 class="fw-bold">
+      <a href="/lista-de-operaciones" class="text-white"> <!-- Color blanco al ícono -->
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DE LA OPERACION
+    </h3>
   </div>
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4">
-            <label for="nombre_empleado" class="form-label fw-bold text-primary">
-              Nombre Empleado
-            </label>
-            <br />{{detalle_operacion.nombre_empleado}}
-          </div>
-          <div class="col-md-3">
-            <label for="proceso" class="form-label fw-bold text-primary">
-              Proceso
-            </label>
-            <br />
-            {{ detalle_operacion.proceso}}
-          </div>        
-          <div class="col-md-2">
-            <label for="actividad" class="form-label fw-bold text-primary">
-              Actividad
-            </label>
-            <br />
-            {{ detalle_operacion.actividad}}
-          </div>
-          <div class="col-md-3">
-            <label for="codigo_op" class="form-label fw-bold text-primary">
-              CODIGO OP
-            </label>
-            <br />
-            {{ detalle_operacion.codigo_op}}
-          </div>                   
-        </div>
-        <div class="row mt-3">
-          <div class="col-md-2">
-            <label for="cantidad" class="form-label fw-bold text-primary">
-              cantidad
-            </label>
-            <br />
-            {{ detalle_operacion.cantidad}}
-          </div> 
-          <div class="col-md-3">
-            <label for="pieza" class="form-label fw-bold text-primary">
-              pieza
-            </label>
-            <br />
-            {{ detalle_operacion.pieza_realizada}}
-          </div>
-          <div class="col-md-3">
-            <label for="Fecha_hora_inicio" class="form-label fw-bold text-primary">
-              Fecha y hora de Inicio
-            </label>
-            <br />
-            {{ detalle_operacion.fecha_hora_inicio}}
-          </div>  
-          <div class="col-md-3">
-            <label for="fecha_hora_fin" class="form-label fw-bold text-primary">
-              Fecha y hora fin
-            </label>
-            <br />
-            {{ detalle_operacion.fecha_hora_fin}}
-          </div>           
-        </div>
-        <div class="row mt-4">            
-          <div class="col-md-3">
-            <label for="fecha_registro" class="form-label fw-bold text-primary">
-              Fecha y hora de registro
-            </label>
-            <br />
-            {{ detalle_operacion.fecha_registro}}
-          </div> 
-          <div class="col-md-3">
-            <label for="usuario_registro" class="form-label fw-bold text-primary">
-              Registrado por
-            </label>
-            <br />
-            {{ detalle_operacion.usuario_registro}}
-          </div>
-          <div class="col-md-6">
-            <label for="novedad" class="form-label fw-bold text-primary">
-              Novedad
-            </label>
-            <br />
-            {{ detalle_operacion.novedad}}
-          </div>                                  
-          <div class="row mt-2">
-              
-            
-          </div>
-        </div>        
+  <div class="card-body p-4"> <!-- Ajustamos padding como en el primer formulario -->
+    <div class="row g-4"> <!-- Usamos g-4 para espaciado consistente -->
+      <div class="col-md-4">
+        <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
+        <div class="form-control" readonly>{{ detalle_operacion.nombre_empleado }}</div> <!-- Caja tipo input -->
+      </div>
+      <div class="col-md-3">
+        <label for="proceso" class="form-label fw-bold text-primary">Proceso</label>
+        <div class="form-control" readonly>{{ detalle_operacion.proceso }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="actividad" class="form-label fw-bold text-primary">Actividad</label>
+        <div class="form-control" readonly>{{ detalle_operacion.actividad }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="codigo_op" class="form-label fw-bold text-primary">CÓDIGO OP</label>
+        <div class="form-control" readonly>{{ detalle_operacion.codigo_op }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3"> <!-- Espaciado consistente -->
+      <div class="col-md-2">
+        <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+        <div class="form-control" readonly>{{ detalle_operacion.cantidad }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="pieza" class="form-label fw-bold text-primary">Pieza</label>
+        <div class="form-control" readonly>{{ detalle_operacion.pieza_realizada }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="Fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora de Inicio</label>
+        <div class="form-control" readonly>{{ detalle_operacion.fecha_hora_inicio }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin</label>
+        <div class="form-control" readonly>{{ detalle_operacion.fecha_hora_fin }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3"> <!-- Espaciado consistente -->
+      <div class="col-md-3">
+        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+        <div class="form-control" readonly>{{ detalle_operacion.fecha_registro }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_operacion.usuario_registro }}</div>
+      </div>
+      <div class="col-md-6">
+        <label for="novedad" class="form-label fw-bold text-primary">Novedad</label>
+        <div class="form-control" readonly>{{ detalle_operacion.novedad }}</div>
       </div>
     </div>
   </div>
 </div>
 {% else %}
-<h2 class="text-center">
-  No existe la Operacion 😭
-  <hr />
-</h2>
-{% endif %} {% endblock %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DEL CLIENTE</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe la Operación 😭</h2>
+    <hr />
+  </div>
+</div>
+{% endif %}
+{% endblock %}

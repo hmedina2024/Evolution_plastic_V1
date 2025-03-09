@@ -1,102 +1,79 @@
 {% extends 'public/base_cpanel.html' %}
 <!--Cambiando el title-->
 {% block title %}Registrar Nueva Actividad{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename ='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
+<div class="card shadow-sm" style="border-radius: 10px;">
   {% if respuestaActividad|length %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-actividades">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        ACTUALIZAR DATOS DE LA ACTIVIDAD
-      </h3>
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-actividades" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      ACTUALIZAR DATOS DE LA ACTIVIDAD
+    </h3>
+  </div>
+  
+  <div class="card-body p-4">
+    <form
+      class="form-horizontal mx-auto"
+      method="POST"
+      action="{{ url_for('actualizar_actividad', id = respuestaActividad.id_actividad ) }}"
+      autocomplete="off"
+      enctype="multipart/form-data">
+      <input
+        type="text"
+        class="form-control"
+        name="id_actividad"
+        value="{{ respuestaActividad.id_actividad }}"
+        required
+        hidden />
+      
+      <div class="row g-4">
+        <div class="col-md-6">
+          <label for="codigo_actividad" class="form-label fw-bold text-primary">Código de Actividad</label>
+          <input type="text" name="codigo_actividad" value="{{ respuestaActividad.codigo_actividad }}" class="form-control" required readonly />
+        </div>
+        <div class="col-md-6">
+          <label for="nombre_actividad" class="form-label fw-bold text-primary">Nombre Actividad</label>
+          <input class="form-control" type="text" name="nombre_actividad" value="{{ respuestaActividad.nombre_actividad }}" required />
+        </div>
+      </div>
+      
+      <div class="row g-4 mt-3">
+        <div class="col-md-6">
+          <label for="descripcion_actividad" class="form-label fw-bold text-primary">Descripción de la Actividad</label>
+          <input class="form-control" type="text" name="descripcion_actividad" value="{{ respuestaActividad.descripcion_actividad }}" required />
+        </div>
+      </div>
+      
+      <div class="mb-3 mt-4 text-center">
+        <button type="submit" class="btn rounded-pill btn-primary">
+          Guardar registro ahora
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+  
+  {% else %}
+  <div class="card shadow-sm" style="border-radius: 10px;">
+    <div class="card-header bg-primary text-white text-center">
+      <h3 class="fw-bold">INFORMACIÓN DE LA ACTIVIDAD</h3>
+    </div>
+    <div class="card-body p-4 text-center">
+      <h2>No existe la Actividad 😭</h2>
       <hr />
     </div>
   </div>
-
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="{{ url_for('actualizar_actividad', id = respuestaActividad.id_actividad ) }}"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <input
-          type="text"
-          class="form-control"
-          name="id_actividad"
-          value="{{ respuestaActividad.id_actividad }}"
-          required
-          hidden />
-
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <label for="codigo_actividad" class="form-label fw-bold text-primary">
-                Codigo de Actividad
-              </label>
-              <input
-                type="text"
-                name="codigo_actividad"
-                value="{{ respuestaActividad.codigo_actividad }}"
-                class="form-control"
-                required readonly/>
-            </div>
-            <div class="col-md-6">
-              <label for="nombre_actividad" class="form-label fw-bold text-primary">
-                Nombre Actividad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="nombre_actividad"
-                value="{{ respuestaActividad.nombre_actividad }}"
-                required />
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="descripcion_actividad" class="form-label fw-bold text-primary">
-                Descripción de la Actividad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="descripcion_actividad"
-                value="{{ respuestaActividad.descripcion_actividad }}"
-                required />
-            </div>
-          </div>
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-  {% else %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center">No existe la Actividad</h3>
-    </div>
-  </div>
-
   {% endif %}
 </div>
-{% endblock %} {% block customJS %}
+{% endblock %}
+
+{% block customJS %}
 <script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
 {% endblock %}

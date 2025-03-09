@@ -52,17 +52,36 @@
   color: #222;
 }
 
+.card-header {
+  padding: 0.25rem 1rem;
+  line-height: 1.2;
+}
+.card-header h3 {
+  margin: 0.5rem 0;
+  font-size: 1.5rem;
+}
 
-#nombre_cliente {
-  height: auto !important; /* Permite que el tamaño se ajuste según las opciones visibles */
-  min-height: 100px !important; /* Altura mínima deseada */
+.select2-container .select2-selection--single {
+  height: 38px;
+  padding: 6px 12px;
 }
-#nombre_cliente.select2-container .select2-selection--single {
-  min-height: 100px !important;
-  line-height: 100px !important;
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 26px;
 }
-#nombre_cliente.select2-container .select2-selection--single .select2-selection__rendered {
-  line-height: 100px !important;
-  padding-top: 10px;
-  padding-bottom: 10px;
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 38px;
+}
+
+.invalid-feedback {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+}
+.invalid-feedback.show {
+  display: block;
 }

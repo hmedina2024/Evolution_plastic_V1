@@ -1,79 +1,44 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+
 {% block title %}Registrar Proceso{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">REGISTRAR NUEVO PROCESO</h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">REGISTRAR NUEVO PROCESO</h3>
   </div>
-
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="/form-registrar-proceso"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <label for="cod_proceso" class="form-label fw-bold text-primary">
-                COD. PROCESO
-              </label>
-              <input
-              type="text"
-              name="cod_proceso"
-              class="form-control"
-              required />
-            </div>
-            <div class="col-md-6">
-              <label for="nombre_proceso" class="form-label fw-bold text-primary">
-                NOMBRE DEL PROCESO
-              </label>
-              <input
-                type="text"
-                name="nombre_proceso"
-                class="form-control"
-                required />
-            </div>            
-            <div class="col-md-12">
-              <br/>
-              <br/>
-              <br/>
-              <label for="descripcion_proceso" class="form-label fw-bold text-primary">
-                  DESCRIPCIÓN DEL PROCESO
-              </label>
-              <textarea
-                  class="form-control"
-                  name="descripcion_proceso"                  
-                  rows="2" 
-                  required
-              ></textarea>
-          </div>
-          </div>          
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal" method="POST" action="/form-registrar-proceso" autocomplete="off" enctype="multipart/form-data">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <label for="cod_proceso" class="form-label fw-bold text-primary">COD. PROCESO</label>
+          <input type="text" name="cod_proceso" class="form-control" required />
         </div>
-      </form>
-    </div>
+        <div class="col-md-6">
+          <label for="nombre_proceso" class="form-label fw-bold text-primary">NOMBRE DEL PROCESO</label>
+          <input type="text" name="nombre_proceso" class="form-control" required />
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-12">
+          <label for="descripcion_proceso" class="form-label fw-bold text-primary">DESCRIPCIÓN DEL PROCESO</label>
+          <textarea class="form-control" name="descripcion_proceso" rows="2" required></textarea>
+        </div>
+      </div>
+      <div class="mt-4 text-center">
+        <button type="submit" class="btn rounded-pill btn-primary">
+          Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </form>
   </div>
 </div>
-{% endblock %} {% block customJS %}
-<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+{% endblock %}
+
+{% block customJS %}
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 {% endblock %}

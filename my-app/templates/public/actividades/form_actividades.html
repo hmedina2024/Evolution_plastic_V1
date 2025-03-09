@@ -1,72 +1,52 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
+<!-- Cambiando el title -->
 {% block title %}Registrar Actividad{% endblock %}
-<!---->
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<style>
+  .card-header {
+    padding: 0.25rem 1rem; /* Misma reducción de altura que el formulario anterior */
+    line-height: 1.2; /* Compactar verticalmente */
+  }
+  .card-header h3 {
+    margin: 0.5rem 0; /* Márgenes reducidos */
+    font-size: 1.5rem; /* Tamaño de texto ajustado */
+  }
+</style>
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">REGISTRAR NUEVA ACTIVIDAD</h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">REGISTRAR NUEVA ACTIVIDAD</h3>
   </div>
 
   <div class="row justify-content-center mb-2">
     <div class="col-md-10">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="/form-registrar-actividad"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <div class="card-body">
-          <div class="row">
+      <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-actividad" autocomplete="off" enctype="multipart/form-data">
+        <div class="card-body p-4"> 
+          <div class="row g-4">
             <div class="col-md-6">
-              <label for="cod_actividad" class="form-label fw-bold text-primary">
-                COD. ACTIVIDAD
-              </label>
-              <input
-              type="text"
-              name="cod_actividad"
-              class="form-control"
-              required />
+              <label for="cod_actividad" class="form-label fw-bold text-primary">COD. ACTIVIDAD</label>
+              <input type="text" name="cod_actividad" class="form-control" required />
             </div>
             <div class="col-md-6">
-              <label for="nombre_actividad" class="form-label fw-bold text-primary">
-                NOMBRE DE LA ACTIVIDAD
-              </label>
-              <input
-                type="text"
-                name="nombre_actividad"
-                class="form-control"
-                required />
-            </div>            
-            <div class="col-md-12">
-              <br/>
-              <br/>
-              <br/>
-              <label for="descripcion_actividad" class="form-label fw-bold text-primary">
-                  DESCRIPCIÓN DE LA ACTIVIDAD
-              </label>
-              <textarea
-                  class="form-control"
-                  name="descripcion_actividad"                  
-                  rows="2" 
-                  required
-              ></textarea>
+              <label for="nombre_actividad" class="form-label fw-bold text-primary">NOMBRE DE LA ACTIVIDAD</label>
+              <input type="text" name="nombre_actividad" class="form-control" required />
+            </div>
           </div>
-          </div>          
+          
+          <div class="row g-4 mt-3">
+            <div class="col-md-12">
+              <label for="descripcion_actividad" class="form-label fw-bold text-primary">DESCRIPCIÓN DE LA ACTIVIDAD</label>
+              <textarea class="form-control" name="descripcion_actividad" rows="2" required></textarea>
+            </div>
+          </div>
+          
           <div class="mb-3 mt-4 text-center">
             <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
+              Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
             </button>
           </div>
         </div>
@@ -74,6 +54,8 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block customJS %}
-<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+{% endblock %}
+
+{% block customJS %}
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 {% endblock %}

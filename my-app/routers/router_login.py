@@ -130,7 +130,7 @@ def cerraSesion():
 
 @app.route('/powerbi')
 def powerbi_report():
-    report_url = "https://app.powerbi.com/view?r=eyJrIjoiZGRiZTlhMzQtYmE4Zi00NzQ4LThjYjgtMWRjOTRiNzI5Mjk0IiwidCI6IjNlN2ZhYzYyLWNkZTUtNGY2Yy04NDZhLWJiYzUxNTdjYjBjMiIsImMiOjR9"
+    report_url = "https://app.powerbi.com/view?r=eyJrIjoiZWVhY2E2ZjEtY2MwOS00MDhhLWEzNjYtODE2OGNjMjJjYzI1IiwidCI6IjRiOTVlNzRhLTQwZGEtNDc0YS05OGZmLWY4ZjlhNWY2Njc3ZiIsImMiOjR9"
     resp_usuariosBD = True  # Asegúrate de que este valor refleja la existencia de datos
     print(f'resp_usuariosBD: {resp_usuariosBD}')  # Añade esto para depuración
     return render_template('public/reporte/powerbi_report.html', report_url=report_url, resp_usuariosBD=resp_usuariosBD)
