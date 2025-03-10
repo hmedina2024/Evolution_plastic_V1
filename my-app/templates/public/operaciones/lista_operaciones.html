@@ -43,6 +43,7 @@
               <td>{{ operacion.cantidad }}</td>
               <td>
                 <a href="/detalles-operacion/{{ operacion.id_operacion }}" class="btn btn-info btn-sm">Ver detalles</a>
+                <a href="{{ url_for('view_editar_operacion', id=operacion.id_operacion) }}" class="btn btn-success btn-sm">Actualizar</a>
                 <a href="#" onclick="eliminarOperacion('{{ operacion.id_operacion }}');" class="btn btn-danger btn-sm">Eliminar</a>
               </td>
             </tr>

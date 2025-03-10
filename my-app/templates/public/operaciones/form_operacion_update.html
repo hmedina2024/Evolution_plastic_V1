@@ -1,154 +1,235 @@
 {% extends 'public/base_cpanel.html' %}
 <!--Cambiando el title-->
-{% block title %}Actualizar Operacion Diaria{% endblock %}
+{% block title %}Actualizar Operación Diaria{% endblock %}
 <!---->
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
 <!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
+<div class="card shadow-sm" style="border-radius: 10px;">
   {% if respuestaOperacion|length %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-operaciones">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        ACTUALIZAR DATOS DE LA OPERACION
-      </h3>
-      <hr />
-    </div>
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-operaciones" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      ACTUALIZAR DATOS DE LA OPERACIÓN
+    </h3>
   </div>
+  <div class="card-body p-4">
+    <form
+      class="form-horizontal mx-auto"
+      method="POST"
+      action="{{ url_for('view_editar_operacion', id=respuestaOperacion.id_operacion) }}"
+      autocomplete="off"
+      enctype="multipart/form-data">
+      <input
+        type="text"
+        class="form-control"
+        name="id_operacion"
+        value="{{ respuestaOperacion.id_operacion }}"
+        required
+        hidden />
 
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="{{ url_for('actualizarOperacion', id = respuestaOperacion.id_operacion ) }}"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <input
-          type="text"
-          class="form-control"
-          name="id_operacion"
-          value="{{ respuestaOperacion.id_operacion }}"
-          required
-          hidden />
-
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <label for="nombre_empleado" class="form-label fw-bold text-primary" >
-                  Nombre del Empleado
-              </label>
-              <div class="form-control" readonly>
-                  {{ respuestaOperacion.nombre_empleado }}
-              </div>
-          </div>
-            <div class="col-md-6">
-              <label for="proceso" class="form-label fw-bold text-primary">
-                Proceso
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="proceso"
-                value="{{ respuestaOperacion.proceso }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="actividad" class="form-label fw-bold text-primary">
-                Actividad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="actividad"
-                value="{{ respuestaOperacion.actividad }}"
-                required />
-            </div>
-            </div>
-            <div class="col-md-6">
-              <label for="cantidad" class="form-label fw-bold text-primary">
-                Cantidad
-              </label>
-              <input
-                class="form-control"
-                type="int"
-                name="cantidad"
-                value="{{ respuestaOperacion.cantidad }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="novedad" class="form-label fw-bold text-primary">
-                Novedad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="novedad"
-                value="{{ respuestaOperacion.novedad }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">
-                Fecha y hora de Inico
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="fecha_hora_inicio"
-                value="{{ respuestaOperacion.fecha_hora_inicio }}"
-                id="fecha_hora_inicio"
-                required />
-            </div>
-            <div class="col-md-6">
-              <label for="fecha_hora_fin" class="form-label fw-bold text-primary">
-                Fecha y hora de Fin
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="fecha_hora_fin"
-                value="{{ respuestaOperacion.fecha_hora_fin }}"
-                id="fecha_hora_fin"
-                required />
-            </div>
-          </div>   
-
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre del Empleado</label>
+          <div class="form-control" readonly>{{ respuestaOperacion.nombre_empleado }}</div>
         </div>
-      </form>
-    </div>
+        <div class="col-md-3">
+          <label for="nombre_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required>
+            <option value="{{ respuestaOperacion.proceso }}" selected>{{ respuestaOperacion.proceso }}</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required>
+            <option value="{{ respuestaOperacion.actividad }}" selected>{{ respuestaOperacion.actividad }}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
+          <div class="form-control" readonly>{{ respuestaOperacion.codigo_op }}</div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-3">
+        <div class="col-md-2">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+          <input class="form-control" type="number" name="cantidad" id="cantidad" value="{{ respuestaOperacion.cantidad }}" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+        </div>
+        <div class="col-md-4">
+          <label for="pieza" class="form-label fw-bold text-primary">Pieza</label>
+          <input class="form-control" type="text" name="pieza" value="{{ respuestaOperacion.pieza}}" />
+        </div>
+        <div class="col-md-6">
+          <label for="novedad" class="form-label fw-bold text-primary">Novedad</label>
+          <input class="form-control" type="text" name="novedad" value="{{ respuestaOperacion.novedad }}" />
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y hora de Inicio</label>
+          <input
+            class="form-control"
+            type="datetime-local"
+            name="fecha_hora_inicio"
+            value="{{ respuestaOperacion.fecha_hora_inicio.strftime('%Y-%m-%dT%H:%M') if respuestaOperacion.fecha_hora_inicio else '' }}"
+            id="fecha_hora_inicio"
+            required
+            style="height: 38px; padding: 6px 12px; font-size: 14px;" />
+        </div>
+        <div class="col-md-3">
+          <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y hora de Fin</label>
+          <input
+            class="form-control"
+            type="datetime-local"
+            name="fecha_hora_fin"
+            value="{{ respuestaOperacion.fecha_hora_fin.strftime('%Y-%m-%dT%H:%M') if respuestaOperacion.fecha_hora_fin else '' }}"
+            id="fecha_hora_fin"
+            required
+            style="height: 38px; padding: 6px 12px; font-size: 14px;" />
+        </div>
+        <div class="col-md-3">
+          <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+          <div class="form-control" readonly>{{ respuestaOperacion.fecha_registro }}</div>
+        </div>
+      </div>      
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary">Actualizar</button>
+      </div>
+    </form>
   </div>
   {% else %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center">No existe la Operación</h3>
-    </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe la Operación 😭</h2>
+    <hr />
   </div>
-
   {% endif %}
 </div>
-{% endblock %} {% block customJS %}
-<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+{% endblock %}
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
+<script>
+  $(document).ready(function () {
+    function setupSelect2(selectId, url, placeholder, dataKey, initialValue, initialText) {
+      const $select = $(`#${selectId}`);
+
+      // Inicializar Select2 con un valor inicial
+      if (initialValue && initialText) {
+        $select.append(new Option(initialText, initialValue, true, true));
+      }
+
+      $select.select2({
+        placeholder: placeholder,
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return {
+              search: params.term || '',
+              page: params.page || 1,
+              per_page: 10
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data[dataKey].map(item => ({
+                id: Object.values(item)[0],
+                text: Object.values(item)[0]
+              })),
+              pagination: { more: data[dataKey].length === 10 }
+            };
+          },
+          cache: true
+        },
+        templateResult: function (data) {
+          return data.text;
+        },
+        templateSelection: function (data) {
+          return data.text || data.id;
+        }
+      }).on('select2:open', function () {
+        setTimeout(() => {
+          document.querySelector('.select2-search__field').focus();
+        }, 50);
+      });
+    }
+
+    // Configurar Select2 para cada campo
+    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', '{{ respuestaOperacion.nombre_empleado }}', '{{ respuestaOperacion.nombre_empleado }}');
+    setupSelect2('nombre_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', '{{ respuestaOperacion.proceso }}', '{{ respuestaOperacion.proceso }}');
+    setupSelect2('nombre_actividad', '/api/actividades', 'Buscar actividad...', 'actividades', '{{ respuestaOperacion.actividad }}', '{{ respuestaOperacion.actividad }}');
+    setupSelect2('cod_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', '{{ respuestaOperacion.codigo_op }}', '{{ respuestaOperacion.codigo_op }}');
+
+    // Validaciones de fechas
+    const horaInicioInput = $('#fecha_hora_inicio');
+    const horaFinInput = $('#fecha_hora_fin');
+    const submitBtn = $('button[type="submit"]');
+    const today = new Date();
+    const maxDate = today.toISOString().slice(0, 16);
+    const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
+
+    // Configurar límites iniciales para fecha_hora_inicio
+    horaInicioInput.attr('max', maxDate);
+    horaInicioInput.attr('min', minDate);
+
+    function validateDates() {
+      const horaInicio = new Date(horaInicioInput.val());
+      const horaFin = new Date(horaFinInput.val());
+      let isValid = true;
+
+      // Validar hora_inicio
+      if (horaInicio > new Date()) {
+        $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
+        isValid = false;
+      } else if (horaInicio < new Date(minDate)) {
+        $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
+        isValid = false;
+      } else {
+        $('#hora_inicio_feedback').removeClass('show');
+      }
+
+      // Validar hora_fin
+      if (horaFinInput.val()) {
+        if (horaFin < horaInicio) {
+          $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
+          isValid = false;
+        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
+          $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
+          isValid = false;
+        } else {
+          $('#hora_fin_feedback').removeClass('show');
+        }
+      }
+
+      // Habilitar/deshabilitar botón
+      submitBtn.prop('disabled', !isValid);
+    }
+
+    horaInicioInput.on('change', validateDates);
+    horaFinInput.on('change', validateDates);
+
+    // Validar al intentar enviar el formulario
+    $('form').on('submit', function (e) {
+      validateDates();
+      if (!submitBtn.prop('disabled')) {
+        return true;
+      } else {
+        e.preventDefault();
+        return false;
+      }
+    });
+  });
+</script>
 {% endblock %}

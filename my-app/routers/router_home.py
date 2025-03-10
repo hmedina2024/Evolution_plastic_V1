@@ -453,18 +453,29 @@ def detalle_operacion(id_operacion=None):
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-@app.route("/editar-operacion/<int:id>", methods=['GET'])
+@app.route("/editar-operacion/<int:id>", methods=['GET', 'POST'])
 def view_editar_operacion(id):
-    if 'conectado' in session:
-        respuesta_operacion = buscar_operacion_unico(id)
-        if respuesta_operacion:
-            return render_template('public/operaciones/form_operacion_update.html', respuesta_operacion=respuesta_operacion)
-        else:
-            flash('La Operacion no existe.', 'error')
-            return redirect(url_for('inicio'))
-    else:
+    if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+
+    if request.method == 'GET':
+        respuestaOperacion = buscar_operacion_unico(id)
+        if respuestaOperacion:
+            return render_template('public/operaciones/form_operacion_update.html', respuestaOperacion=respuestaOperacion)
+        else:
+            flash('La Operación no existe.', 'error')
+            return redirect(url_for('inicio'))
+
+    if request.method == 'POST':
+        # Procesar los datos del formulario
+        result = procesar_actualizacion_operacion(request)
+        if result == 1:
+            flash('Operación actualizada exitosamente.', 'success')
+            return redirect(url_for('lista_operaciones'))  # Redirige a la lista de operaciones
+        else:
+            flash('Error al actualizar la operación. Inténtalo de nuevo.', 'error')
+            return redirect(url_for('view_editar_operacion', id=id))
 
 @app.route('/actualizar-operacion', methods=['POST'])
 def actualizar_operacion():

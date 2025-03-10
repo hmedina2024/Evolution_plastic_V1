@@ -11,6 +11,7 @@ import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask
 from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
 from sqlalchemy import or_
+from datetime import datetime,timedelta
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
@@ -779,7 +780,7 @@ def procesar_form_operacion(dataForm):
         novedades = dataForm.get('novedades')
         hora_inicio = dataForm.get('hora_inicio')
         hora_fin = dataForm.get('hora_fin')
-
+        
         # Validar que todos los campos requeridos estén presentes
         if not all([nombre_empleado, nombre_proceso, nombre_actividad, cod_op, cantidad, hora_inicio, hora_fin]):
             return None  # Indica error si falta algún campo obligatorio
@@ -814,8 +815,8 @@ def procesar_form_operacion(dataForm):
             cantidad=cantidad,
             pieza_realizada=pieza,
             novedad=novedades,
-            fecha_hora_inicio=datetime.datetime.strptime(hora_inicio, '%Y-%m-%dT%H:%M'),
-            fecha_hora_fin=datetime.datetime.strptime(hora_fin, '%Y-%m-%dT%H:%M'),
+            fecha_hora_inicio=datetime.strptime(hora_inicio, '%Y-%m-%dT%H:%M'),
+            fecha_hora_fin=datetime.strptime(hora_fin, '%Y-%m-%dT%H:%M'),
             usuario_registro=session.get('name_surname', 'Usuario desconocido')  # Asegura que siempre haya un valor
         )
 
@@ -871,7 +872,7 @@ def sql_detalles_operaciones_bd(id_operacion):
                 'novedad': operacion.novedad,
                 'fecha_hora_inicio': operacion.fecha_hora_inicio,
                 'fecha_hora_fin': operacion.fecha_hora_fin,
-                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': (operacion.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
                 'usuario_registro': operacion.usuario_registro
             }
         return None
@@ -891,6 +892,7 @@ def buscar_operacion_unico(id):
                 'actividad': operacion.actividad,
                 'codigo_op': operacion.codigo_op,
                 'cantidad': operacion.cantidad,
+                'pieza': operacion.pieza_realizada,
                 'novedad': operacion.novedad,
                 'fecha_hora_inicio': operacion.fecha_hora_inicio,
                 'fecha_hora_fin': operacion.fecha_hora_fin,
@@ -902,15 +904,26 @@ def buscar_operacion_unico(id):
         return None
 
 def procesar_actualizacion_operacion(data):
-    try:
+    try:        
         operacion = db.session.query(Operaciones).filter_by(id_operacion=data.form['id_operacion']).first()
         if operacion:
-            operacion.proceso = data.form['proceso']
-            operacion.actividad = data.form['actividad']
-            operacion.cantidad = data.form['cantidad']
+            operacion.proceso = data.form['nombre_proceso']
+            operacion.actividad = data.form['nombre_actividad']
+            operacion.cantidad = int(data.form['cantidad'])  # Convertir a entero
             operacion.novedad = data.form['novedad']
+            operacion.pieza_realizada = data.form['pieza'] if data.form['pieza'] else None
+            
+            # Validar y convertir fechas
+            fecha_hora_inicio_str = data.form['fecha_hora_inicio']
+            fecha_hora_fin_str = data.form['fecha_hora_fin']
+            if not fecha_hora_inicio_str or not fecha_hora_fin_str:
+                raise ValueError("Las fechas no pueden estar vacías")
+            
+            operacion.fecha_hora_inicio = datetime.strptime(fecha_hora_inicio_str, '%Y-%m-%dT%H:%M')
+            operacion.fecha_hora_fin = datetime.strptime(fecha_hora_fin_str, '%Y-%m-%dT%H:%M')
+            
             db.session.commit()
-            return 1  # Indica éxito (rowcount)
+            return 1
         return None
     except Exception as e:
         db.session.rollback()

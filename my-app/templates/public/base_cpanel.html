@@ -38,3 +38,30 @@
     {% block customJS %} {% endblock %}
   </body>
 </html>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Seleccionar todos los botones de colapso
+    const collapseButtons = document.querySelectorAll('[data-bs-toggle="collapse"]');
+
+    collapseButtons.forEach(button => {
+      button.addEventListener('click', function (e) {
+        // Obtener el ID del target del botón clicado
+        const targetId = this.getAttribute('data-bs-target');
+        const targetCollapse = document.querySelector(targetId);
+
+        // Si el menú se está abriendo (no está activo)
+        if (!targetCollapse.classList.contains('show')) {
+          // Cerrar todos los demás menús abiertos
+          collapseButtons.forEach(otherButton => {
+            const otherTargetId = otherButton.getAttribute('data-bs-target');
+            const otherCollapse = document.querySelector(otherTargetId);
+            if (otherCollapse && otherCollapse !== targetCollapse && otherCollapse.classList.contains('show')) {
+              const bsCollapse = new bootstrap.Collapse(otherCollapse);
+              bsCollapse.hide();
+            }
+          });
+        }
+      });
+    });
+  });
+</script>
