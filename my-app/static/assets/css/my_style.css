@@ -284,3 +284,16 @@ tbody tr:hover {
   font-weight: bold !important;
   color: #030303 !important; /* Color azul para destacar */
 }
+
+
+.auto-resize {
+  resize: none; /* Evita redimensionamiento manual */
+  max-width: 100%; /* Limita el ancho al contenedor */
+  min-height: 38px; /* Altura mínima para consistencia con otros campos */
+  height: auto; /* Permite que crezca */
+  overflow: hidden; /* Oculta barras de desplazamiento innecesarias */
+  word-wrap: break-word; /* Ajusta el texto */
+  overflow-wrap: break-word; /* Alternativa moderna */
+  padding: 6px 12px; /* Asegura un padding consistente con los campos de formulario */
+  box-sizing: border-box; /* Incluye padding y bordes en el cálculo de la altura */
+}

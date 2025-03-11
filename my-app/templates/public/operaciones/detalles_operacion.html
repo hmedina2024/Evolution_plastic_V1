@@ -8,20 +8,20 @@
 
 {% block body %}
 {% if (detalle_operacion|length) %}
-<div class="card shadow-sm" style="border-radius: 10px;"> <!-- Añadimos sombra y bordes redondeados -->
-  <div class="card-header bg-primary text-white text-center"> <!-- Aplicamos estilo del header -->
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
     <h3 class="fw-bold">
-      <a href="/lista-de-operaciones" class="text-white"> <!-- Color blanco al ícono -->
+      <a href="/lista-de-operaciones" class="text-white">
         <i class="bi bi-arrow-left-circle"></i>
       </a>
       INFORMACIÓN DE LA OPERACION
     </h3>
   </div>
-  <div class="card-body p-4"> <!-- Ajustamos padding como en el primer formulario -->
-    <div class="row g-4"> <!-- Usamos g-4 para espaciado consistente -->
+  <div class="card-body p-4">
+    <div class="row g-4">
       <div class="col-md-3">
         <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
-        <div class="form-control" readonly>{{ detalle_operacion.nombre_empleado }}</div> <!-- Caja tipo input -->
+        <div class="form-control" readonly>{{ detalle_operacion.nombre_empleado }}</div>
       </div>
       <div class="col-md-3">
         <label for="proceso" class="form-label fw-bold text-primary">Proceso</label>
@@ -36,14 +36,14 @@
         <div class="form-control" readonly>{{ detalle_operacion.codigo_op }}</div>
       </div>
     </div>
-    <div class="row g-4 mt-3"> <!-- Espaciado consistente -->
+    <div class="row g-4 mt-3">
       <div class="col-md-2">
         <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_operacion.cantidad }}</div>
       </div>
       <div class="col-md-3">
         <label for="pieza" class="form-label fw-bold text-primary">Pieza</label>
-        <div class="form-control" readonly>{{ detalle_operacion.pieza_realizada }}</div>
+        <textarea class="form-control auto-resize" id="pieza" readonly>{{ detalle_operacion.pieza_realizada }}</textarea>
       </div>
       <div class="col-md-3">
         <label for="Fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora de Inicio</label>
@@ -54,18 +54,18 @@
         <div class="form-control" readonly>{{ detalle_operacion.fecha_hora_fin }}</div>
       </div>
     </div>
-    <div class="row g-4 mt-3"> <!-- Espaciado consistente -->
+    <div class="row g-4 mt-3">
       <div class="col-md-3">
         <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
         <div class="form-control" readonly>{{ detalle_operacion.fecha_registro }}</div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-5">
         <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
         <div class="form-control" readonly>{{ detalle_operacion.usuario_registro }}</div>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <label for="novedad" class="form-label fw-bold text-primary">Novedad</label>
-        <div class="form-control" readonly>{{ detalle_operacion.novedad }}</div>
+        <textarea class="form-control auto-resize" id="novedad" readonly>{{ detalle_operacion.novedad }}</textarea>
       </div>
     </div>
   </div>
