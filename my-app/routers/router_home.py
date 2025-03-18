@@ -1,10 +1,9 @@
 from app import app
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, Blueprint
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, Blueprint,request
 from flask_paginate import Pagination, get_page_args
 from controllers.funciones_home import get_total_operaciones,sql_lista_op_bd, get_total_op, sql_lista_jornadas_bd, get_total_jornadas
 from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleados
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
-from controllers.funciones_home import sql_lista_clientes_bd, get_total_clientes
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
 
@@ -19,7 +18,7 @@ from controllers.funciones_home import (
     eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso,
     sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form,
     eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
-    procesar_imagen_cliente, sql_lista_clientes_bd, sql_detalles_clientes_bd, buscar_cliente_bd,
+    procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd,buscar_operaciones_bd,
     buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
     sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad,
     eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
@@ -263,14 +262,9 @@ def validate_document_cliente():
 @app.route('/lista-de-clientes', methods=['GET'])
 def lista_clientes():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(page_parameter='page', per_page_parameter='per_page')
-        per_page = 10  # Registros por página
-        clientes = sql_lista_clientes_bd(page=page, per_page=per_page)
-        total = get_total_clientes()  # Usa la función optimizada
-        pagination = Pagination(page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template('public/clientes/lista_clientes.html', clientes=clientes, pagination=pagination)
+        return render_template('public/clientes/lista_clientes.html')
     else:
-        flash('primero debes iniciar sesión.', 'error')
+        flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
 @app.route("/detalles-cliente/<int:id_cliente>", methods=['GET'])
@@ -288,11 +282,32 @@ def detalle_cliente(id_cliente=None):
 # Búsqueda de clientes
 @app.route("/buscando-cliente", methods=['POST'])
 def view_buscar_cliente_bd():
-    resultado_busqueda_cliente = buscar_cliente_bd(request.json['busqueda'])
-    if resultado_busqueda_cliente:
-        return render_template('public/clientes/resultado_busqueda_cliente.html', data_busqueda_cliente=resultado_busqueda_cliente)
-    else:
-        return jsonify({'fin': 0})
+    try:
+        data = request.get_json()
+        app.logger.debug(f"Datos recibidos: {data}")
+
+        search = data.get('busqueda', '')
+        search_date = data.get('fecha', '')
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        order = data.get('order', [{'column': 0, 'dir': 'desc'}])  # Valor por defecto si no se envía
+
+        clientes, total, total_filtered = buscar_cliente_bd(search, search_date, start, length, order)
+
+        response = {
+            "draw": int(draw),
+            "recordsTotal": total,
+            "recordsFiltered": total_filtered,
+            "data": clientes,
+            "fin": 1 if clientes else 0
+        }
+        app.logger.debug(f"Respuesta enviada: {response}")
+        return jsonify(response)
+
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-cliente: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/editar-cliente/<int:id>", methods=['GET'])
 def viewEditarCliente(id):
@@ -429,17 +444,40 @@ def form_operacion():
 @app.route('/lista-de-operaciones', methods=['GET'])
 def lista_operaciones():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(page_parameter='page', per_page_parameter='per_page')
-        per_page=10  # Registros por página
-        operaciones = sql_lista_operaciones_bd(page=page, per_page=per_page)
-        total = get_total_operaciones()  # Usa la función optimizada
-        pagination = Pagination(page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template('public/operaciones/lista_operaciones.html', 
-                                operaciones=operaciones, 
-                                pagination=pagination)
+        return render_template('public/operaciones/lista_operaciones.html')
     else:
-        flash('primero debes iniciar sesión.', 'error')
+        flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+    
+@app.route('/buscando-operaciones', methods=['POST'])
+def buscar_operaciones():
+    try:
+        data = request.get_json()
+        app.logger.debug(f"Datos recibidos: {data}")
+
+        empleado = data.get('empleado', '')
+        fecha = data.get('fecha', '')
+        hora = data.get('hora', '')
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        order = data.get('order', [{'column': 0, 'dir': 'desc'}])
+
+        operaciones, total, total_filtered = buscar_operaciones_bd(empleado, fecha, hora, start, length, order)
+
+        response = {
+            "draw": int(draw),
+            "recordsTotal": total,
+            "recordsFiltered": total_filtered,
+            "data": operaciones,
+            "fin": 1 if operaciones else 0
+        }
+        app.logger.debug(f"Respuesta enviada: {response}")
+        return jsonify(response)
+
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-operaciones: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/detalles-operacion/<string:id_operacion>", methods=['GET'])
 def detalle_operacion(id_operacion=None):

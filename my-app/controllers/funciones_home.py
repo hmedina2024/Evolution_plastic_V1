@@ -8,10 +8,11 @@ from conexion.models import db, Operaciones, Empleados, TipoEmpleado, Procesos, 
 import datetime
 import re
 import openpyxl  # Para generar el Excel
-from flask import send_file, session, Flask
+from flask import send_file, session, Flask,url_for
 from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
 from sqlalchemy import or_
 from datetime import datetime,timedelta
+from flask_sqlalchemy import SQLAlchemy
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
@@ -502,23 +503,53 @@ def procesar_imagen_cliente(foto):
         return []
 
 # Lista de Clientes con paginación
-def sql_lista_clientes_bd(page=1, per_page=10):
+def buscar_cliente_bd(search='', start=0, length=10):
     try:
-        offset = (page - 1) * per_page
-        query = db.session.query(Clientes).filter(Clientes.fecha_borrado.is_(None)).order_by(Clientes.id_cliente.desc()).limit(per_page).offset(offset)
-        clientes_bd = query.all()
-        return [{
+        # Consulta base
+        query = db.session.query(Clientes)
+
+        # Filtros
+        if search:
+            # Buscar en múltiples columnas
+            query = query.filter(
+                db.or_(
+                    Clientes.nombre_cliente.ilike(f'%{search}%'),
+                    Clientes.documento.ilike(f'%{search}%'),
+                    Clientes.email_cliente.ilike(f'%{search}%'),
+                    db.func.date(Clientes.fecha_registro) == search  # Para búsqueda exacta de fecha
+                )
+            )
+
+        # Total de registros sin filtrar
+        total = db.session.query(Clientes).count()
+        app.logger.debug(f"Total de registros sin filtrar: {total}")
+
+        # Total de registros filtrados
+        total_filtered = query.count()
+        app.logger.debug(f"Total de registros filtrados: {total_filtered}")
+
+        # Aplicar paginación
+        clientes = query.order_by(Clientes.id_cliente.desc()).offset(start).limit(length).all()
+        app.logger.debug(f"Clientes obtenidos: {len(clientes)} registros")
+
+        # Formatear los datos
+        data = [{
             'id_cliente': c.id_cliente,
             'tipo_documento': c.tipo_documento,
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
-            'telefono_cliente': c.telefono_cliente,
+            'email_cliente': c.email_cliente,
+            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d') if c.fecha_registro else None,
             'foto_cliente': c.foto_cliente,
-            'email_cliente': c.email_cliente
-        } for c in clientes_bd]
+            'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
+        } for c in clientes]
+        app.logger.debug(f"Datos formateados: {data}")
+
+        return data, total, total_filtered
+
     except Exception as e:
-        app.logger.error(f"Error en la función sql_lista_clientes_bd: {e}")
-        return None
+        app.logger.error(f"Ocurrió un error en def buscar_cliente_bd: {str(e)}")
+        return [], 0, 0
 
 # Total clientes:
 def get_total_clientes():
@@ -549,19 +580,66 @@ def sql_detalles_clientes_bd(id_cliente):
         app.logger.error(f"Error en la función sql_detalles_clientes_bd: {e}")
         return None
 
-def buscar_cliente_bd(search):
+def buscar_cliente_bd(search='', search_date='', start=0, length=10, order=[{'column': 0, 'dir': 'desc'}]):
     try:
-        query = db.session.query(Clientes).filter(Clientes.nombre_cliente.ilike(f'%{search}%')).order_by(Clientes.id_cliente.desc()).all()
-        return [{
+        query = db.session.query(Clientes)
+
+        # Aplicar filtros
+        if search:
+            query = query.filter(Clientes.nombre_cliente.ilike(f'%{search}%'))
+        if search_date:
+            query = query.filter(db.func.date(Clientes.fecha_registro) == search_date)
+
+        # Total de registros sin filtrar
+        total = db.session.query(Clientes).count()
+        app.logger.debug(f"Total de registros sin filtrar: {total}")
+
+        # Total de registros filtrados
+        total_filtered = query.count()
+        app.logger.debug(f"Total de registros filtrados: {total_filtered}")
+
+        # Mapear columnas de DataTables a campos de la tabla
+        column_map = {
+            0: Clientes.id_cliente,          # #
+            1: Clientes.tipo_documento,      # Tipo Documento
+            2: Clientes.documento,           # Documento
+            3: Clientes.nombre_cliente,      # Nombre
+            4: Clientes.email_cliente,       # Correo
+            5: Clientes.fecha_registro       # Fecha Registro
+        }
+
+        # Aplicar ordenamiento basado en el parámetro 'order' de DataTables
+        if order and len(order) > 0:
+            order_col = order[0]['column']
+            order_dir = order[0]['dir']
+            if order_col in column_map:
+                if order_dir == 'asc':
+                    query = query.order_by(column_map[order_col].asc())
+                else:
+                    query = query.order_by(column_map[order_col].desc())
+
+        # Aplicar paginación
+        clientes = query.offset(start).limit(length).all()
+        app.logger.debug(f"Clientes obtenidos: {len(clientes)} registros")
+
+        # Formatear los datos
+        data = [{
             'id_cliente': c.id_cliente,
             'tipo_documento': c.tipo_documento,
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
-            'email_cliente': c.email_cliente
-        } for c in query]
+            'email_cliente': c.email_cliente,
+            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d') if c.fecha_registro else None,
+            'foto_cliente': c.foto_cliente,
+            'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
+        } for c in clientes]
+        app.logger.debug(f"Datos formateados: {data}")
+
+        return data, total, total_filtered
+
     except Exception as e:
-        app.logger.error(f"Ocurrió un error en def buscar_cliente_bd: {e}")
-        return []
+        app.logger.error(f"Ocurrió un error en def buscar_cliente_bd: {str(e)}")
+        return [], 0, 0
 
 def buscar_cliente_unico(id):
     try:
@@ -841,11 +919,81 @@ def sql_lista_operaciones_bd(page=1, per_page=10):
             'proceso': o.proceso,
             'actividad': o.actividad,
             'codigo_op': o.codigo_op,
-            'cantidad': o.cantidad
+            'cantidad': o.cantidad,
+            'fecha_registro': o.fecha_registro
         } for o in operaciones_bd]
     except Exception as e:
         app.logger.error(f"Error en la función sql_lista_operaciones_bd: {e}")
         return None
+    
+def buscar_operaciones_bd(empleado='', fecha='', hora='', start=0, length=10, order=[{'column': 0, 'dir': 'desc'}]):
+    try:
+        query = db.session.query(Operaciones)
+
+        # Aplicar filtros
+        if empleado:
+            query = query.filter(
+                db.or_(
+                    Operaciones.nombre_empleado.ilike(f'%{empleado}%')
+                )
+            )
+        if fecha:
+            query = query.filter(db.func.date(Operaciones.fecha_registro) == fecha)
+        if hora:
+            # Suponiendo que fecha_registro incluye hora (datetime), filtramos por hora
+            query = query.filter(db.func.time(Operaciones.fecha_registro) == hora)
+
+        # Total de registros sin filtrar
+        total = db.session.query(Operaciones).count()
+        app.logger.debug(f"Total de registros sin filtrar: {total}")
+
+        # Total de registros filtrados
+        total_filtered = query.count()
+        app.logger.debug(f"Total de registros filtrados: {total_filtered}")
+
+        # Mapear columnas de DataTables a campos de la tabla
+        column_map = {
+            0: Operaciones.id_operacion,      # #
+            1: Operaciones.id_operacion,      # ID
+            2: Operaciones.nombre_empleado,   # Empleado
+            3: Operaciones.proceso,           # Proceso
+            4: Operaciones.actividad,         # Actividad
+            5: Operaciones.codigo_op,         # Cod. OP
+            6: Operaciones.cantidad,          # Cantidad
+            7: Operaciones.fecha_registro     # fecha_registro
+        }
+
+        # Aplicar ordenamiento basado en el parámetro 'order' de DataTables
+        if order and len(order) > 0:
+            order_col = order[0]['column']
+            order_dir = order[0]['dir']
+            if order_col in column_map:
+                if order_dir == 'asc':
+                    query = query.order_by(column_map[order_col].asc())
+                else:
+                    query = query.order_by(column_map[order_col].desc())
+
+        # Aplicar paginación
+        operaciones = query.offset(start).limit(length).all()
+        app.logger.debug(f"Operaciones obtenidas: {len(operaciones)} registros")
+
+        # Formatear los datos
+        data = [{
+            'id_operacion': o.id_operacion,
+            'nombre_empleado': o.nombre_empleado,
+            'proceso': o.proceso,
+            'actividad': o.actividad,
+            'codigo_op': o.codigo_op,
+            'cantidad': o.cantidad,
+            'fecha_registro': (o.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p')
+        } for o in operaciones]
+        app.logger.debug(f"Datos formateados: {data}")
+
+        return data, total, total_filtered
+
+    except Exception as e:
+        app.logger.error(f"Ocurrió un error en buscar_operaciones_bd: {str(e)}")
+        return [], 0, 0
     
     
 def get_total_operaciones():
@@ -896,7 +1044,7 @@ def buscar_operacion_unico(id):
                 'novedad': operacion.novedad,
                 'fecha_hora_inicio': operacion.fecha_hora_inicio,
                 'fecha_hora_fin': operacion.fecha_hora_fin,
-                'fecha_registro': operacion.fecha_registro
+                'fecha_registro': (operacion.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
             }
         return None
     except Exception as e:
