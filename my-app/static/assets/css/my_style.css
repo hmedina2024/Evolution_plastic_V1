@@ -15,7 +15,7 @@ body {
   color: #222;
 }
 
-.font_size_17 { /* Corregido el error tipográfico */
+.font_size_17 {
   font-size: 17px;
 }
 
@@ -223,7 +223,7 @@ tbody tr:hover {
   padding-left: 15px !important;
 }
 
-.menu-vertical .menu-inner  {
+.menu-vertical .menu-inner {
   margin: 0 !important;
   font-size: 14px !important;
 }
@@ -266,77 +266,93 @@ tbody tr:hover {
 }
 
 .btn-toggle {
-  font-size: 24px !important; /* Tamaño agrandado a 32px */
-  padding: 8px 12px !important; /* Aumentamos el padding para más espacio */
+  font-size: 24px !important;
+  padding: 8px 12px !important;
   color: #124a8b;
 }
 
 .mb-1 {
-  margin-bottom: 0px !important; /* Más separación entre menús principales */
+  margin-bottom: 0px !important;
 }
 
 .btn-toggle-nav li {
-  margin-bottom: 10px !important; /* Más separación */
+  margin-bottom: 10px !important;
 }
 
 .menu-item .menu-link [data-i18n="Tables"] {
   font-size: 20px !important;
   font-weight: bold !important;
-  color: #030303 !important; /* Color azul para destacar */
+  color: #030303 !important;
 }
-
 
 .auto-resize {
-  resize: none; /* Evita redimensionamiento manual */
-  max-width: 100%; /* Limita el ancho al contenedor */
-  min-height: 38px; /* Altura mínima para consistencia con otros campos */
-  height: auto; /* Permite que crezca */
-  overflow: hidden; /* Oculta barras de desplazamiento innecesarias */
-  word-wrap: break-word; /* Ajusta el texto */
-  overflow-wrap: break-word; /* Alternativa moderna */
-  padding: 6px 12px; /* Asegura un padding consistente con los campos de formulario */
-  box-sizing: border-box; /* Incluye padding y bordes en el cálculo de la altura */
+  resize: none;
+  max-width: 100%;
+  min-height: 38px;
+  height: auto;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 6px 12px;
+  box-sizing: border-box;
 }
 
+/* Estilos para la tabla y DataTables */
+.table-responsive {
+  max-height: 700px !important;
+  overflow-y: auto;
+  position: relative; /* Combinado para mantener todas las propiedades */
+}
 
-  .table-responsive {
-    max-height: 700px !important; /* Altura fija para la tabla */
-    overflow-y: auto; /* Desplazamiento vertical dentro de la tabla */
-    position: relative; /* Asegurar que los elementos internos no afecten el contenedor */
-  }
-  .dataTables_wrapper {
-    overflow: visible; /* Permitir que los controles queden fuera del área de desplazamiento */
-  }
-  .dataTables_length, .dataTables_filter, .dataTables_info, .dataTables_paginate {
-    margin-bottom: 10px; /* Espaciado para que los controles sean visibles */
-  }
-  .dataTables_paginate {
-    padding-bottom: 20px; /* Espacio adicional en la parte inferior */
-  }
-  /* Fijar los controles en la parte inferior */
-  .dataTables_wrapper .dataTables_info,
-  .dataTables_wrapper .dataTables_paginate {
-    position: sticky;
-    bottom: 0;
-    background: #f8f9fa; /* Color de fondo para que sean visibles */
-    z-index: 10;
-  }
+.dataTables_wrapper {
+  overflow: visible;
+}
 
-  .table-responsive {
-    max-height: 700px !important;
-    overflow-y: auto;
-  }
-  .dataTables_wrapper .dataTables_paginate {
-    margin-top: 10px;
-    padding-bottom: 20px;
-  }
+.dataTables_length,
+.dataTables_filter,
+.dataTables_info,
+.dataTables_paginate {
+  margin-bottom: 10px;
+}
 
+.dataTables_paginate {
+  padding-bottom: 20px;
+}
 
-  .btn-sm {
-    margin-right: 5px;
-    padding: 2px 8px;
-    font-size: 0.85rem;
-  }
-  .btn-sm:last-child {
-    margin-right: 0;
-  }
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  position: sticky;
+  bottom: 0;
+  background: #f8f9fa;
+  z-index: 10;
+}
+
+.btn-sm {
+  margin-right: 5px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+
+.btn-sm:last-child {
+  margin-right: 0;
+}
+
+/* Nuevos estilos para alinear el encabezado con el desplazamiento horizontal */
+#tbl_operaciones thead th,
+#tbl_ordenproduccion thead th  {
+  position: sticky;
+  top: 0;
+  background: #395c83;
+  color: white;
+  z-index: 1;
+  left: 0; /* Añadido para alinear con el desplazamiento horizontal */
+}
+
+#tbl_operaciones,
+#tbl_ordenproduccion {
+  width: 100% !important;
+}
+
+.dataTables_scrollBody {
+  overflow-x: auto !important;
+}

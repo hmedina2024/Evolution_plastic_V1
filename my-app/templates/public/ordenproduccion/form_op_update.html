@@ -1,10 +1,9 @@
 {% extends 'public/base_cpanel.html' %}
 
-{% block title %}Registrar Nueva Orden de Producción{% endblock %}
+{% block title %}Actualizar Orden de Producción{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
 {% endblock %}
 
 {% block body %}
@@ -19,8 +18,12 @@
     </h3>
   </div>
   <div class="card-body p-4">
-    <form method="POST" action="{{ url_for('actualizar_op', id=respuestaOp.id_op) }}" autocomplete="off" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('actualizar_op') }}" autocomplete="off" enctype="multipart/form-data">
       <input type="hidden" name="id_op" value="{{ respuestaOp.id_op }}" />
+      <!-- Campos ocultos para enviar datos no editables -->
+      <input type="hidden" name="codigo_op" value="{{ respuestaOp.codigo_op }}" />
+      <input type="hidden" name="nombre_cliente" value="{{ respuestaOp.nombre_cliente }}" />
+      <input type="hidden" name="empleado" value="{{ respuestaOp.empleado }}" />
       <div class="row g-4">
         <div class="col-md-2">
           <label for="codigo_op" class="form-label fw-bold text-primary">Código OP</label>

@@ -12,7 +12,7 @@ from controllers.funciones_home import get_empleados_paginados, get_procesos_pag
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (
-    procesar_form_empleado, procesar_imagen_perfil, obtener_tipo_empleado,
+    procesar_form_empleado, procesar_imagen_perfil, obtener_tipo_empleado,buscar_ordenes_produccion_bd,
     sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,
     buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
     eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso,
@@ -532,7 +532,7 @@ def borrar_operacion(id_operacion):
 @app.route('/registrar-op', methods=['GET'])
 def viewFormOp():
     if 'conectado' in session:
-        clientes = sql_lista_clientes_bd()  # Usamos la versión paginada, pero aquí solo necesitamos una lista
+        clientes = buscar_cliente_bd()  # Usamos la versión paginada, pero aquí solo necesitamos una lista
         empleados = obtener_vendedor()
         return render_template('public/ordenproduccion/form_op.html', clientes=clientes, empleados=empleados)
     else:
@@ -603,6 +603,10 @@ def viewEditarop(id):
 def actualizar_op():
     result_data = procesar_actualizar_form_op(request)
     if result_data:
+        flash('Orden de producción actualizada correctamente', 'success')
+        return redirect(url_for('lista_op'))
+    else:
+        flash('No se pudo actualizar la orden de producción', 'error')
         return redirect(url_for('lista_op'))
 
 @app.route('/borrar-op/<int:id_op>', methods=['GET'])
@@ -611,6 +615,39 @@ def borrar_op(id_op):
     if resp:
         flash('La Orden de Producción fue eliminada correctamente', 'success')
         return redirect(url_for('lista_op'))
+
+@app.route('/buscando-ordenes-produccion', methods=['POST'])
+def buscando_ordenes_produccion():
+    try:
+        # Obtener los datos de la solicitud
+        data = request.get_json()
+        app.logger.debug(f"Datos recibidos: {data}")
+
+        # Extraer parámetros del JSON
+        codigo_op = data.get('codigo_op', '')
+        fecha = data.get('fecha', '')
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        order = data.get('order', [{'column': 1, 'dir': 'desc'}])  # Por defecto: Cod. OP descendente
+
+        # Llamar a la función de búsqueda con el parámetro de ordenamiento
+        ordenes, total, total_filtered = buscar_ordenes_produccion_bd(codigo_op,fecha, start, length, order)
+
+        # Preparar la respuesta
+        response = {
+            'draw': int(draw),
+            'recordsTotal': total,
+            'recordsFiltered': total_filtered,
+            'data': ordenes,
+            'fin': 1 if ordenes else 0
+        }
+        app.logger.debug(f"Respuesta enviada: {response}")
+        return jsonify(response)
+
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-ordenes-produccion: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 #### Jornada
 @app.route('/registrar-jornada', methods=['GET', 'POST'])

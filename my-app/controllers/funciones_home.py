@@ -10,7 +10,7 @@ import re
 import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask,url_for
 from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
-from sqlalchemy import or_
+from sqlalchemy import or_,func
 from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
 
@@ -539,7 +539,7 @@ def buscar_cliente_bd(search='', start=0, length=10):
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
             'email_cliente': c.email_cliente,
-            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d') if c.fecha_registro else None,
+            'fecha_registro': (c.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
             'foto_cliente': c.foto_cliente,
             'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
         } for c in clientes]
@@ -1163,7 +1163,7 @@ def sql_detalles_op_bd(id_op):
                 'cantidad': orden.cantidad,
                 'odi': orden.odi,
                 'empleado': orden.empleado,
-                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': (orden.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
                 'usuario_registro': orden.usuario_registro
             }
         return None
@@ -1184,7 +1184,7 @@ def buscar_op_unico(id):
                 'cantidad': orden.cantidad,
                 'odi': orden.odi,
                 'empleado': orden.empleado,
-                'fecha_registro': orden.fecha_registro
+                'fecha_registro': (orden.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
             }
         return None
     except Exception as e:
@@ -1193,18 +1193,28 @@ def buscar_op_unico(id):
 
 def procesar_actualizar_form_op(data):
     try:
-        orden = db.session.query(OrdenProduccion).filter_by(id_op=data.form['id_op']).first()
+        id_op = data.form.get('id_op')
+        if not id_op:
+            app.logger.error("ID de la orden no proporcionado")
+            return None
+
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
         if orden:
-            orden.codigo_op = data.form['codigo_op']
-            orden.nombre_cliente = data.form['nombre_cliente']
-            orden.producto = data.form['producto']
-            orden.estado = data.form['estado']
-            orden.cantidad = data.form['cantidad']
-            orden.odi = data.form['odi']
-            orden.empleado = data.form['empleado']
+            # Solo actualizamos los campos que vienen en el formulario
+            if 'producto' in data.form:
+                orden.producto = data.form['producto']
+            if 'estado' in data.form:
+                orden.estado = data.form['estado']
+            if 'cantidad' in data.form:
+                orden.cantidad = data.form['cantidad']
+            if 'odi' in data.form:
+                orden.odi = data.form['odi']
+            # No actualizamos codigo_op, nombre_cliente, empleado porque no se envían
             db.session.commit()
-            return 1  # Indica éxito (rowcount)
-        return None
+            return 1  # Éxito
+        else:
+            app.logger.error(f"Orden con id_op {id_op} no encontrada")
+            return None
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Ocurrió un error en procesar_actualizar_form_op: {e}")
@@ -1223,6 +1233,80 @@ def eliminar_op(id_op):
         db.session.rollback()
         app.logger.error(f"Error en eliminar_op: {e}")
         return 0
+    
+def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, order=None):
+    try:
+        # Consulta base
+        query = db.session.query(OrdenProduccion)
+
+        # Filtro por código de orden de producción
+        if codigo_op:
+            query = query.filter(OrdenProduccion.codigo_op.ilike(f'%{codigo_op}%'))  # Corregimos la coma sobrante
+
+        # Filtro por fecha de registro
+        if fecha:
+            try:
+                # Convertir la fecha del input (YYYY-MM-DD) a un objeto datetime
+                fecha_dt = datetime.strptime(fecha, '%Y-%m-%d').date()
+                # Filtrar por la parte de la fecha de fecha_registro
+                query = query.filter(func.date(OrdenProduccion.fecha_registro) == fecha_dt)
+            except ValueError as e:
+                app.logger.error(f"Error al parsear la fecha: {fecha}, error: {e}")
+                # Si la fecha no es válida, no aplicamos el filtro
+
+        # Total de registros sin filtrar
+        total = db.session.query(OrdenProduccion).count()
+        app.logger.debug(f"Total de registros sin filtrar: {total}")
+
+        # Total de registros filtrados
+        total_filtered = query.count()
+        app.logger.debug(f"Total de registros filtrados: {total_filtered}")
+
+        # Mapear índices de columnas a campos del modelo
+        column_mapping = {
+            0: OrdenProduccion.id_op,        # Columna '#'
+            1: OrdenProduccion.codigo_op,    # Columna 'Cod. OP'
+            2: OrdenProduccion.nombre_cliente,  # Columna 'Cliente'
+            3: OrdenProduccion.producto,     # Columna 'Producto'
+            4: OrdenProduccion.cantidad,     # Columna 'Cantidad'
+            5: OrdenProduccion.estado,       # Columna 'Estado'
+            6: OrdenProduccion.fecha_registro,  # Columna 'Fecha Registro'
+            7: None                          # Columna 'Acción' no es ordenable
+        }
+
+        # Aplicar ordenamiento dinámico
+        if order:
+            for ord in order:
+                column_index = ord.get('column', 0)
+                direction = ord.get('dir', 'asc')
+                column = column_mapping.get(column_index)
+                if column:  # Solo ordenar si la columna está mapeada
+                    if direction == 'desc':
+                        query = query.order_by(column.desc())
+                    else:
+                        query = query.order_by(column.asc())
+
+        # Aplicar paginación
+        ordenes = query.offset(start).limit(length).all()
+        app.logger.debug(f"Órdenes obtenidas: {len(ordenes)} registros")
+
+        # Formatear los datos
+        data = [{
+            'id_op': op.id_op,
+            'codigo_op': op.codigo_op,
+            'nombre_cliente': op.nombre_cliente,
+            'producto': op.producto,
+            'cantidad': op.cantidad,
+            'estado': op.estado,
+            'fecha_registro': (op.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p')
+        } for op in ordenes]
+        app.logger.debug(f"Datos formateados: {data}")
+
+        return data, total, total_filtered
+
+    except Exception as e:
+        app.logger.error(f"Error en buscar_ordenes_produccion_bd: {str(e)}")
+        return [], 0, 0
 
 def obtener_vendedor():
     try:

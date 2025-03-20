@@ -3,7 +3,7 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-
+<link rel="stylesheet" href="{{ url_for('static', filename='css/my_style.css') }}">
 {% endblock %}
 
 {% block body %}
@@ -93,6 +93,7 @@ $(document).ready(function() {
         "order": [[1, "desc"]],
         "responsive": true,
         "scrollY": "500px", /* Altura fija para la tabla */
+        "scrollX": true,
         "scrollCollapse": true, /* Colapsa el desplazamiento si hay menos datos */
         "processing": true,
         "language": {
