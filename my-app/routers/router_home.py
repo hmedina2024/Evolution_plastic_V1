@@ -143,7 +143,9 @@ def borrar_empleado(id_empleado, foto_empleado):
     resp = eliminar_empleado(id_empleado, foto_empleado)
     if resp:
         flash('El Empleado fue eliminado correctamente', 'success')
-        return redirect(url_for('lista_empleados'))
+    else:
+        flash('No se pudo eliminar el empleado. Intenta de nuevo.', 'error')
+    return redirect(url_for('lista_empleados'))  # Siempre redirigir, incluso si falla
 
 @app.route("/descargar-informe-empleados/", methods=['GET'])
 def reporte_bd():
@@ -333,7 +335,9 @@ def borrar_cliente(id_cliente, foto_cliente):
     resp = eliminar_cliente(id_cliente, foto_cliente)
     if resp:
         flash('El Cliente fue eliminado correctamente', 'success')
-        return redirect(url_for('lista_clientes'))
+    else:
+        flash('No se pudo eliminar el cliente. Intenta de nuevo.', 'error')
+    return redirect(url_for('lista_clientes'))  # Siempre redirigir, incluso si falla
 
 #### Actividades
 @app.route('/registrar-actividad', methods=['GET'])

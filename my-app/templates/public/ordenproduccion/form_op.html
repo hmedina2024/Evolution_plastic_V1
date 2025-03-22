@@ -73,82 +73,109 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
-  $(document).ready(function () {
+$(document).ready(function () {
     // Configuración genérica para Select2 con AJAX
     function setupSelect2(selectId, url, placeholder, dataKey) {
-      $(`#${selectId}`).select2({
-        placeholder: placeholder,
-        allowClear: true,
-        minimumInputLength: 0,
-        dropdownAutoWidth: true,
-        ajax: {
-          url: url,
-          dataType: 'json',
-          delay: 250,
-          data: function (params) {
-            return {
-              search: params.term || '',
-              page: params.page || 1,
-              per_page: 10
-            };
-          },
-          processResults: function (data) {
-            return {
-              results: data[dataKey].map(item => ({
-                id: Object.values(item)[0],
-                text: Object.values(item)[0]
-              })),
-              pagination: { more: data[dataKey].length === 10 }
-            };
-          },
-          cache: true
-        },
-        templateResult: function (data) {
-          return data.text;
-        },
-        templateSelection: function (data) {
-          return data.text || data.id;
-        }
-      }).on('select2:open', function () {
-        setTimeout(() => {
-          document.querySelector('.select2-search__field').focus();
-        }, 50);
-      });
+        $(`#${selectId}`).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data[dataKey].map(item => ({
+                            id: Object.values(item)[0],
+                            text: Object.values(item)[0]
+                        })),
+                        pagination: { more: data[dataKey].length === 10 }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) {
+                return data.text;
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
     }
 
     // Inicializar campos con Select2
     setupSelect2('nombre_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes');
     setupSelect2('vendedor', '/api/empleados', 'Seleccionar Vendedor', 'empleados');
     $('#estado').select2({
-      placeholder: 'Seleccionar Estado',
-      allowClear: true,
-      minimumResultsForSearch: Infinity // Desactiva la búsqueda en el select estático
+        placeholder: 'Seleccionar Estado',
+        allowClear: true,
+        minimumResultsForSearch: Infinity // Desactiva la búsqueda en el select estático
     });
-  });
 
-  function validateCodigoOp() {
-    const documento = document.getElementById('documento').value;
-    const errorDiv = document.getElementById('documento-error');
+    // Variable para evitar múltiples envíos
+    let isSubmitting = false;
+    const submitBtn = $('button[type="submit"]');
 
-    fetch('/validar-codigo-op', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `documento=${documento}`
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.exists) {
-        errorDiv.textContent = 'La OP ya existe.';
-        document.getElementById('documento').value = '';
-      } else {
-        errorDiv.textContent = '';
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
+    // Manejar el envío del formulario
+    $('#registroForm').on('submit', function (e) {
+        e.preventDefault(); // Prevenir el envío por defecto
+
+        // Si ya se está enviando, no hacer nada
+        if (isSubmitting) {
+            return false;
+        }
+
+        // Validar el formulario (si hay validaciones adicionales)
+        const form = this;
+        if (form.checkValidity()) {
+            isSubmitting = true; // Marcar como enviando
+            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+
+            // Enviar el formulario manualmente
+            form.submit();
+        } else {
+            form.reportValidity(); // Mostrar errores de validación del navegador
+        }
     });
-  }
+
+    // Validar COD. OP
+    function validateCodigoOp() {
+        const documento = document.getElementById('documento').value;
+        const errorDiv = document.getElementById('documento-error');
+
+        fetch('/validar-codigo-op', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `documento=${documento}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                errorDiv.textContent = 'La OP ya existe.';
+                document.getElementById('documento').value = '';
+            } else {
+                errorDiv.textContent = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+});
 </script>
 {% endblock %}

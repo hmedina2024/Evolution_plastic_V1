@@ -62,50 +62,76 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
-  $(document).ready(function () {
+$(document).ready(function () {
     // Configuración de Select2 (sin cambios aquí)
     function setupSelect2(selectId, url, placeholder, dataKey) {
-      $(`#${selectId}`).select2({
-        placeholder: placeholder,
-        allowClear: true,
-        minimumInputLength: 0,
-        dropdownAutoWidth: true,
-        ajax: {
-          url: url,
-          dataType: 'json',
-          delay: 250,
-          data: function (params) {
-            return {
-              search: params.term || '',
-              page: params.page || 1,
-              per_page: 10
-            };
-          },
-          processResults: function (data) {
-            return {
-              results: data[dataKey].map(item => ({
-                id: Object.values(item)[0],
-                text: Object.values(item)[0]
-              })),
-              pagination: { more: data[dataKey].length === 10 }
-            };
-          },
-          cache: true
-        },
-        templateResult: function (data) {
-          return data.text;
-        },
-        templateSelection: function (data) {
-          return data.text || data.id;
-        }
-      }).on('select2:open', function () {
-        setTimeout(() => {
-          document.querySelector('.select2-search__field').focus();
-        }, 50);
-      });
+        $(`#${selectId}`).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data[dataKey].map(item => ({
+                            id: Object.values(item)[0],
+                            text: Object.values(item)[0]
+                        })),
+                        pagination: { more: data[dataKey].length === 10 }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) {
+                return data.text;
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
     }
 
     setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados');
-  });
+
+    // Variable para evitar múltiples envíos
+    let isSubmitting = false;
+    const submitBtn = $('button[type="submit"]');
+
+    // Manejar el envío del formulario
+    $('form').on('submit', function (e) {
+        e.preventDefault(); // Prevenir el envío por defecto
+
+        // Si ya se está enviando, no hacer nada
+        if (isSubmitting) {
+            return false;
+        }
+
+        // Validar el formulario
+        const form = this;
+        if (form.checkValidity()) {
+            isSubmitting = true; // Marcar como enviando
+            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+
+            // Enviar el formulario manualmente
+            form.submit();
+        } else {
+            form.reportValidity(); // Mostrar errores de validación del navegador
+        }
+    });
+});
 </script>
 {% endblock %}

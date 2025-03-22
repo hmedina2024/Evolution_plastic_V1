@@ -72,47 +72,47 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
-  $(document).ready(function () {
+$(document).ready(function () {
     // Configuración de Select2 (sin cambios aquí)
     function setupSelect2(selectId, url, placeholder, dataKey) {
-      $(`#${selectId}`).select2({
-        placeholder: placeholder,
-        allowClear: true,
-        minimumInputLength: 0,
-        dropdownAutoWidth: true,
-        ajax: {
-          url: url,
-          dataType: 'json',
-          delay: 250,
-          data: function (params) {
-            return {
-              search: params.term || '',
-              page: params.page || 1,
-              per_page: 10
-            };
-          },
-          processResults: function (data) {
-            return {
-              results: data[dataKey].map(item => ({
-                id: Object.values(item)[0],
-                text: Object.values(item)[0]
-              })),
-              pagination: { more: data[dataKey].length === 10 }
-            };
-          },
-          cache: true
-        },
-        templateResult: function (data) {
-          return data.text;
-        },
-        templateSelection: function (data) {
-          return data.text || data.id;
-        }
-      }).on('select2:open', function () {
-        setTimeout(() => {
-          document.querySelector('.select2-search__field').focus();
-        }, 50);
-      });
+        $(`#${selectId}`).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data[dataKey].map(item => ({
+                            id: Object.values(item)[0],
+                            text: Object.values(item)[0]
+                        })),
+                        pagination: { more: data[dataKey].length === 10 }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) {
+                return data.text;
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
     }
 
     setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados');
@@ -133,51 +133,62 @@
     horaInicioInput.attr('min', minDate);
 
     function validateDates() {
-      const horaInicio = new Date(horaInicioInput.val());
-      const horaFin = new Date(horaFinInput.val());
-      let isValid = true;
+        const horaInicio = new Date(horaInicioInput.val());
+        const horaFin = new Date(horaFinInput.val());
+        let isValid = true;
 
-      // Validar hora_inicio
-      if (horaInicio > new Date()) {
-        $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
-        isValid = false;
-      } else if (horaInicio < new Date(minDate)) {
-        $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
-        isValid = false;
-      } else {
-        $('#hora_inicio_feedback').removeClass('show');
-      }
-
-      // Validar hora_fin
-      if (horaFinInput.val()) {
-        if (horaFin < horaInicio) {
-          $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
-          isValid = false;
-        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
-          $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
-          isValid = false;
+        // Validar hora_inicio
+        if (horaInicio > new Date()) {
+            $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
+            isValid = false;
+        } else if (horaInicio < new Date(minDate)) {
+            $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
+            isValid = false;
         } else {
-          $('#hora_fin_feedback').removeClass('show');
+            $('#hora_inicio_feedback').removeClass('show');
         }
-      }
 
-      // Habilitar/deshabilitar botón
-      submitBtn.prop('disabled', !isValid);
+        // Validar hora_fin
+        if (horaFinInput.val()) {
+            if (horaFin < horaInicio) {
+                $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
+                isValid = false;
+            } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
+                $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
+                isValid = false;
+            } else {
+                $('#hora_fin_feedback').removeClass('show');
+            }
+        }
+
+        // Habilitar/deshabilitar botón
+        submitBtn.prop('disabled', !isValid);
     }
 
     horaInicioInput.on('change', validateDates);
     horaFinInput.on('change', validateDates);
 
-    // Validar al intentar enviar el formulario
+    // Variable para evitar múltiples envíos
+    let isSubmitting = false;
+
+    // Validar y manejar el envío del formulario
     $('#registroForm').on('submit', function (e) {
-      validateDates();
-      if (!submitBtn.prop('disabled')) {
-        return true;
-      } else {
-        e.preventDefault();
-        return false;
-      }
+        e.preventDefault(); // Prevenir el envío por defecto
+
+        // Si ya se está enviando, no hacer nada
+        if (isSubmitting) {
+            return false;
+        }
+
+        validateDates();
+        if (!submitBtn.prop('disabled')) {
+            isSubmitting = true; // Marcar como enviando
+            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+
+            // Enviar el formulario manualmente
+            this.submit();
+        }
     });
-  });
+});
 </script>
 {% endblock %}

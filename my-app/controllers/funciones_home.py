@@ -6,6 +6,7 @@ from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 from conexion.models import db, Operaciones, Empleados, TipoEmpleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa modelos desde models.py
 import datetime
+import pytz
 import re
 import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask,url_for
@@ -13,6 +14,10 @@ from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccio
 from sqlalchemy import or_,func
 from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
+
+# Define la zona horaria local (ajusta según tu ubicación)
+LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
+
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
@@ -272,18 +277,19 @@ def eliminar_empleado(id_empleado, foto_empleado):
     try:
         empleado = db.session.query(Empleados).filter_by(id_empleado=id_empleado).first()
         if empleado:
-            empleado.fecha_borrado = datetime.datetime.now()
+            empleado.fecha_borrado = datetime.now()  # Usar datetime.now() en lugar de datetime.datetime.now()
             db.session.commit()
 
             # Eliminando foto_empleado desde el directorio
-            basepath = path.dirname(__file__)
-            url_file = path.join(basepath, '../static/fotos_empleados', foto_empleado)
+            if foto_empleado:  # Verificar que foto_empleado no sea None o vacío
+                basepath = path.dirname(__file__)
+                url_file = path.join(basepath, '../static/fotos_empleados', foto_empleado)
 
-            if path.exists(url_file):
-                remove(url_file)  # Borrar foto desde la carpeta
+                if path.exists(url_file):
+                    remove(url_file)  # Borrar foto desde la carpeta
 
             return 1  # Indica éxito (rowcount)
-        return 0
+        return 0  # Empleado no encontrado
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error en eliminar_empleado: {e}")
@@ -539,7 +545,7 @@ def buscar_cliente_bd(search='', start=0, length=10):
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
             'email_cliente': c.email_cliente,
-            'fecha_registro': (c.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
+            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
             'foto_cliente': c.foto_cliente,
             'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
         } for c in clientes]
@@ -690,7 +696,7 @@ def eliminar_cliente(id_cliente, foto_cliente):
     try:
         cliente = db.session.query(Clientes).filter_by(id_cliente=id_cliente).first()
         if cliente:
-            cliente.fecha_borrado = datetime.datetime.now()
+            cliente.fecha_borrado = datetime.now()
             db.session.commit()
 
             # Eliminando foto_cliente desde el directorio
@@ -701,7 +707,7 @@ def eliminar_cliente(id_cliente, foto_cliente):
                 remove(url_file)  # Borrar foto desde la carpeta
 
             return 1  # Indica éxito (rowcount)
-        return 0
+        return 0  # Cliente no encontrado
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error en eliminar_cliente: {e}")
@@ -938,9 +944,14 @@ def buscar_operaciones_bd(empleado='', fecha='', hora='', start=0, length=10, or
                 )
             )
         if fecha:
-            query = query.filter(db.func.date(Operaciones.fecha_registro) == fecha)
+            # No necesitamos convertir a UTC, ya que fecha_registro está en America/Bogota
+            try:
+                local_date = datetime.strptime(fecha, '%Y-%m-%d').date()
+                query = query.filter(db.func.date(Operaciones.fecha_registro) == local_date)
+            except ValueError:
+                app.logger.error(f"Formato de fecha inválido: {fecha}")
         if hora:
-            # Suponiendo que fecha_registro incluye hora (datetime), filtramos por hora
+            # Filtrar por hora (asegúrate de que 'hora' esté en formato HH:MM:SS)
             query = query.filter(db.func.time(Operaciones.fecha_registro) == hora)
 
         # Total de registros sin filtrar
@@ -978,15 +989,17 @@ def buscar_operaciones_bd(empleado='', fecha='', hora='', start=0, length=10, or
         app.logger.debug(f"Operaciones obtenidas: {len(operaciones)} registros")
 
         # Formatear los datos
-        data = [{
-            'id_operacion': o.id_operacion,
-            'nombre_empleado': o.nombre_empleado,
-            'proceso': o.proceso,
-            'actividad': o.actividad,
-            'codigo_op': o.codigo_op,
-            'cantidad': o.cantidad,
-            'fecha_registro': (o.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p')
-        } for o in operaciones]
+        data = []
+        for o in operaciones:
+            data.append({
+                'id_operacion': o.id_operacion,
+                'nombre_empleado': o.nombre_empleado,
+                'proceso': o.proceso,
+                'actividad': o.actividad,
+                'codigo_op': o.codigo_op,
+                'cantidad': o.cantidad,
+                'fecha_registro': o.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if o.fecha_registro else None
+            })
         app.logger.debug(f"Datos formateados: {data}")
 
         return data, total, total_filtered
@@ -1020,7 +1033,7 @@ def sql_detalles_operaciones_bd(id_operacion):
                 'novedad': operacion.novedad,
                 'fecha_hora_inicio': operacion.fecha_hora_inicio,
                 'fecha_hora_fin': operacion.fecha_hora_fin,
-                'fecha_registro': (operacion.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
                 'usuario_registro': operacion.usuario_registro
             }
         return None
@@ -1044,7 +1057,7 @@ def buscar_operacion_unico(id):
                 'novedad': operacion.novedad,
                 'fecha_hora_inicio': operacion.fecha_hora_inicio,
                 'fecha_hora_fin': operacion.fecha_hora_fin,
-                'fecha_registro': (operacion.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
             }
         return None
     except Exception as e:
@@ -1163,7 +1176,7 @@ def sql_detalles_op_bd(id_op):
                 'cantidad': orden.cantidad,
                 'odi': orden.odi,
                 'empleado': orden.empleado,
-                'fecha_registro': (orden.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
                 'usuario_registro': orden.usuario_registro
             }
         return None
@@ -1184,7 +1197,7 @@ def buscar_op_unico(id):
                 'cantidad': orden.cantidad,
                 'odi': orden.odi,
                 'empleado': orden.empleado,
-                'fecha_registro': (orden.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p'),
+                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
             }
         return None
     except Exception as e:
@@ -1298,7 +1311,7 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
             'producto': op.producto,
             'cantidad': op.cantidad,
             'estado': op.estado,
-            'fecha_registro': (op.fecha_registro - timedelta(hours=5)).strftime('%Y-%m-%d %I:%M %p')
+            'fecha_registro': op.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
         } for op in ordenes]
         app.logger.debug(f"Datos formateados: {data}")
 

@@ -86,18 +86,18 @@ $(document).ready(function() {
                 return `
                 <a href="/detalles-cliente/${row.id_cliente}" class="btn btn-info btn-sm"><i class="bi bi-eye"></i> Ver detalles</a>
                 <a href="${row.url_editar}" class="btn btn-success btn-sm"><i class="bi bi-arrow-clockwise"></i> Actualizar</a>
-                <a href="#" onclick="eliminarCliente('${row.id_cliente}', '${row.foto_cliente}');" class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Eliminar</a>`;
+                <button onclick="eliminarCliente('${row.id_cliente}', '${row.foto_cliente}', this);" class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Eliminar</button>`;
             }}
         ],
         "pageLength": 10,
         "order": [[1, "desc"]],
         "responsive": true,
-        "scrollY": "500px", /* Altura fija para la tabla */
+        "scrollY": "500px",
         "scrollX": true,
-        "scrollCollapse": true, /* Colapsa el desplazamiento si hay menos datos */
+        "scrollCollapse": true,
         "processing": true,
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json", // Aseguramos la traducción
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json",
             "lengthMenu": "Mostrar _MENU_ entradas",
             "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
             "paginate": {
@@ -106,7 +106,7 @@ $(document).ready(function() {
             }
         },
         "searching": false,
-        "dom": 'lfrtip' // Manteniendo los controles visibles
+        "dom": 'lfrtip'
     });
 
     // Evento para el filtro por nombre con debounce
@@ -127,8 +127,18 @@ $(document).ready(function() {
     });
 });
 
-function eliminarCliente(id_cliente, foto_cliente) {
+// Variable para evitar múltiples eliminaciones
+let isDeleting = false;
+
+function eliminarCliente(id_cliente, foto_cliente, button) {
+    if (isDeleting) {
+        return; // Si ya se está procesando una eliminación, no hacer nada
+    }
+
     if (confirm('¿Estás seguro de eliminar este cliente?')) {
+        isDeleting = true; // Marcar como procesando
+        $(button).prop('disabled', true).text('Eliminando...'); // Deshabilitar el botón y cambiar texto
+
         window.location.href = '/borrar-cliente/' + id_cliente + '/' + encodeURIComponent(foto_cliente);
     }
 }

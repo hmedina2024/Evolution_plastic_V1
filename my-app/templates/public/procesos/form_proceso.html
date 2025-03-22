@@ -40,5 +40,35 @@
 {% endblock %}
 
 {% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Añadimos jQuery -->
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
+<script>
+$(document).ready(function () {
+    // Variable para evitar múltiples envíos
+    let isSubmitting = false;
+    const submitBtn = $('button[type="submit"]');
+
+    // Manejar el envío del formulario
+    $('form').on('submit', function (e) {
+        e.preventDefault(); // Prevenir el envío por defecto
+
+        // Si ya se está enviando, no hacer nada
+        if (isSubmitting) {
+            return false;
+        }
+
+        // Validar el formulario
+        const form = this;
+        if (form.checkValidity()) {
+            isSubmitting = true; // Marcar como enviando
+            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+
+            // Enviar el formulario manualmente
+            form.submit();
+        } else {
+            form.reportValidity(); // Mostrar errores de validación del navegador
+        }
+    });
+});
+</script>
 {% endblock %}
