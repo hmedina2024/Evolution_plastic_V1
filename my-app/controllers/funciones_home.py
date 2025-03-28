@@ -10,7 +10,7 @@ import pytz
 import re
 import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask,url_for
-from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion
+from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion,Empresa
 from sqlalchemy import or_,func
 from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
@@ -1580,3 +1580,213 @@ def get_clientes_paginados(page, per_page, search=None):
     except Exception as e:
         app.logger.error(f"Error en get_clientes_paginados: {e}")
         return []
+    
+    
+
+## EMPRESAS
+
+def procesar_form_empresa(dataForm):
+    try:
+        # Obtener y validar los datos del formulario
+        nit = dataForm.get('nit')
+        nombre_empresa = dataForm.get('nombre_empresa')
+        tipo_empresa = dataForm.get('tipo_empresa')
+        direccion = dataForm.get('direccion')
+        telefono = dataForm.get('telefono')
+        email = dataForm.get('email')
+
+        # Validar campos requeridos
+        if not all([nit, nombre_empresa, tipo_empresa]):
+            return None  # Indica error si falta algún campo obligatorio
+
+        # Validar que el NIT no exista
+        if db.session.query(Empresa).filter_by(nit=nit, fecha_borrado=None).first():
+            return 'El NIT ya está registrado.'
+
+        # Validar tipo_empresa
+        if tipo_empresa not in ['Directo', 'Temporal']:
+            return 'El tipo de empresa no es válido.'
+
+        # Crear nueva empresa
+        empresa = Empresa(
+            nit=nit,
+            nombre_empresa=nombre_empresa,
+            tipo_empresa=tipo_empresa,
+            direccion=direccion,
+            telefono=telefono,
+            email=email,
+            usuario_registro=session.get('name_surname', 'Usuario desconocido'),
+            fecha_registro=datetime.now()
+        )
+
+        # Guardar en la base de datos
+        db.session.add(empresa)
+        db.session.commit()
+        return 1  # Indica éxito
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Se produjo un error en procesar_form_empresa: {str(e)}')
+        return None
+
+
+def sql_lista_empresasBD(page=1, per_page=10):
+    try:
+        offset = (page - 1) * per_page
+        # Obtener las empresas paginadas
+        empresas = (db.session.query(Empresa)
+                    .filter(Empresa.fecha_borrado.is_(None))
+                    .order_by(Empresa.id_empresa.desc())
+                    .limit(per_page)
+                    .offset(offset)
+                    .all())
+        
+        # Obtener el total de empresas
+        total = db.session.query(Empresa).filter(Empresa.fecha_borrado.is_(None)).count()
+
+        # Devolver una tupla con los registros y el total
+        return (empresas, total)
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_lista_empresasBD: {str(e)}")
+        return None
+    
+    
+def sql_detalles_empresaBD(id_empresa):
+    try:
+        empresa = db.session.query(Empresa).filter_by(id_empresa=id_empresa, fecha_borrado=None).first()
+        if empresa:
+            return empresa
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en la función sql_detalles_empresaBD: {str(e)}")
+        return None
+
+def buscar_empresa_unica(id_empresa):
+    try:
+        empresa = db.session.query(Empresa).filter_by(id_empresa=id_empresa, fecha_borrado=None).first()
+        if empresa:
+            return empresa
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en la función buscar_empresa_unica: {str(e)}")
+        return None
+    
+    
+def eliminar_empresa(id_empresa):
+    try:
+        empresa = db.session.query(Empresa).filter_by(id_empresa=id_empresa, fecha_borrado=None).first()
+        if empresa:
+            empresa.fecha_borrado = datetime.now()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en la función eliminar_empresa: {str(e)}")
+        return False
+    
+def procesar_actualizar_empresa(request):
+    try:
+        id_empresa = request.form.get('id_empresa')
+        nit = request.form.get('nit')
+        nombre_empresa = request.form.get('nombre_empresa')
+        tipo_empresa = request.form.get('tipo_empresa')
+        direccion = request.form.get('direccion')
+        telefono = request.form.get('telefono')
+        email = request.form.get('email')
+
+        # Validar campos requeridos
+        if not all([id_empresa, nit, nombre_empresa, tipo_empresa]):
+            return "Todos los campos requeridos deben estar completos."
+
+        # Buscar la empresa
+        empresa = db.session.query(Empresa).filter_by(id_empresa=id_empresa, fecha_borrado=None).first()
+        if not empresa:
+            return "La empresa no existe."
+
+        # Actualizar los datos
+        empresa.nit = nit
+        empresa.nombre_empresa = nombre_empresa
+        empresa.tipo_empresa = tipo_empresa
+        empresa.direccion = direccion if direccion else None
+        empresa.telefono = telefono if telefono else None
+        empresa.email = email if email else None
+        empresa.fecha_modificacion = datetime.now()
+        empresa.usuario_modificacion = session.get('usuario')  # Asumiendo que el usuario está en la sesión
+
+        db.session.commit()
+        return 1  # Éxito
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error al actualizar la empresa: {str(e)}")
+        return f"Error al actualizar la empresa: {str(e)}"
+    
+    
+def buscando_empresas(draw, start, length, search_value, order_column, order_direction, filter_empresa):
+    try:
+        # Obtener el total de registros sin filtrar
+        total_records = db.session.query(func.count(Empresa.id_empresa)).filter(Empresa.fecha_borrado.is_(None)).scalar()
+
+        # Construir la consulta base
+        query = db.session.query(Empresa).filter(Empresa.fecha_borrado.is_(None))
+
+        # Aplicar el filtro personalizado por empresa (nombre_empresa o nit)
+        if filter_empresa:
+            filter_empresa = f"%{filter_empresa}%"
+            query = query.filter(
+                (Empresa.nit.ilike(filter_empresa)) |
+                (Empresa.nombre_empresa.ilike(filter_empresa))
+            )
+
+        # Obtener el total de registros filtrados
+        filtered_records = query.count()
+
+        # Aplicar ordenamiento
+        order_columns = {
+            1: Empresa.nit,
+            2: Empresa.nombre_empresa,
+            3: Empresa.tipo_empresa,
+            4: Empresa.telefono,
+            5: Empresa.email
+        }
+        if order_column in order_columns:
+            column = order_columns[order_column]
+            if order_direction == "desc":
+                column = column.desc()
+            query = query.order_by(column)
+
+        # Aplicar paginación
+        query = query.offset(start).limit(length)
+
+        # Obtener los registros
+        empresas = query.all()
+
+        # Formatear los datos para DataTables
+        data = []
+        for empresa in empresas:
+            data.append({
+                "id_empresa": empresa.id_empresa,
+                "nit": empresa.nit,
+                "nombre_empresa": empresa.nombre_empresa,
+                "tipo_empresa": empresa.tipo_empresa,
+                "telefono": empresa.telefono if empresa.telefono else "N/A",
+                "email": empresa.email if empresa.email else "N/A"
+            })
+
+        return {
+            "draw": int(draw),
+            "recordsTotal": total_records,
+            "recordsFiltered": filtered_records,
+            "data": data,
+            "fin": 1
+        }
+    except Exception as e:
+        app.logger.error(f"Error en la función buscando_empresas: {str(e)}")
+        return {
+            "draw": int(draw),
+            "recordsTotal": 0,
+            "recordsFiltered": 0,
+            "data": [],
+            "fin": 0,
+            "error": str(e)
+        }

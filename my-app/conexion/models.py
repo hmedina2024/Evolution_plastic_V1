@@ -120,3 +120,18 @@ class Users(db.Model):
     pass_user = db.Column(db.Text, nullable=False)  # Usamos Text para text
     rol = db.Column(db.String(45), nullable=False)
     created_user = db.Column(db.DateTime, default=func.now(), nullable=False)
+    
+    
+class Empresa(db.Model):
+    __tablename__ = 'tbl_empresas'
+
+    id_empresa = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_empresa = db.Column(db.String(100), nullable=False)
+    tipo_empresa = db.Column(db.Enum('Directo', 'Temporal'), nullable=False)
+    nit = db.Column(db.String(20), nullable=False, unique=True)
+    direccion = db.Column(db.String(200))
+    telefono = db.Column(db.String(20))
+    email = db.Column(db.String(100))
+    fecha_registro = db.Column(db.DateTime, nullable=False, default=db.func.now())
+    usuario_registro = db.Column(db.String(50), nullable=False)
+    fecha_borrado = db.Column(db.DateTime)

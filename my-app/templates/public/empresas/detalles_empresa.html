@@ -1,0 +1,89 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Detalles de la Empresa{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<style>
+  .card-header {
+    padding: 0.25rem 1rem;
+    line-height: 1.2;
+  }
+  .card-header h3 {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+{% if detalle_empresa %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="{{ url_for('lista_empresas') }}" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      INFORMACIÓN DE LA EMPRESA
+    </h3>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <label for="nit" class="form-label fw-bold text-primary">NIT</label>
+        <div class="form-control" readonly>{{ detalle_empresa.nit }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="nombre_empresa" class="form-label fw-bold text-primary">Nombre de la Empresa</label>
+        <div class="form-control" readonly>{{ detalle_empresa.nombre_empresa }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="tipo_empresa" class="form-label fw-bold text-primary">Tipo de Empresa</label>
+        <div class="form-control" readonly>{{ detalle_empresa.tipo_empresa }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <label for="direccion" class="form-label fw-bold text-primary">Dirección</label>
+        <div class="form-control" readonly>{{ detalle_empresa.direccion if detalle_empresa.direccion else 'N/A' }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="telefono" class="form-label fw-bold text-primary">Teléfono</label>
+        <div class="form-control" readonly>{{ detalle_empresa.telefono if detalle_empresa.telefono else 'N/A' }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="email" class="form-label fw-bold text-primary">Email</label>
+        <div class="form-control" readonly>{{ detalle_empresa.email if detalle_empresa.email else 'N/A' }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha de Registro</label>
+        <div class="form-control" readonly>{{ detalle_empresa.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="usuario_registro" class="form-label fw-bold text-primary">Usuario que Registró</label>
+        <div class="form-control" readonly>{{ detalle_empresa.usuario_registro }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="id_empresa" class="form-label fw-bold text-primary">ID</label>
+        <div class="form-control" readonly>{{ detalle_empresa.id_empresa }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">INFORMACIÓN DE LA EMPRESA</h3>
+  </div>
+  <div class="card-body p-4 text-center">
+    <h2>No existe la Empresa 😭</h2>
+    <hr />
+    <div class="mt-4">
+      <a href="{{ url_for('lista_empresas') }}" class="btn btn-secondary">Volver a la Lista</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

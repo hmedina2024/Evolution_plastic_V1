@@ -6,16 +6,16 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
-
+from conexion.models import db, Empresa
 from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas,get_clientes_paginados
 
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (
-    procesar_form_empleado, procesar_imagen_perfil, obtener_tipo_empleado,buscar_ordenes_produccion_bd,
-    sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,
+    procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil,procesar_actualizar_empresa, obtener_tipo_empleado,buscar_ordenes_produccion_bd,
+    sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,sql_lista_empresasBD,
     buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
-    eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso,
+    eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso,buscando_empresas,
     sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form,
     eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
     procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd,buscar_operaciones_bd,
@@ -783,3 +783,152 @@ def api_clientes():
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     clientes = get_clientes_paginados(page, per_page, search)
     return jsonify({'clientes': clientes})
+
+
+### EMPRESAS
+
+@app.route('/registrar-empresa', methods=['GET'])
+def viewFormEmpresa():
+    if 'conectado' in session:
+        return render_template('public/empresas/form_empresa.html')
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+@app.route('/validar-nit-empresa', methods=['POST'])
+def validar_nit_empresa():
+    try:
+        nit = request.form.get('nit')
+        if not nit:
+            return jsonify({'exists': False, 'error': 'El NIT es requerido.'}), 400
+
+        # Verificar si el NIT ya existe
+        empresa = db.session.query(Empresa).filter_by(nit=nit, fecha_borrado=None).first()
+        if empresa:
+            return jsonify({'exists': True, 'error': 'El NIT ya está registrado.'}), 400
+
+        return jsonify({'exists': False})
+
+    except Exception as e:
+        app.logger.error(f"Error en /validar-nit-empresa: {str(e)}")
+        return jsonify({'exists': False, 'error': 'Error al validar el NIT: ' + str(e)}), 500
+
+@app.route('/form-registrar-empresa', methods=['POST'])
+def form_registrar_empresa():
+    if 'conectado' in session:
+        resultado = procesar_form_empresa(request.form)
+        if resultado == 1:
+            flash('La empresa fue registrada correctamente.', 'success')
+            return redirect(url_for('lista_empresas'))  # Cambiado de 'inicio' a 'lista_empresas'
+        elif isinstance(resultado, str):
+            flash(resultado, 'error')
+            return render_template('public/empresas/form_empresa.html', data_form=request.form)
+        else:
+            flash('La empresa NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
+            return render_template('public/empresas/form_empresa.html', data_form=request.form)
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+    
+@app.route('/lista-de-empresas', methods=['GET'])
+def lista_empresas():
+    if 'conectado' in session:
+        page, per_page, offset = get_page_args(page_parameter='page', per_page_parameter='per_page')
+        per_page = 10  # Registros por página
+        result = sql_lista_empresasBD(page=page, per_page=per_page)
+        if result is None:
+            flash('Error al cargar la lista de empresas.', 'error')
+            return redirect(url_for('inicio'))
+        
+        empresas, total = result
+        pagination = Pagination(page=page, per_page=per_page, total=total, css_framework='bootstrap5')
+        return render_template('public/empresas/lista_empresas.html', empresas=empresas, pagination=pagination)
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+    
+from controllers.funciones_home import sql_detalles_empresaBD, buscar_empresa_unica, eliminar_empresa  # Asegúrate de importar las nuevas funciones
+
+@app.route("/detalles-empresa/<int:id_empresa>", methods=['GET'])
+def detalle_empresa(id_empresa=None):
+    if 'conectado' in session:
+        if id_empresa is None:
+            return redirect(url_for('inicio'))
+        else:
+            detalle_empresa = sql_detalles_empresaBD(id_empresa)
+            if detalle_empresa:
+                return render_template('public/empresas/detalles_empresa.html', detalle_empresa=detalle_empresa)
+            else:
+                flash('La empresa no existe.', 'error')
+                return redirect(url_for('lista_empresas'))
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+@app.route("/editar-empresa/<int:id>", methods=['GET'])
+def viewEditarEmpresa(id):
+    if 'conectado' in session:
+        respuestaEmpresa = buscar_empresa_unica(id)
+        if respuestaEmpresa:
+            return render_template('public/empresas/form_empresa_update.html', respuestaEmpresa=respuestaEmpresa)
+        else:
+            flash('La empresa no existe.', 'error')
+            return redirect(url_for('lista_empresas'))
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+@app.route('/borrar-empresa/<int:id_empresa>', methods=['GET'])
+def borrar_empresa(id_empresa):
+    if 'conectado' in session:
+        resp = eliminar_empresa(id_empresa)
+        if resp:
+            flash('La empresa fue eliminada correctamente', 'success')
+        else:
+            flash('No se pudo eliminar la empresa. Intenta de nuevo.', 'error')
+        return redirect(url_for('lista_empresas'))
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+    
+@app.route('/actualizar-empresa', methods=['POST'])
+def actualizar_empresa():
+    if 'conectado' in session:
+        resultado = procesar_actualizar_empresa(request)
+        if resultado == 1:
+            flash('La empresa fue actualizada correctamente.', 'success')
+            return redirect(url_for('lista_empresas'))
+        else:
+            flash(resultado, 'error')
+            return redirect(url_for('viewEditarEmpresa', id=request.form.get('id_empresa')))
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+@app.route('/buscando-empresas', methods=['POST'])
+def buscando_empresas_route():
+    if 'conectado' in session:
+        data = request.get_json()
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        search_value = data.get('search', {}).get('value', '')
+        order = data.get('order', [{}])[0]
+        order_column = int(order.get('column', 1))
+        order_direction = order.get('dir', 'desc')
+        filter_empresa = data.get('empresa', '')  # Obtener el valor del filtro empresa
+
+        result = buscando_empresas(draw, start, length, search_value, order_column, order_direction, filter_empresa)
+        return jsonify(result)
+    else:
+        return jsonify({
+            "draw": 1,
+            "recordsTotal": 0,
+            "recordsFiltered": 0,
+            "data": [],
+            "fin": 0,
+            "error": "No autorizado"
+        })

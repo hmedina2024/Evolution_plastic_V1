@@ -160,3 +160,20 @@ CREATE TABLE `tbl_tipo_empleado` (
 
 INSERT INTO evolution_plastic.tbl_tipo_documento (td_abreviacion, tipo_documento)
 VALUES ("NIT", "Número de Identificación Tributaria"), ("CC", "Cedula de ciudadanía");
+
+
+
+-- Crear la tabla tbl_empresas
+CREATE TABLE tbl_empresas (
+    id_empresa INT PRIMARY KEY AUTO_INCREMENT,
+    nombre_empresa VARCHAR(100) NOT NULL,
+    tipo_empresa ENUM('Directo', 'Temporal') NOT NULL,
+    nit VARCHAR(20) NOT NULL UNIQUE,
+    direccion VARCHAR(200),
+    telefono VARCHAR(20),
+    email VARCHAR(100),
+    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    usuario_registro VARCHAR(50) NOT NULL,
+    fecha_borrado DATETIME,
+    INDEX idx_nit (nit)
+);

@@ -159,6 +159,23 @@
                 <i class="bi bi-universal-access me-2"></i> Lista de Actividades
               </a>
             </li>
+            <li>
+              <a
+                href="{{ url_for('viewFormEmpresa') }}"
+                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-actividad' %} active {% endif %}"
+              >
+                <i class="menu-icon tf-icons bi bi-building"></i> Registrar Empresa
+              </a>
+              
+            </li>
+            <li>
+              <a
+                href="/lista-de-empresas"
+                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empresas' %} active {% endif %}"
+              >
+                <i class="menu-icon tf-icons bi bi-building-fill"></i> Lista de Empresas
+              </a>
+            </li>           
           </ul>
         </div>
       </li>

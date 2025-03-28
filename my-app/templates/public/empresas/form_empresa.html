@@ -1,0 +1,116 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Registrar Empresa{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">REGISTRAR NUEVA EMPRESA</h3>
+  </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-empresa" autocomplete="off" enctype="multipart/form-data">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <label for="nit" class="form-label fw-bold text-primary">NIT <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="nit" id="nit" value="{{ data_form.nit if data_form and data_form.nit else '' }}" required onchange="validateNit()" />
+          <div id="nit-error" class="text-danger"></div>
+        </div>
+        <div class="col-md-4">
+          <label for="nombre_empresa" class="form-label fw-bold text-primary">Nombre de la Empresa <span class="text-danger">*</span></label>
+          <input type="text" name="nombre_empresa" class="form-control" value="{{ data_form.nombre_empresa if data_form and data_form.nombre_empresa else '' }}" required />
+        </div>
+        <div class="col-md-4">
+          <label for="direccion" class="form-label fw-bold text-primary">Dirección</label>
+          <input class="form-control" type="text" name="direccion" value="{{ data_form.direccion if data_form and data_form.direccion else '' }}" />
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-4">
+          <label for="tipo_empresa" class="form-label fw-bold text-primary">Tipo de Empresa <span class="text-danger">*</span></label>
+          <select class="form-select" name="tipo_empresa" required>
+            <option value="" disabled {% if not data_form or not data_form.tipo_empresa %}selected{% endif %}>Seleccione</option>
+            <option value="Directo" {% if data_form and data_form.tipo_empresa == 'Directo' %}selected{% endif %}>Directo</option>
+            <option value="Temporal" {% if data_form and data_form.tipo_empresa == 'Temporal' %}selected{% endif %}>Temporal</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="telefono" class="form-label fw-bold text-primary">Teléfono</label>
+          <input class="form-control" type="text" name="telefono" value="{{ data_form.telefono if data_form and data_form.telefono else '' }}" pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+        </div>
+        <div class="col-md-4">
+          <label for="email" class="form-label fw-bold text-primary">Email</label>
+          <input class="form-control" type="email" name="email" value="{{ data_form.email if data_form and data_form.email else '' }}" />
+        </div>
+      </div>
+      <div class="mb-3 mt-4 text-center">
+        <button type="submit" class="btn rounded-pill btn-primary">
+          Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
+<script>
+$(document).ready(function () {
+    // Variable para evitar múltiples envíos
+    let isSubmitting = false;
+    const submitBtn = $('button[type="submit"]');
+
+    // Manejar el envío del formulario
+    $('form').on('submit', function (e) {
+        e.preventDefault(); // Prevenir el envío por defecto
+
+        // Si ya se está enviando, no hacer nada
+        if (isSubmitting) {
+            return false;
+        }
+
+        // Validar el formulario
+        const form = this;
+        if (form.checkValidity()) {
+            isSubmitting = true; // Marcar como enviando
+            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+
+            // Enviar el formulario manualmente
+            form.submit();
+        } else {
+            form.reportValidity(); // Mostrar errores de validación del navegador
+        }
+    });
+
+    // Validar NIT de la empresa
+    function validateNit() {
+        const nit = document.getElementById('nit').value;
+        const errorDiv = document.getElementById('nit-error');
+        fetch('/validar-nit-empresa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `nit=${nit}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            errorDiv.textContent = data.error || '';
+            if (data.exists) {
+                document.getElementById('nit').value = ''; // Limpiar el campo si el NIT ya existe
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorDiv.textContent = 'Error al validar el NIT.';
+        });
+    }
+
+    // Exponer la función al ámbito global
+    window.validateNit = validateNit;
+});
+</script>
+{% endblock %}

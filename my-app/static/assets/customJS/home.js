@@ -67,8 +67,17 @@ function eliminarJornada(id_jornada) {
 }
 
 function eliminarOp(id_op) {
-  if (confirm("¿Estas seguro que deseas Eliminar la oop?")) {
+  if (confirm("¿Estas seguro que deseas Eliminar la op?")) {
     let url = `/borrar-op/${id_op}`;
+    if (url) {
+      window.location.href = url;
+    }
+  }
+}
+
+function eliminarEmpresa(id_empresa) {
+  if (confirm("¿Estas seguro que deseas Eliminar la empresa?")) {
+    let url = `/borrar-empresa/${id_empresa}`;
     if (url) {
       window.location.href = url;
     }
