@@ -3,8 +3,8 @@
 {% block title %}Registrar Empleado{% endblock %}
 
 {% block customCSS %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
 {% endblock %}
 
 {% block body %}
@@ -13,47 +13,51 @@
     <h3 class="fw-bold">REGISTRAR NUEVO EMPLEADO</h3>
   </div>
   <div class="card-body p-4">
-    <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-empleado" autocomplete="off" enctype="multipart/form-data">
+    <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-empleado" autocomplete="off" enctype="multipart/form-data" id="registroForm">
       <div class="row g-4">
         <div class="col-md-4">
-          <label for="documento" class="form-label fw-bold text-primary">Documento</label>
-          <input class="form-control" type="text" name="documento" id="documento" required onchange="validateDocument()" />
+          <label for="documento" class="form-label fw-bold text-primary">Documento <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="documento" id="documento" value="{{ data_form.documento if data_form and 'documento' in data_form else '' }}" required onchange="validateDocument()" />
           <div id="documento-error" class="text-danger"></div>
         </div>
         <div class="col-md-4">
-          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre del empleado</label>
-          <input type="text" name="nombre_empleado" class="form-control" required />
-        </div>
-        <div class="col-md-4">
-          <label for="apellido_empleado" class="form-label fw-bold text-primary">Apellido del empleado</label>
-          <input class="form-control" type="text" name="apellido_empleado" required />
-        </div>
-      </div>
-      <div class="row g-4 mt-3">
-        <div class="col-md-4">
-          <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado</label>
-          <select class="form-select" name="tipo_empleado" required>
-            <option value="" selected disabled>Seleccione</option>
-            {% for empleado in tipo_empleado %}
-              <option value="{{ empleado.id_tipo_empleado }}">{{ empleado.tipo_empleado }}</option>
-            {% endfor %}
+          <label for="id_empresa" class="form-label fw-bold text-primary">Empresa <span class="text-danger">*</span></label>
+          <select name="id_empresa" id="id_empresa" class="form-control select2" required>
+            {% if data_form and 'id_empresa' in data_form %}
+              <option value="{{ data_form.id_empresa }}" selected>{{ data_form.id_empresa }}</option>
+            {% endif %}
           </select>
         </div>
         <div class="col-md-4">
-          <label for="telefono_empleado" class="form-label fw-bold text-primary">Teléfono</label>
-          <input class="form-control" type="text" name="telefono_empleado"  required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
-      </div>
-        <div class="col-md-4">
-          <label for="email_empleado" class="form-label fw-bold text-primary">Email</label>
-          <input class="form-control" type="email" name="email_empleado" required />
+          <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado <span class="text-danger">*</span></label>
+          <input type="text" name="tipo_empleado" id="tipo_empleado" class="form-control" readonly required value="{{ data_form.tipo_empleado if data_form and 'tipo_empleado' in data_form else '' }}" />
+          <input type="hidden" name="tipo_empleado_value" id="tipo_empleado_value" value="{{ data_form.tipo_empleado if data_form and 'tipo_empleado' in data_form else '' }}" />
         </div>
       </div>
       <div class="row g-4 mt-3">
-        <div class="col-md-6">
-          <label for="cargo" class="form-label fw-bold text-primary">Cargo</label>
-          <input class="form-control" type="text" name="cargo" required />
+        <div class="col-md-4">
+          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre del empleado <span class="text-danger">*</span></label>
+          <input type="text" name="nombre_empleado" class="form-control" value="{{ data_form.nombre_empleado if data_form and 'nombre_empleado' in data_form else '' }}" required />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <label for="apellido_empleado" class="form-label fw-bold text-primary">Apellido del empleado <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="apellido_empleado" value="{{ data_form.apellido_empleado if data_form and 'apellido_empleado' in data_form else '' }}" required />
+        </div>
+        <div class="col-md-4">
+          <label for="telefono_empleado" class="form-label fw-bold text-primary">Teléfono </label>
+          <input class="form-control" type="text" name="telefono_empleado" value="{{ data_form.telefono_empleado if data_form and 'telefono_empleado' in data_form else '' }}" pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-4">
+          <label for="email_empleado" class="form-label fw-bold text-primary">Email </label>
+          <input class="form-control" type="email" name="email_empleado" value="{{ data_form.email_empleado if data_form and 'email_empleado' in data_form else '' }}" />
+        </div>
+        <div class="col-md-4">
+          <label for="cargo" class="form-label fw-bold text-primary">Cargo </label>
+          <input class="form-control" type="text" name="cargo" value="{{ data_form.cargo if data_form and 'cargo' in data_form else '' }}" />
+        </div>
+        <div class="col-md-4">
           <label for="foto_empleado" class="form-label fw-bold text-primary">Cargar Imagen del Empleado</label>
           <div class="avatar-upload">
             <div class="avatar-edit">
@@ -68,7 +72,7 @@
         </div>
       </div>
       <div class="mb-3 mt-4 text-center">
-        <button type="submit" class="btn rounded-pill btn-primary">
+        <button type="submit" class="btn rounded-pill btn-primary" id="submitBtn">
           Guardar registro ahora <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
@@ -78,16 +82,113 @@
 {% endblock %}
 
 {% block customJS %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Añadimos jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
+    // Configuración de Select2 genérica
+    function setupSelect2(selectId, url, placeholder, dataKey) {
+        const $select = $(`#${selectId}`);
+        $select.select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data[dataKey].map(item => ({
+                            id: item.id_empresa,
+                            text: item.nombre_empresa
+                        })),
+                        pagination: { more: data[dataKey].length === 10 }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) {
+                return data.text;
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;
+            }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
+
+        // Si hay un valor preseleccionado (en caso de error), cargarlo
+        if ($select.val()) {
+            const value = $select.val();
+            $.ajax({
+                url: url,
+                data: { id: value },
+                dataType: 'json'
+            }).then(data => {
+                const optionData = data[dataKey].find(item => item.id_empresa == value);
+                if (optionData) {
+                    const option = new Option(optionData.nombre_empresa, optionData.id_empresa, true, true);
+                    $select.append(option).trigger('change');
+                }
+            });
+        }
+    }
+
+    // Configurar Select2 para empresas
+    setupSelect2('id_empresa', '/api/empresas', 'Seleccionar empresa...', 'empresas');
+
+    // Llenar automáticamente tipo_empleado según la empresa seleccionada
+    $('#id_empresa').on('change', function () {
+        const idEmpresa = $(this).val();
+        const $tipoEmpleado = $('#tipo_empleado');
+        const $tipoEmpleadoValue = $('#tipo_empleado_value');
+
+        if (idEmpresa) {
+            // Hacer una solicitud AJAX para obtener el tipo_empresa de la empresa seleccionada
+            $.ajax({
+                url: '/api/empresas',
+                data: { id: idEmpresa },
+                dataType: 'json',
+                success: function (data) {
+                    const empresa = data.empresas.find(item => item.id_empresa == idEmpresa);
+                    if (empresa && empresa.tipo_empresa) {
+                        $tipoEmpleado.val(empresa.tipo_empresa);
+                        $tipoEmpleadoValue.val(empresa.tipo_empresa); // Guardar el valor para enviar
+                    } else {
+                        $tipoEmpleado.val('');
+                        $tipoEmpleadoValue.val('');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error al obtener el tipo de empresa:', error);
+                    $tipoEmpleado.val('');
+                    $tipoEmpleadoValue.val('');
+                }
+            });
+        } else {
+            $tipoEmpleado.val('');
+            $tipoEmpleadoValue.val('');
+        }
+    });
+
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
-    const submitBtn = $('button[type="submit"]');
+    const submitBtn = $('#submitBtn');
 
     // Manejar el envío del formulario
-    $('form').on('submit', function (e) {
+    $('#registroForm').on('submit', function (e) {
         e.preventDefault(); // Prevenir el envío por defecto
 
         // Si ya se está enviando, no hacer nada
@@ -129,7 +230,7 @@ $(document).ready(function () {
         });
     }
 
-    // Exponer la función al ámbito global (ya que está referenciada en el HTML)
+    // Exponer la función al ámbito global
     window.validateDocument = validateDocument;
 });
 </script>

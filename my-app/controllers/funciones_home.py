@@ -4,13 +4,13 @@ import uuid  # Módulo de Python para crear un string
 import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
-from conexion.models import db, Operaciones, Empleados, TipoEmpleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa modelos desde models.py
+from conexion.models import db, Operaciones, Empleados, Tipo_Empleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa modelos desde models.py
 import datetime
 import pytz
 import re
 import openpyxl  # Para generar el Excel
 from flask import send_file, session, Flask,url_for
-from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion,Empresa
+from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion,Empresa,Tipo_Empleado
 from sqlalchemy import or_,func
 from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
@@ -21,20 +21,48 @@ LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
 
 ### Empleados
 def procesar_form_empleado(dataForm, foto_perfil):
-    # Formateando documento
-    documento_sin_puntos = re.sub('[^0-9]+', '', dataForm['documento'])
-    documento = int(documento_sin_puntos)
-
-    result_foto_perfil = procesar_imagen_perfil(foto_perfil)
     try:
+        # Formateando documento
+        documento_sin_puntos = re.sub('[^0-9]+', '', dataForm['documento'])
+        documento = int(documento_sin_puntos)
+
+        # Obtener id_empresa y validar que esté presente
+        if 'id_empresa' not in dataForm or not dataForm['id_empresa']:
+            return False, "Debe seleccionar una empresa."
+
+        id_empresa = int(dataForm['id_empresa'])  # Convertir a entero
+
+        # Obtener tipo_empresa y mapearlo a tipo_empleado
+        if 'tipo_empleado' not in dataForm or not dataForm['tipo_empleado']:
+            return False, "El tipo de empleado no puede estar vacío."
+
+        tipo_empresa = dataForm['tipo_empleado']  # Este es el valor de tipo_empresa de la empresa seleccionada
+
+        # Mapear tipo_empresa a tipo_empleado (ajusta según tus valores)
+        tipo_empleado_map = {
+            "Directo": 1,
+            "Temporal": 2
+            # Agrega más mapeos si es necesario
+        }
+
+        if tipo_empresa not in tipo_empleado_map:
+            return False, f"Tipo de empresa '{tipo_empresa}' no válido."
+
+        tipo_empleado = tipo_empleado_map[tipo_empresa]
+
+        # Procesar la foto del empleado
+        result_foto_perfil = procesar_imagen_perfil(foto_perfil)
+
+        # Crear el nuevo empleado con id_empresa y tipo_empleado
         empleado = Empleados(
             documento=documento,
+            id_empresa=id_empresa,
+            tipo_empleado=tipo_empleado,  # Usar el valor mapeado
             nombre_empleado=dataForm['nombre_empleado'],
             apellido_empleado=dataForm['apellido_empleado'],
-            tipo_empleado=dataForm['tipo_empleado'],
-            telefono_empleado=dataForm['telefono_empleado'],
-            email_empleado=dataForm['email_empleado'],
-            cargo=dataForm['cargo'],
+            telefono_empleado=dataForm['telefono_empleado'] if dataForm['telefono_empleado'] else None,
+            email_empleado=dataForm['email_empleado'] if dataForm['email_empleado'] else None,
+            cargo=dataForm['cargo'] if dataForm['cargo'] else None,
             foto_empleado=result_foto_perfil
         )
         db.session.add(empleado)
@@ -43,7 +71,7 @@ def procesar_form_empleado(dataForm, foto_perfil):
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Se produjo un error en procesar_form_empleado: {str(e)}')
-        return False, f'Se produjo un error en procesar_form_empleado: {str(e)}'
+        return False, f'Se produjo un error al registrar el empleado: {str(e)}'
 
 def procesar_imagen_perfil(foto):
     try:
@@ -77,21 +105,23 @@ def procesar_imagen_perfil(foto):
 
 def obtener_tipo_empleado():
     try:
-        return TipoEmpleado.query.distinct(TipoEmpleado.id_tipo_empleado, TipoEmpleado.tipo_empleado).order_by(TipoEmpleado.id_tipo_empleado.asc()).all()
+        return Tipo_Empleado.query.distinct(Tipo_Empleado.id_tipo_empleado, Tipo_Empleado.tipo_empleado).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
     except Exception as e:
         app.logger.error(f"Error en la función obtener_tipo_empleado: {e}")
         return None
 
 # Lista de Empleados con paginación
-def sql_lista_empleadosBD(page=1, per_page=10):
+def sql_lista_empleadosBD():
     try:
-        offset = (page - 1) * per_page
-        query = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.desc()).limit(per_page).offset(offset)
-        empleadosBD = query.all()
-        return [{'id_empleado': e.id_empleado, 'documento': e.documento, 'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado, 'foto_empleado': e.foto_empleado, 'cargo': e.cargo, 'tipo_empleado': t.tipo_empleado if t else None} for e, t in empleadosBD]
+        empleados = db.session.query(Empleados, Empresa).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
+            filter(Empleados.fecha_borrado.is_(None)).\
+            order_by(Empleados.nombre_empleado.asc()).\
+            all()
+        return empleados
     except Exception as e:
-        app.logger.error(f"Error en la función sql_lista_empleadosBD: {e}")
-        return None
+        app.logger.error(f"Error al listar empleados: {str(e)}")
+        return []
     
     
 # Total empleados:
@@ -105,15 +135,18 @@ def get_total_empleados():
 # Detalles del Empleado
 def sql_detalles_empleadosBD(id_empleado):
     try:
-        empleado = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.id_empleado == id_empleado).first()
+        empleado = db.session.query(Empleados, Empresa).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
+            filter(Empleados.id_empleado == id_empleado).first()
         if empleado:
-            e, t = empleado
+            e, empresa = empleado
             return {
                 'id_empleado': e.id_empleado,
                 'documento': e.documento,
                 'nombre_empleado': e.nombre_empleado,
                 'apellido_empleado': e.apellido_empleado,
-                'tipo_empleado': t.tipo_empleado if t else None,
+                'tipo_empleado': empresa.tipo_empresa if empresa else None,  # Usamos tipo_empresa de Empresa
+                'nombre_empresa': empresa.nombre_empresa if empresa else None,  # Usamos nombre_empresa de Empresa
                 'telefono_empleado': e.telefono_empleado,
                 'email_empleado': e.email_empleado,
                 'cargo': e.cargo,
@@ -122,7 +155,7 @@ def sql_detalles_empleadosBD(id_empleado):
             }
         return None
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_empleadosBD: {e}")
+        app.logger.error(f"Error en la función sql_detalles_empleadosBD: {str(e)}")
         return None
 
 # Funcion Empleados Informe (Reporte)
@@ -224,53 +257,84 @@ def validate_document(documento):
 
 def buscar_empleado_unico(id):
     try:
-        empleado = db.session.query(Empleados, TipoEmpleado).outerjoin(TipoEmpleado, Empleados.tipo_empleado == TipoEmpleado.id_tipo_empleado).filter(Empleados.id_empleado == id).first()
+        empleado = db.session.query(Empleados, Empresa).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
+            filter(Empleados.id_empleado == id, Empleados.fecha_borrado.is_(None)).\
+            first()
         if empleado:
-            e, t = empleado
+            e, empresa = empleado
             return {
                 'id_empleado': e.id_empleado,
                 'documento': e.documento,
+                'id_empresa': e.id_empresa,
+                'nombre_empresa': empresa.nombre_empresa if empresa else None,
                 'nombre_empleado': e.nombre_empleado,
                 'apellido_empleado': e.apellido_empleado,
-                'tipo_empleado': t.tipo_empleado if t else None,
-                'id_tipo_empleado': t.id_tipo_empleado if t else None,
+                'tipo_empleado': empresa.tipo_empresa if empresa else None,
                 'telefono_empleado': e.telefono_empleado,
                 'email_empleado': e.email_empleado,
                 'cargo': e.cargo,
-                'foto_empleado': e.foto_empleado
+                'foto_empleado': e.foto_empleado,
+                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
             }
         return None
     except Exception as e:
-        app.logger.error(f"Ocurrió un error en def buscar_empleado_unico: {e}")
+        app.logger.error(f"Error al buscar empleado: {str(e)}")
         return None
 
 def procesar_actualizacion_form(data):
     try:
         empleado = db.session.query(Empleados).filter_by(id_empleado=data.form['id_empleado']).first()
         if empleado:
+            # Formatear documento
             documento_sin_puntos = re.sub('[^0-9]+', '', data.form['documento'])
             documento = int(documento_sin_puntos)
 
+            # Obtener id_empresa y validar que esté presente
+            if 'id_empresa' not in data.form or not data.form['id_empresa']:
+                return False, "Debe seleccionar una empresa."
+
+            id_empresa = int(data.form['id_empresa'])
+
+            # Obtener tipo_empresa y mapearlo a tipo_empleado
+            if 'tipo_empleado' not in data.form or not data.form['tipo_empleado']:
+                return False, "El tipo de empleado no puede estar vacío."
+
+            tipo_empresa = data.form['tipo_empleado']
+            tipo_empleado_map = {
+                "Directo": 1,
+                "Temporal": 2
+                # Agrega más mapeos si es necesario
+            }
+
+            if tipo_empresa not in tipo_empleado_map:
+                return False, f"Tipo de empresa '{tipo_empresa}' no válido."
+
+            tipo_empleado = tipo_empleado_map[tipo_empresa]
+
+            # Actualizar los campos del empleado
             empleado.documento = documento
+            empleado.id_empresa = id_empresa
             empleado.nombre_empleado = data.form['nombre_empleado']
             empleado.apellido_empleado = data.form['apellido_empleado']
-            empleado.tipo_empleado = data.form['tipo_empleado']
-            empleado.telefono_empleado = data.form['telefono_empleado']
-            empleado.email_empleado = data.form['email_empleado']
-            empleado.cargo = data.form['cargo']
+            empleado.tipo_empleado = tipo_empleado
+            empleado.telefono_empleado = data.form['telefono_empleado'] if data.form['telefono_empleado'] else None
+            empleado.email_empleado = data.form['email_empleado'] if data.form['email_empleado'] else None
+            empleado.cargo = data.form['cargo'] if data.form['cargo'] else None
 
+            # Actualizar la foto si se proporciona una nueva
             if 'foto_empleado' in data.files and data.files['foto_empleado']:
                 file = data.files['foto_empleado']
                 foto_form = procesar_imagen_perfil(file)
                 empleado.foto_empleado = foto_form
-
+                    
             db.session.commit()
-            return 1  # Indica éxito (rowcount)
-        return None
+            return True, "Empleado actualizado con éxito."
+        return False, "El empleado no existe."
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Ocurrió un error en procesar_actualizacion_form: {e}")
-        return None
+        app.logger.error(f"Ocurrió un error en procesar_actualizacion_form: {str(e)}")
+        return False, f"Error al actualizar el empleado: {str(e)}"
 
 # Eliminar Empleado
 def eliminar_empleado(id_empleado, foto_empleado):
@@ -1481,7 +1545,7 @@ def eliminar_jornada(id_jornada):
 ## Funciones paginados filtros
 def get_empleados_paginados(page, per_page, search=None):
     try:
-        query = db.session.query(Empleados).order_by(Empleados.id_empleado.desc())
+        query = db.session.query(Empleados).order_by(Empleados.id_empleado.desc()).filter(Empleados.fecha_borrado.is_(None))
         if search:
             search = f"%{search}%"
             query = query.filter(
@@ -1790,3 +1854,39 @@ def buscando_empresas(draw, start, length, search_value, order_column, order_dir
             "fin": 0,
             "error": str(e)
         }
+        
+        
+def get_empresas_paginadas(page, per_page, search, id=None):
+    try:
+        query = Empresa.query.filter(Empresa.fecha_borrado.is_(None))
+        if id:
+            query = query.filter(Empresa.id_empresa == id)
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                (Empresa.nit.ilike(search)) |
+                (Empresa.nombre_empresa.ilike(search))
+            )
+        query = query.order_by(Empresa.nombre_empresa.asc())
+        empresas = query.paginate(page=page, per_page=per_page, error_out=False).items
+        return [{"id_empresa": e.id_empresa, "nombre_empresa": e.nombre_empresa, "tipo_empresa": e.tipo_empresa} for e in empresas]
+    except Exception as e:
+        app.logger.error(f"Error en get_empresas_paginadas: {str(e)}")
+        return []
+
+def get_tipos_empleado_paginados(page, per_page, search, id_empresa):
+    try:
+        query = Tipo_Empleado.query
+        if id_empresa:
+            # Filtrar tipos de empleado según la empresa (ajusta según tu lógica)
+            # Por ejemplo, si tienes una relación entre Tipo_Empleado y Empresa
+            query = query.filter(Tipo_Empleado.id_empresa == id_empresa)
+        if search:
+            search = f"%{search}%"
+            query = query.filter(Tipo_Empleado.tipo_empleado.ilike(search))
+        query = query.order_by(Tipo_Empleado.tipo_empleado.asc())
+        tipos = query.paginate(page=page, per_page=per_page, error_out=False).items
+        return [{"id_tipo_empleado": t.id_tipo_empleado, "tipo_empleado": t.tipo_empleado} for t in tipos]
+    except Exception as e:
+        app.logger.error(f"Error en get_tipos_empleado_paginados: {str(e)}")
+        return []

@@ -27,9 +27,10 @@ class Empleados(db.Model):
     __tablename__ = 'tbl_empleados'
     id_empleado = db.Column(db.Integer, primary_key=True, autoincrement=True)
     documento = db.Column(db.Integer, nullable=False)
+    id_empresa = db.Column(db.Integer, db.ForeignKey('tbl_empresas.id_empresa'), nullable=False)  # Clave foránea a tbl_empresas
     nombre_empleado = db.Column(db.String(50), nullable=True)
     apellido_empleado = db.Column(db.String(50), nullable=True)
-    tipo_empleado = db.Column(db.Integer, db.ForeignKey('tbl_tipo_empleado.id_tipo_empleado'), nullable=True)
+    tipo_empleado = db.Column(db.Integer, nullable=True)  # Cambiado a Integer simple, sin relación
     telefono_empleado = db.Column(db.String(50), nullable=True)
     email_empleado = db.Column(db.String(50), nullable=True)
     cargo = db.Column(db.String(50), nullable=True)
@@ -37,14 +38,14 @@ class Empleados(db.Model):
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
-    # Relación con TipoEmpleado
-    tipo = db.relationship('TipoEmpleado', backref='empleados', foreign_keys=[tipo_empleado])
+    # Relación con Empresa
+    empresa = db.relationship('Empresa', backref='empleados', lazy=True)
 
-class TipoEmpleado(db.Model):
+class Tipo_Empleado(db.Model):
     __tablename__ = 'tbl_tipo_empleado'
-    id_tipo_empleado = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    tipo_empleado = db.Column(db.String(45), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    id_tipo_empleado = db.Column(db.Integer, primary_key=True)
+    id_empresa = db.Column(db.Integer, db.ForeignKey('tbl_empresas.id_empresa'), nullable=False)
+    tipo_empleado = db.Column(db.String(50))
 
 class Procesos(db.Model):
     __tablename__ = 'tbl_procesos'

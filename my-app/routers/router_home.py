@@ -6,12 +6,12 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
-from conexion.models import db, Empresa
+from conexion.models import db, Empresa,Empleados
 from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas,get_clientes_paginados
 
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
-from controllers.funciones_home import (
+from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados,
     procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil,procesar_actualizar_empresa, obtener_tipo_empleado,buscar_ordenes_produccion_bd,
     sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,sql_lista_empresasBD,
     buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
@@ -42,7 +42,7 @@ def viewFormEmpleado():
         return redirect(url_for('inicio'))
 
 @app.route('/form-registrar-empleado', methods=['POST'])
-def form_empleado():
+def form_registrar_empleado():
     if 'conectado' in session:
         if 'foto_empleado' in request.files:
             foto_perfil = request.files['foto_empleado']
@@ -52,22 +52,21 @@ def form_empleado():
                 return redirect(url_for('lista_empleados'))
             else:
                 flash(mensaje, 'error')
-                return render_template(f'{PATH_URL}/form_empleado.html', data_form=request.form)
+                # Pasar los datos del formulario para rellenar los campos en caso de error
+                return render_template('public/empleados/form_empleado.html', data_form=request.form)
+        else:
+            flash('Debe cargar una foto del empleado.', 'error')
+            return render_template('public/empleados/form_empleado.html', data_form=request.form)
     else:
-        flash('primero debes iniciar sesión.', 'error')
+        flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-@app.route('/lista-de-empleados', methods=['GET'])
+@app.route("/lista-de-empleados", methods=['GET'])
 def lista_empleados():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(page_parameter='page', per_page_parameter='per_page')
-        per_page = 10  # Registros por página
-        empleados = sql_lista_empleadosBD(page=page, per_page=per_page)
-        total = get_total_empleados()  # Usa la función optimizada
-        pagination = Pagination(page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template(f'{PATH_URL}/lista_empleados.html', empleados=empleados, pagination=pagination)
+        return render_template(f'{PATH_URL}/lista_empleados.html')
     else:
-        flash('primero debes iniciar sesión.', 'error')
+        flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
 @app.route("/detalles-empleado/<int:id_empleado>", methods=['GET'])
@@ -91,6 +90,93 @@ def view_buscar_empleado_bd():
         return jsonify({'data': resultado_busqueda})
     else:
         return jsonify({'data': [], 'fin': 0})
+    
+    
+@app.route("/buscando-empleados", methods=['POST'])
+def buscando_empleados():
+    try:
+        # Obtener parámetros de DataTables
+        draw = int(request.json.get('draw', 1))
+        start = int(request.json.get('start', 0))
+        length = int(request.json.get('length', 10))
+        search_value = request.json.get('nombre', '').strip()
+
+        # Obtener parámetros de ordenamiento
+        order = request.json.get('order', [{}])[0]
+        column_idx = int(order.get('column', 2))  # Por defecto, ordenar por "Nombre"
+        direction = order.get('dir', 'asc')
+
+        # Mapear índices de columnas a nombres de campos
+        column_mapping = {
+            0: None,  # Columna "#" (índice, no se ordena)
+            1: Empleados.documento,
+            2: Empleados.nombre_empleado,
+            3: Empleados.apellido_empleado,
+            4: Empresa.tipo_empresa,
+            5: Empresa.nombre_empresa,
+            6: Empleados.cargo,
+            7: None  # Columna "Acción" (no se ordena)
+        }
+
+        # Construir la consulta
+        query = db.session.query(Empleados, Empresa).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
+            filter(Empleados.fecha_borrado.is_(None))
+
+        # Aplicar filtro por nombre
+        if search_value:
+            query = query.filter(Empleados.nombre_empleado.ilike(f'%{search_value}%'))
+
+        # Obtener el total de registros sin filtrar
+        total_records = query.count()
+
+        # Aplicar ordenamiento
+        if column_idx in column_mapping and column_mapping[column_idx]:
+            if direction == 'desc':
+                query = query.order_by(column_mapping[column_idx].desc())
+            else:
+                query = query.order_by(column_mapping[column_idx].asc())
+        else:
+            # Ordenamiento por defecto si la columna no es ordenable
+            query = query.order_by(Empleados.nombre_empleado.asc())
+
+        # Obtener el total de registros filtrados
+        filtered_records = query.count()
+
+        # Aplicar paginación
+        empleados = query.offset(start).limit(length).all()
+
+        # Formatear los datos para DataTables
+        data = []
+        for empleado, empresa in empleados:
+            data.append({
+                'id_empleado': empleado.id_empleado,
+                'documento': empleado.documento,
+                'nombre_empleado': empleado.nombre_empleado,
+                'apellido_empleado': empleado.apellido_empleado,
+                'tipo_empresa': empresa.tipo_empresa,
+                'nombre_empresa': empresa.nombre_empresa,
+                'cargo': empleado.cargo,
+                'foto_empleado': empleado.foto_empleado if empleado.foto_empleado else ''
+            })
+
+        return jsonify({
+            'draw': draw,
+            'recordsTotal': total_records,
+            'recordsFiltered': filtered_records,
+            'data': data,
+            'fin': 1
+        })
+    except Exception as e:
+        app.logger.error(f"Error en buscando_empleados: {str(e)}")
+        return jsonify({
+            'draw': draw,
+            'recordsTotal': 0,
+            'recordsFiltered': 0,
+            'data': [],
+            'fin': 0,
+            'error': str(e)
+        })
 
 @app.route('/validate-document', methods=['POST'])
 def validate_document_route():
@@ -113,11 +199,18 @@ def viewEditarEmpleado(id):
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-@app.route('/actualizar-empleado', methods=['POST'])
-def actualizar_empleado():
-    result_data = procesar_actualizacion_form(request)
-    if result_data:
+@app.route('/actualizar-empleado/<int:id>', methods=['POST'])
+def actualizar_empleado(id):
+    if 'conectado' in session:
+        result, message = procesar_actualizacion_form(request)
+        if result:
+            flash(message, 'success')
+        else:
+            flash(message, 'error')
         return redirect(url_for('lista_empleados'))
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
 
 @app.route("/lista-de-usuarios", methods=['GET'])
 def usuarios():
@@ -785,6 +878,30 @@ def api_clientes():
     return jsonify({'clientes': clientes})
 
 
+### Listas para registrar empleados
+        
+@app.route('/api/empresas', methods=['GET'])
+def api_empresas():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    id_empresa = request.args.get('id', None, type=int)
+    app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id={id_empresa}")
+    empresas = get_empresas_paginadas(page, per_page, search, id_empresa)
+    return jsonify({'empresas': empresas})
+
+@app.route('/api/tipos-empleado', methods=['GET'])
+def api_tipos_empleado():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    id_empresa = request.args.get('id_empresa', None, type=int)
+    app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id_empresa={id_empresa}")
+    tipos = get_tipos_empleado_paginados(page, per_page, search, id_empresa)
+    return jsonify({'tipos_empleado': tipos})
+
+
+
 ### EMPRESAS
 
 @app.route('/registrar-empresa', methods=['GET'])
@@ -932,3 +1049,5 @@ def buscando_empresas_route():
             "fin": 0,
             "error": "No autorizado"
         })
+
+
