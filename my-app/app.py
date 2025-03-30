@@ -12,6 +12,7 @@ CORS(app)  # Habilita CORS para toda la aplicación
 app.secret_key = 'xxx'  # Mantén tu clave secreta actual
 
 # Configura SQLAlchemy
+##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Yamasaqui2024*@localhost/evolution_plastic'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Evolution123#@217.15.171.201/evolution_DB'
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Yamasaqui2024*@localhost/evolution_DB'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desactiva notificaciones de modificaciones para ahorrar recursos
@@ -32,7 +33,7 @@ if __name__ != '__main__':
     app.logger.setLevel(gunicorn_logger.level)
 
 # Importa los modelos después de inicializar SQLAlchemy
-from conexion.models import Operaciones, Empleados, TipoEmpleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa directamente los modelos
+from conexion.models import Operaciones, Empleados, Tipo_Empleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa directamente los modelos
 
 if __name__ == '__main__':
     with app.app_context():
