@@ -11,7 +11,7 @@ from controllers.funciones_home import get_empleados_paginados, get_procesos_pag
 
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
-from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados,
+from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados,get_supervisores_paginados,
     procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil,procesar_actualizar_empresa, obtener_tipo_empleado,buscar_ordenes_produccion_bd,
     sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel,sql_lista_empresasBD,
     buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
@@ -649,12 +649,13 @@ def form_op():
     if 'conectado' in session:
         resultado = procesar_form_op(request.form)
         if resultado:
+            flash('Orden de producción registrada correctamente.', 'success')  # Mensaje de éxito
             return redirect(url_for('lista_op'))
         else:
-            flash('La op NO fue registrada.', 'error')
+            flash('La orden de producción NO fue registrada.', 'error')
             return render_template('public/ordenproduccion/form_op.html')
     else:
-        flash('primero debes iniciar sesión.', 'error')
+        flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
 @app.route('/lista-de-op', methods=['GET'])
@@ -670,12 +671,13 @@ def lista_op():
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-@app.route("/detalles-op/<string:id_op>", methods=['GET'])
+@app.route("/detalles-op/<int:id_op>", methods=['GET'])  # Cambiamos string a int
 def detalle_op(id_op=None):
     if 'conectado' in session:
         if id_op is None:
             return redirect(url_for('inicio'))
         else:
+            app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
             detalle_op = sql_detalles_op_bd(id_op) or []
             return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
     else:
@@ -729,7 +731,7 @@ def buscando_ordenes_produccion():
         order = data.get('order', [{'column': 1, 'dir': 'desc'}])  # Por defecto: Cod. OP descendente
 
         # Llamar a la función de búsqueda con el parámetro de ordenamiento
-        ordenes, total, total_filtered = buscar_ordenes_produccion_bd(codigo_op,fecha, start, length, order)
+        ordenes, total, total_filtered = buscar_ordenes_produccion_bd(codigo_op, fecha, start, length, order)
 
         # Preparar la respuesta
         response = {
@@ -839,6 +841,16 @@ def api_empleados():
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     empleados = get_empleados_paginados(page, per_page, search)
     return jsonify({'empleados': empleados})
+
+
+@app.route('/api/supervisores', methods=['GET'])
+def api_supervisores():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    supervisores = get_supervisores_paginados(page, per_page, search)
+    return jsonify({'supervisores': supervisores})
 
 @app.route('/api/procesos', methods=['GET'])
 def api_procesos():

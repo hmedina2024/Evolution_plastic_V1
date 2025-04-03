@@ -92,6 +92,7 @@ class OrdenProduccion(db.Model):
     cantidad = db.Column(db.Integer, nullable=True)
     odi = db.Column(db.String(50), nullable=True)
     empleado = db.Column(db.String(50), nullable=True)
+    id_supervisor = db.Column(db.Integer, nullable=True)  # Nueva columna
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     usuario_registro = db.Column(db.String(50), nullable=True)
     fecha_borrado = db.Column(db.DateTime, nullable=True)

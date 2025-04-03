@@ -45,6 +45,7 @@
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha Registro</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Supervisor</th> <!-- Nueva columna -->
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
@@ -64,12 +65,12 @@ $(document).ready(function() {
     var table = $('#tbl_ordenproduccion').DataTable({
         "serverSide": true,
         "ajax": {
-            "url": "/buscando-ordenes-produccion", // Nueva ruta para buscar órdenes de producción
+            "url": "/buscando-ordenes-produccion",
             "type": "POST",
             "contentType": "application/json",
             "data": function(d) {
-                d.codigo_op = $('#filterCodOP').val(); // Enviar el valor del filtro
-                d.fecha = $('#filterFecha').val(); // Filtro por Fecha de Registro
+                d.codigo_op = $('#filterCodOP').val();
+                d.fecha = $('#filterFecha').val();
                 return JSON.stringify(d);
             },
             "dataSrc": function(json) {
@@ -81,13 +82,14 @@ $(document).ready(function() {
             }
         },
         "columns": [
-            { "data": null, "render": function(data, type, row, meta) { return meta.row + meta.settings._iDisplayStart + 1; } , "orderable": false},
+            { "data": null, "render": function(data, type, row, meta) { return meta.row + meta.settings._iDisplayStart + 1; }, "orderable": false },
             { "data": "codigo_op" },
             { "data": "nombre_cliente" },
             { "data": "producto" },
             { "data": "cantidad" },
             { "data": "estado" },
             { "data": "fecha_registro" },
+            { "data": "nombre_supervisor" },  <!-- Nueva columna para mostrar el nombre del supervisor -->
             { "data": null, "render": function(data, type, row) {
                 return `
                     <a href="/detalles-op/${row.id_op}" class="btn btn-info btn-sm"><i class="bi bi-eye"></i> Ver detalles</a>
@@ -100,7 +102,7 @@ $(document).ready(function() {
         "order": [[1, "desc"]], // Ordenar por Cod. OP descendente inicialmente
         "responsive": true,
         "scrollY": "500px",
-        "scrollX": true, // Habilitar desplazamiento horizontal
+        "scrollX": true,
         "scrollCollapse": true,
         "processing": true,
         "language": {
@@ -124,8 +126,9 @@ $(document).ready(function() {
             table.ajax.reload();
         }, 200);
     });
-        // Evento para el filtro por fecha con debounce
-        $('#filterFecha').on('change', function() {
+
+    // Evento para el filtro por fecha con debounce
+    $('#filterFecha').on('change', function() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
             table.ajax.reload();

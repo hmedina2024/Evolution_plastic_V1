@@ -27,7 +27,7 @@
         <div class="col-md-3">
           <label for="estado" class="form-label fw-bold text-primary">Estado <span class="text-danger">*</span></label>
           <select name="estado" id="estado" class="form-control select2" required>
-            <option value="" disabled selected>Seleccionar Estado</option> <!-- Opción predeterminada -->
+            <option value="" disabled selected>Seleccionar Estado</option>
             <option value="ANULA">ANULA</option>
             <option value="FACTU">FACTU</option>
             <option value="CRUCE">CRUCE</option>
@@ -53,7 +53,11 @@
           <label for="vendedor" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
           <select name="vendedor" id="vendedor" class="form-control select2" required></select>
         </div>
-        <div class="col-md-9">
+        <div class="col-md-3">
+          <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label> <!-- Quitamos el * -->
+          <select name="supervisor" id="supervisor" class="form-control select2"></select> <!-- Quitamos required -->
+        </div>
+        <div class="col-md-6">
           <label for="producto" class="form-label fw-bold text-primary">DESCRIPCION PRODUCTO <span class="text-danger">*</span></label>
           <textarea class="form-control" name="producto" rows="2" required></textarea>
         </div>
@@ -95,8 +99,8 @@ $(document).ready(function () {
                 processResults: function (data) {
                     return {
                         results: data[dataKey].map(item => ({
-                            id: Object.values(item)[0],
-                            text: Object.values(item)[0]
+                            id: item.id_empleado || Object.values(item)[0],
+                            text: item.nombre_empleado || Object.values(item)[0]
                         })),
                         pagination: { more: data[dataKey].length === 10 }
                     };
@@ -119,10 +123,11 @@ $(document).ready(function () {
     // Inicializar campos con Select2
     setupSelect2('nombre_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes');
     setupSelect2('vendedor', '/api/empleados', 'Seleccionar Vendedor', 'empleados');
+    setupSelect2('supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores');
     $('#estado').select2({
         placeholder: 'Seleccionar Estado',
         allowClear: true,
-        minimumResultsForSearch: Infinity // Desactiva la búsqueda en el select estático
+        minimumResultsForSearch: Infinity
     });
 
     // Variable para evitar múltiples envíos
@@ -131,23 +136,19 @@ $(document).ready(function () {
 
     // Manejar el envío del formulario
     $('#registroForm').on('submit', function (e) {
-        e.preventDefault(); // Prevenir el envío por defecto
+        e.preventDefault();
 
-        // Si ya se está enviando, no hacer nada
         if (isSubmitting) {
             return false;
         }
 
-        // Validar el formulario (si hay validaciones adicionales)
         const form = this;
         if (form.checkValidity()) {
-            isSubmitting = true; // Marcar como enviando
-            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
-
-            // Enviar el formulario manualmente
+            isSubmitting = true;
+            submitBtn.prop('disabled', true).text('Guardando...');
             form.submit();
         } else {
-            form.reportValidity(); // Mostrar errores de validación del navegador
+            form.reportValidity();
         }
     });
 

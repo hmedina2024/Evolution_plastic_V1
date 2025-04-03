@@ -1172,22 +1172,33 @@ def eliminar_operacion(id_operacion):
 ### Orden de Producción
 def procesar_form_op(dataForm):
     try:
+        # Depurar los datos recibidos
+        app.logger.debug(f"Datos recibidos del formulario: {dataForm}")
+
+        # Convertir campos numéricos a enteros
+        codigo_op = int(dataForm['cod_op']) if dataForm['cod_op'] else None
+        cantidad = int(dataForm['cantidad']) if dataForm['cantidad'] else None
+        supervisor = int(dataForm['supervisor']) if dataForm.get('supervisor') and dataForm['supervisor'].strip() else None
+
+        # Crear el objeto OrdenProduccion
         orden = OrdenProduccion(
-            codigo_op=dataForm['cod_op'],
+            codigo_op=codigo_op,
             nombre_cliente=dataForm['nombre_cliente'],
             producto=dataForm['producto'],
             estado=dataForm['estado'],
-            cantidad=dataForm['cantidad'],
+            cantidad=cantidad,
             odi=dataForm['odi'],
             empleado=dataForm['vendedor'],
+            id_supervisor=supervisor,  # Ya manejamos el caso de None
             usuario_registro=session['name_surname']
         )
         db.session.add(orden)
         db.session.commit()
+        app.logger.debug("Orden de producción guardada correctamente.")
         return 1  # Indica éxito (rowcount)
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f'Se produjo un error en procesar_form_op: {str(e)}')
+        app.logger.error(f"Se produjo un error en procesar_form_op: {str(e)}")
         return None
 
 def validar_cod_op(codigo_op):
@@ -1229,28 +1240,60 @@ def get_total_op():
 # Detalles del Orden de Producción
 def sql_detalles_op_bd(id_op):
     try:
-        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
-        if orden:
-            return {
-                'id_op': orden.id_op,
-                'codigo_op': orden.codigo_op,
-                'nombre_cliente': orden.nombre_cliente,
-                'producto': orden.producto,
-                'estado': orden.estado,
-                'cantidad': orden.cantidad,
-                'odi': orden.odi,
-                'empleado': orden.empleado,
-                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
-                'usuario_registro': orden.usuario_registro
-            }
-        return None
+        # Consulta con JOIN para obtener el nombre del supervisor
+        result = db.session.query(
+            OrdenProduccion,
+            db.func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).label('nombre_supervisor')
+        ).outerjoin(
+            Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
+        ).filter(
+            OrdenProduccion.id_op == id_op
+        ).first()
+
+        if not result:
+            return None
+
+        orden, nombre_supervisor = result
+
+        # Formatear los datos
+        detalle = {
+            'id_op': orden.id_op,
+            'codigo_op': orden.codigo_op,
+            'nombre_cliente': orden.nombre_cliente,
+            'producto': orden.producto,
+            'estado': orden.estado,
+            'cantidad': orden.cantidad,
+            'odi': orden.odi,
+            'empleado': orden.empleado,
+            'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+            'usuario_registro': orden.usuario_registro,
+            'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'  # Nuevo campo
+        }
+        app.logger.debug(f"Detalles de la orden: {detalle}")
+        return detalle
+
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_op_bd: {e}")
+        app.logger.error(f"Error en la función sql_detalles_op_bd: {str(e)}")
         return None
 
 def buscar_op_unico(id):
     try:
-        orden = db.session.query(OrdenProduccion).filter_by(id_op=id).first()
+        # Consulta con JOIN para obtener el nombre y el ID del supervisor
+        result = db.session.query(
+            OrdenProduccion,
+            Empleados.id_empleado.label('id_supervisor'),
+            db.func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).label('nombre_supervisor')
+        ).outerjoin(
+            Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
+        ).filter(
+            OrdenProduccion.id_op == id
+        ).first()
+
+        if not result:
+            return None
+
+        orden, id_supervisor, nombre_supervisor = result
+
         if orden:
             return {
                 'id_op': orden.id_op,
@@ -1262,6 +1305,8 @@ def buscar_op_unico(id):
                 'odi': orden.odi,
                 'empleado': orden.empleado,
                 'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+                'id_supervisor': id_supervisor if id_supervisor else '',  # Se agrega el ID del supervisor
+                'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'
             }
         return None
     except Exception as e:
@@ -1286,8 +1331,11 @@ def procesar_actualizar_form_op(data):
                 orden.cantidad = data.form['cantidad']
             if 'odi' in data.form:
                 orden.odi = data.form['odi']
+            if 'supervisor' in data.form:
+                orden.id_supervisor = int(data.form['supervisor']) if data.form['supervisor'] else None  # Nuevo campo
             # No actualizamos codigo_op, nombre_cliente, empleado porque no se envían
             db.session.commit()
+            app.logger.debug(f"Orden con id_op {id_op} actualizada correctamente")
             return 1  # Éxito
         else:
             app.logger.error(f"Orden con id_op {id_op} no encontrada")
@@ -1313,12 +1361,17 @@ def eliminar_op(id_op):
     
 def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, order=None):
     try:
-        # Consulta base
-        query = db.session.query(OrdenProduccion)
+        # Consulta base con JOIN para obtener el nombre del supervisor
+        query = db.session.query(
+            OrdenProduccion,
+            db.func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).label('nombre_supervisor')
+        ).outerjoin(
+            Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
+        )
 
         # Filtro por código de orden de producción
         if codigo_op:
-            query = query.filter(OrdenProduccion.codigo_op.ilike(f'%{codigo_op}%'))  # Corregimos la coma sobrante
+            query = query.filter(OrdenProduccion.codigo_op.ilike(f'%{codigo_op}%'))
 
         # Filtro por fecha de registro
         if fecha:
@@ -1348,7 +1401,8 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
             4: OrdenProduccion.cantidad,     # Columna 'Cantidad'
             5: OrdenProduccion.estado,       # Columna 'Estado'
             6: OrdenProduccion.fecha_registro,  # Columna 'Fecha Registro'
-            7: None                          # Columna 'Acción' no es ordenable
+            7: None,                         # Columna 'Supervisor' (no ordenable por ahora)
+            8: None                          # Columna 'Acción' no es ordenable
         }
 
         # Aplicar ordenamiento dinámico
@@ -1364,8 +1418,8 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
                         query = query.order_by(column.asc())
 
         # Aplicar paginación
-        ordenes = query.offset(start).limit(length).all()
-        app.logger.debug(f"Órdenes obtenidas: {len(ordenes)} registros")
+        results = query.offset(start).limit(length).all()
+        app.logger.debug(f"Órdenes obtenidas: {len(results)} registros")
 
         # Formatear los datos
         data = [{
@@ -1375,8 +1429,9 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
             'producto': op.producto,
             'cantidad': op.cantidad,
             'estado': op.estado,
-            'fecha_registro': op.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
-        } for op in ordenes]
+            'fecha_registro': op.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
+            'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'  # Mostrar el nombre del supervisor
+        } for op, nombre_supervisor in results]
         app.logger.debug(f"Datos formateados: {data}")
 
         return data, total, total_filtered
@@ -1559,10 +1614,35 @@ def get_empleados_paginados(page, per_page, search=None):
             offset = (page - 1) * per_page
             empleados = query.limit(per_page).offset(offset).all()
         else:
-            empleados = query.all()  # Devolver todos los registros si no hay paginación
+            empleados = query.all()
         return [{'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
     except Exception as e:
         app.logger.error(f"Error en get_empleados_paginados: {e}")
+        return []
+
+def get_supervisores_paginados(page, per_page, search=None):
+    try:
+        query = db.session.query(Empleados).filter(
+            Empleados.fecha_borrado.is_(None),
+            Empleados.cargo.in_(['supervisor', 'supervisora'])  # Filtrar por cargo
+        ).order_by(Empleados.id_empleado.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search),
+                    Empleados.apellido_empleado.like(search),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(search=search)
+                )
+            )
+        if page and per_page:
+            offset = (page - 1) * per_page
+            empleados = query.limit(per_page).offset(offset).all()
+        else:
+            empleados = query.all()
+        return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_supervisores_paginados: {e}")
         return []
 
 def get_procesos_paginados(page, per_page, search=None):

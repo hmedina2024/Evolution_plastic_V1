@@ -4,7 +4,6 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
 {% endblock %}
 
 <!-- Inicio del block -->
@@ -35,7 +34,7 @@
       </div>
     </div>
     <div class="row g-4 mt-3">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label for="estado" class="form-label fw-bold text-primary">Estado</label>
         <div class="form-control" readonly>{{ detalle_op.estado }}</div>
       </div>
@@ -43,9 +42,7 @@
         <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
       </div>
-    </div>
-    <div class="row g-4 mt-3">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label for="odi" class="form-label fw-bold text-primary">ODI</label>
         <div class="form-control" readonly>{{ detalle_op.odi }}</div>
       </div>
@@ -53,6 +50,14 @@
         <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
         <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
       </div>
+      <div class="col-md-3">
+        <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">   
+      
+      
       <div class="col-md-3">
         <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>
