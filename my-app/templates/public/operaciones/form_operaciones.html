@@ -3,7 +3,6 @@
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
 {% endblock %}
 
 {% block body %}
@@ -57,9 +56,14 @@
           <textarea class="form-control" name="novedades" rows="2" ></textarea>
         </div>
       </div>
+      <!-- Campo oculto para action -->
+      <input type="hidden" name="action" id="action" value="save">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn" disabled>
           Guardar Registro <i class="bi bi-save ms-2"></i>
+        </button>
+        <button type="submit" class="btn btn-success rounded-pill px-4" id="submitNotifyBtn" disabled>
+          Guardar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
     </form>
@@ -73,7 +77,7 @@
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
-    // Configuración de Select2 (sin cambios aquí)
+    // Configuración de Select2 (sin cambios)
     function setupSelect2(selectId, url, placeholder, dataKey) {
         $(`#${selectId}`).select2({
             placeholder: placeholder,
@@ -124,6 +128,8 @@ $(document).ready(function () {
     const horaInicioInput = $('#hora_inicio');
     const horaFinInput = $('#hora_fin');
     const submitBtn = $('#submitBtn');
+    const submitNotifyBtn = $('#submitNotifyBtn');
+    const actionInput = $('#action');
     const today = new Date();
     const maxDate = today.toISOString().slice(0, 16);
     const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
@@ -161,12 +167,24 @@ $(document).ready(function () {
             }
         }
 
-        // Habilitar/deshabilitar botón
+        // Habilitar/deshabilitar ambos botones
         submitBtn.prop('disabled', !isValid);
+        submitNotifyBtn.prop('disabled', !isValid);
     }
 
     horaInicioInput.on('change', validateDates);
     horaFinInput.on('change', validateDates);
+
+    // Establecer el valor de action según el botón clickeado
+    submitBtn.on('click', function () {
+        console.log("Botón Guardar Registro clickeado");
+        actionInput.val('save');
+    });
+
+    submitNotifyBtn.on('click', function () {
+        console.log("Botón Guardar y Notificar clickeado");
+        actionInput.val('save_and_notify');
+    });
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
@@ -183,7 +201,8 @@ $(document).ready(function () {
         validateDates();
         if (!submitBtn.prop('disabled')) {
             isSubmitting = true; // Marcar como enviando
-            submitBtn.prop('disabled', true).text('Guardando...'); // Deshabilitar y cambiar texto
+            submitBtn.prop('disabled', true).text('Guardando...');
+            submitNotifyBtn.prop('disabled', true).text('Guardando...');
 
             // Enviar el formulario manualmente
             this.submit();

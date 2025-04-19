@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 import uuid  # Módulo de Python para crear un string
 import os
 from os import remove, path  # Módulos para manejar archivos
-from app import app  # Importa la instancia de Flask desde app.py
+from app import app # Importa la instancia de Flask desde app.py
 from conexion.models import db, Operaciones, Empleados, Tipo_Empleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users  # Importa modelos desde models.py
 import datetime
 import pytz
@@ -14,6 +14,10 @@ from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccio
 from sqlalchemy import or_,func
 from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Message
+import smtplib
+import ssl
+from email.message import EmailMessage
 
 # Define la zona horaria local (ajusta según tu ubicación)
 LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
@@ -917,61 +921,110 @@ def obtener_actividad():
         return []
 
 def procesar_form_operacion(dataForm):
+    app.logger.debug("Entrando a procesar_form_operacion con datos: %s", dataForm)
     try:
-        # Obtener y validar los datos del formulario
         nombre_empleado = dataForm.get('nombre_empleado')
         nombre_proceso = dataForm.get('nombre_proceso')
         nombre_actividad = dataForm.get('nombre_actividad')
-        cod_op = dataForm.get('cod_op')  # Corregimos el nombre del campo enviado desde el formulario
+        cod_op = dataForm.get('cod_op')
         cantidad = dataForm.get('cantidad')
         pieza = dataForm.get('pieza')
         novedades = dataForm.get('novedades')
         hora_inicio = dataForm.get('hora_inicio')
         hora_fin = dataForm.get('hora_fin')
-        
-        # Validar que todos los campos requeridos estén presentes
-        if not all([nombre_empleado, nombre_proceso, nombre_actividad, cod_op, cantidad, hora_inicio, hora_fin]):
-            return None  # Indica error si falta algún campo obligatorio
+        action = dataForm.get('action')
 
-        # Convertir cantidad a entero si es necesario
+        app.logger.debug(f"Valor de action recibido: {action}")
+
+        if not all([nombre_empleado, nombre_proceso, nombre_actividad, cod_op, cantidad, hora_inicio, hora_fin]):
+            app.logger.error("Faltan campos requeridos en el formulario")
+            return None
+
         try:
             cantidad = int(cantidad)
         except (ValueError, TypeError):
-            return None  # Indica error si cantidad no es un número válido
+            app.logger.error("Cantidad no es un número válido")
+            return None
 
-        # Buscar el empleado por nombre completo
         empleado = db.session.query(Empleados).filter(
             db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) = :nombre_completo")
         ).params(nombre_completo=nombre_empleado).first()
 
         if not empleado:
+            app.logger.error("No se encontró el empleado con el nombre especificado")
             return 'No se encontró el empleado con el nombre especificado.'
 
-        # Convertir cod_op a entero si es necesario (asumiendo que es un ID de OrdenProduccion)
         try:
             codigo_op = int(cod_op)
         except (ValueError, TypeError):
+            app.logger.error("El código de la orden de producción no es válido")
             return 'El código de la orden de producción no es válido.'
 
-        # Crear nueva operación
         operacion = Operaciones(
             id_empleado=empleado.id_empleado,
             nombre_empleado=nombre_empleado,
             proceso=nombre_proceso,
             actividad=nombre_actividad,
-            codigo_op=codigo_op,  # Usamos el nombre correcto del campo en el modelo
+            codigo_op=codigo_op,
             cantidad=cantidad,
             pieza_realizada=pieza,
             novedad=novedades,
             fecha_hora_inicio=datetime.strptime(hora_inicio, '%Y-%m-%dT%H:%M'),
             fecha_hora_fin=datetime.strptime(hora_fin, '%Y-%m-%dT%H:%M'),
-            usuario_registro=session.get('name_surname', 'Usuario desconocido')  # Asegura que siempre haya un valor
+            usuario_registro=session.get('name_surname', 'Usuario desconocido')
         )
 
-        # Guardar en la base de datos
         db.session.add(operacion)
         db.session.commit()
-        return 1  # Indica éxito (rowcount)
+
+        if action == 'save_and_notify':
+            app.logger.debug("Entrando al bloque de envío de correo...")
+            try:
+                admins = db.session.query(Users).filter_by(rol='administrador').all()
+                if not admins:
+                    app.logger.warning('No se encontraron usuarios con rol administrador.')
+                else:
+                    app.logger.debug(f"Se encontraron {len(admins)} administradores: {[admin.email_user for admin in admins]}")
+                    email_sender = 'evolutioncontrolweb@gmail.com'
+                    email_password = 'qsmr ccyb yzjd gzkm'  # Usa la contraseña de aplicación que configuraste
+                    subject = 'Confirmación: Finalización de Actividad'
+
+                    for admin in admins:
+                        email_receiver = admin.email_user
+                        body = f"""
+                        Se ha registrado una nueva operación diaria:
+
+                        - Empleado: {nombre_empleado}
+                        - Proceso: {nombre_proceso}
+                        - Actividad: {nombre_actividad}
+                        - Orden de Producción: {cod_op}
+                        - Cantidad Realizada: {cantidad}
+                        - Fecha y Hora Inicio: {hora_inicio}
+                        - Fecha y Hora Fin: {hora_fin}
+                        - Pieza Realizada: {pieza if pieza else 'No especificada'}
+                        - Novedades: {novedades if novedades else 'Sin novedades'}
+                        - Registrado por: {session.get('name_surname', 'Usuario desconocido')}
+
+                        Este es un mensaje automático. Por favor, no respondas a este correo.
+                        """
+
+                        em = EmailMessage()
+                        em['From'] = email_sender
+                        em['To'] = email_receiver
+                        em['Subject'] = subject
+                        em.set_content(body)
+
+                        context = ssl.create_default_context()
+                        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                            smtp.login(email_sender, email_password)
+                            smtp.sendmail(email_sender, email_receiver, em.as_string())
+                            app.logger.info(f'Correo enviado a {email_receiver}')
+            except Exception as e:
+                app.logger.error(f'Error al enviar correo de notificación: {str(e)}')
+        else:
+            app.logger.debug("No se solicitó enviar correo (action != 'save_and_notify')")
+
+        return 1
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Se produjo un error en procesar_form_operacion: {str(e)}')
