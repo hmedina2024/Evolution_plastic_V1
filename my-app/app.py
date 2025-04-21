@@ -2,9 +2,15 @@ import os
 import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS  # Importa CORS
+from flask_cors import CORS
 import datetime
+# Importa la librería dotenv si decides usarla para desarrollo
+from dotenv import load_dotenv
 
+# Carga las variables de entorno desde un archivo .env (opcional, útil para desarrollo)
+# Asegúrate de tener python-dotenv instalado: pip install python-dotenv
+# Crea un archivo .env en la raíz de my-app/
+load_dotenv()
 
 # Configura logging antes de inicializar la app
 logging.basicConfig(level=logging.DEBUG)
@@ -19,20 +25,29 @@ logger.addHandler(console_handler)
 
 # Inicializa la aplicación Flask
 app = Flask(__name__)
-CORS(app)  # Habilita CORS para toda la aplicación
+CORS(app)
 
-app.secret_key = 'secretEvolutioControl'  # Mantén tu clave secreta actual
+# --- USO DE VARIABLES DE ENTORNO ---
+# Obtiene la SECRET_KEY desde las variables de entorno
+# Proporciona un valor predeterminado SOLO para desarrollo si la variable no está definida
+app.secret_key = os.environ.get('SECRET_KEY', 'una-clave-secreta-solo-para-desarrollo-cambiar')
 
-# Configura SQLAlchemy
-##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Yamasaqui2024*@localhost/evolution_plastic'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Evolution123#@217.15.171.201/evolution_DB'
-##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Yamasaqui2024*@localhost/evolution_DB'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desactiva notificaciones de modificaciones para ahorrar recursos
-app.config['SQLALCHEMY_POOL_SIZE'] = 10  # Aumenta a 10 para manejar 10+ usuarios simultáneos
-app.config['SQLALCHEMY_MAX_OVERFLOW'] = 20  # Máximo de conexiones adicionales (30 conexiones totales max)
-app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30  # Tiempo máximo en segundos para esperar una conexión
+# Obtiene las credenciales de la base de datos desde las variables de entorno
+db_user = os.environ.get('DB_USER', 'root') # Valor predeterminado para desarrollo
+db_password = os.environ.get('DB_PASSWORD', 'tu_password_dev') # ¡CAMBIA ESTO para desarrollo!
+db_host = os.environ.get('DB_HOST', 'localhost') # Valor predeterminado para desarrollo
+db_name = os.environ.get('DB_NAME', 'evolution_DB') # Valor predeterminado para desarrollo
+
+# Configura SQLAlchemy usando las variables obtenidas
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
+# --- FIN USO DE VARIABLES DE ENTORNO ---
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_POOL_SIZE'] = 10
+app.config['SQLALCHEMY_MAX_OVERFLOW'] = 20
+app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True  # Verifica conexiones antes de usarlas
+    'pool_pre_ping': True
 }
 
 # Inicializa SQLAlchemy
@@ -51,9 +66,18 @@ if not app.debug:
         app.logger.handlers = gunicorn_logger.handlers
         app.logger.setLevel(gunicorn_logger.level)
 
+# Importa modelos DESPUÉS de inicializar db
+# Asegúrate de que la ruta de importación sea correcta según tu estructura
+# Si models.py está en my-app/conexion/
 from conexion.models import Operaciones, Empleados, Tipo_Empleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users
+# Si models.py estuviera directamente en my-app/
+# from models import Operaciones, Empleados, ...
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host="0.0.0.0", port=8000, debug=True)
+# El bloque if __name__ == '__main__': para app.run() y db.create_all()
+# debería estar idealmente solo en run.py (para desarrollo)
+# y db.create_all() comentado/eliminado para producción.
+# Si ejecutas con `gunicorn app:app`, este bloque no se ejecutará de todas formas.
+# if __name__ == '__main__':
+#     with app.app_context():
+#         db.create_all() # Comentar/Eliminar en producción
+#     app.run(host="0.0.0.0", port=8000, debug=True) # Solo para desarrollo

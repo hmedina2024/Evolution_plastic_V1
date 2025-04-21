@@ -5,9 +5,6 @@ from routers.router_login import *
 from routers.router_home import *
 from routers.router_page_not_found import *
 
-# Asegúrate de que los modelos se inicialicen con la app
-with app.app_context():
-    db.create_all()  # Crea las tablas si no existen (solo para desarrollo, coméntalo en producción)
 
 # Ejecutando el objeto Flask
 if __name__ == '__main__':
