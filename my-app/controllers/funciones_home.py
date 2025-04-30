@@ -1742,7 +1742,7 @@ def get_actividades_paginados(page, per_page, search=None):
 
 def get_ordenes_paginadas(page, per_page, search=None):
     try:
-        query = db.session.query(OrdenProduccion).order_by(OrdenProduccion.codigo_op.desc())
+        query = db.session.query(OrdenProduccion).filter(OrdenProduccion.estado != 'TER').order_by(OrdenProduccion.codigo_op.desc())
         if search:
             search = f"%{search}%"
             query = query.filter(
