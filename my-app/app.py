@@ -30,13 +30,13 @@ CORS(app)
 # --- USO DE VARIABLES DE ENTORNO ---
 # Obtiene la SECRET_KEY desde las variables de entorno
 # Proporciona un valor predeterminado SOLO para desarrollo si la variable no está definida
-app.secret_key = os.environ.get('SECRET_KEY', 'una-clave-secreta-solo-para-desarrollo-cambiar')
+app.secret_key = os.environ.get('SECRET_KEY', 'secretEvolutioControllocalhost')
 
 # Obtiene las credenciales de la base de datos desde las variables de entorno
 db_user = os.environ.get('DB_USER', 'root') # Valor predeterminado para desarrollo
-db_password = os.environ.get('DB_PASSWORD', 'tu_password_dev') # ¡CAMBIA ESTO para desarrollo!
+db_password = os.environ.get('DB_PASSWORD', 'Yamasaqui2024*') # ¡CAMBIA ESTO para desarrollo!
 db_host = os.environ.get('DB_HOST', 'localhost') # Valor predeterminado para desarrollo
-db_name = os.environ.get('DB_NAME', 'evolution_DB') # Valor predeterminado para desarrollo
+db_name = os.environ.get('DB_NAME', 'evolution_db') # Valor predeterminado para desarrollo
 
 # Configura SQLAlchemy usando las variables obtenidas
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
