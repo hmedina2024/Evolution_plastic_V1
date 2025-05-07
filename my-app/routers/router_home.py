@@ -6,9 +6,8 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
-from conexion.models import db, Empresa,Empleados
+from conexion.models import db, Empresa,Empleados,OrdenProduccion,Tipo_Empleado,Clientes
 from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas,get_clientes_paginados
-
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados,get_supervisores_paginados,
@@ -523,20 +522,20 @@ def viewFormOperacion():
 
 @app.route('/form-registrar-operacion', methods=['POST'])
 def form_operacion():
-    if 'conectado' in session:
-        resultado = procesar_form_operacion(request.form)
-        if resultado == 1:
-            flash('La operación fue registrada correctamente.', 'success')
-            return redirect(url_for('lista_operaciones'))
-        elif isinstance(resultado, str):  # Si es un mensaje de error
-            flash(resultado, 'error')
-            return render_template('public/operaciones/form_operaciones.html')
-        else:
-            flash('La Operación NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
-            return render_template('public/operaciones/form_operaciones.html')
-    else:
+    if 'conectado' not in session or 'user_id' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+    
+    resultado = procesar_form_operacion(request.form)
+    if resultado == 1:
+        flash('La operación fue registrada correctamente.', 'success')
+        return redirect(url_for('lista_operaciones'))
+    elif isinstance(resultado, str):  # Si es un mensaje de error
+        flash(resultado, 'error')
+        return render_template('public/operaciones/form_operaciones.html')
+    else:
+        flash('La Operación NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
+        return render_template('public/operaciones/form_operaciones.html')
 
 @app.route('/lista-de-operaciones', methods=['GET'])
 def lista_operaciones():
@@ -578,15 +577,20 @@ def buscar_operaciones():
 
 @app.route("/detalles-operacion/<string:id_operacion>", methods=['GET'])
 def detalle_operacion(id_operacion=None):
-    if 'conectado' in session:
-        if id_operacion is None:
-            return redirect(url_for('inicio'))
-        else:
-            detalle_operacion = sql_detalles_operaciones_bd(id_operacion) or []
-            return render_template('public/operaciones/detalles_operacion.html', detalle_operacion=detalle_operacion)
-    else:
+    if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+    
+    if id_operacion is None:
+        flash('ID de operación no proporcionado.', 'error')
+        return redirect(url_for('inicio'))
+    
+    detalle_operacion = sql_detalles_operaciones_bd(id_operacion)
+    if detalle_operacion is None:
+        flash('No se encontró la operación solicitada.', 'error')
+        detalle_operacion = []
+    
+    return render_template('public/operaciones/detalles_operacion.html', detalle_operacion=detalle_operacion)
 
 @app.route("/editar-operacion/<int:id>", methods=['GET', 'POST'])
 def view_editar_operacion(id):
@@ -603,11 +607,10 @@ def view_editar_operacion(id):
             return redirect(url_for('inicio'))
 
     if request.method == 'POST':
-        # Procesar los datos del formulario
         result = procesar_actualizacion_operacion(request)
         if result == 1:
             flash('Operación actualizada exitosamente.', 'success')
-            return redirect(url_for('lista_operaciones'))  # Redirige a la lista de operaciones
+            return redirect(url_for('lista_operaciones'))
         else:
             flash('Error al actualizar la operación. Inténtalo de nuevo.', 'error')
             return redirect(url_for('view_editar_operacion', id=id))
@@ -835,13 +838,22 @@ def borrar_jornada(id_jornada):
 # Rutas API para cargar opciones dinámicamente
 @app.route('/api/empleados', methods=['GET'])
 def api_empleados():
-    page = request.args.get('page', 1, type=int)  # Por defecto página 1
-    per_page = request.args.get('per_page', 10, type=int)  # Por defecto 10 registros
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    
     empleados = get_empleados_paginados(page, per_page, search)
-    return jsonify({'empleados': empleados})
-
+    empleados_data = [
+        {
+            'id_empleado': emp.id_empleado,
+            'nombre_empleado': f"{emp.nombre_empleado} {emp.apellido_empleado or ''}".strip(),
+            'empresa': emp.empresa.nombre_empresa if emp.empresa else None,
+            'tipo_empleado': emp.tipo_empleado_ref.tipo_empleado if emp.tipo_empleado_ref else None
+        }
+        for emp in empleados
+    ]
+    return jsonify({'empleados': empleados_data})
 
 @app.route('/api/supervisores', methods=['GET'])
 def api_supervisores():
@@ -858,8 +870,16 @@ def api_procesos():
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    
     procesos = get_procesos_paginados(page, per_page, search)
-    return jsonify({'procesos': procesos})
+    procesos_data = [
+        {
+            'id_proceso': proc.id_proceso,
+            'nombre_proceso': proc.nombre_proceso
+        }
+        for proc in procesos
+    ]
+    return jsonify({'procesos': procesos_data})
 
 @app.route('/api/actividades', methods=['GET'])
 def api_actividades():
@@ -867,8 +887,16 @@ def api_actividades():
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    
     actividades = get_actividades_paginados(page, per_page, search)
-    return jsonify({'actividades': actividades})
+    actividades_data = [
+        {
+            'id_actividad': act.id_actividad,
+            'nombre_actividad': act.nombre_actividad
+        }
+        for act in actividades
+    ]
+    return jsonify({'actividades': actividades_data})
 
 @app.route('/api/ordenes-produccion', methods=['GET'])
 def api_ordenes_produccion():
@@ -876,8 +904,17 @@ def api_ordenes_produccion():
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    
     ordenes = get_ordenes_paginadas(page, per_page, search)
-    return jsonify({'ordenes': ordenes})
+    ordenes_data = [
+        {
+            'id_op': ord.id_op,
+            'codigo_op': ord.codigo_op,
+            'cliente': ord.cliente.nombre_cliente if ord.cliente else None
+        }
+        for ord in ordenes
+    ]
+    return jsonify({'ordenes': ordenes_data})
 
 
 @app.route('/api/clientes', methods=['GET'])

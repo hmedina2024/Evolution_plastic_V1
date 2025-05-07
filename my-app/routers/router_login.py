@@ -109,7 +109,7 @@ def actualizar_perfil():
 # Validar sesión (ruta pública)
 @app.route('/login', methods=['GET', 'POST'])
 def loginCliente():
-    if 'conectado' in session: # Evita que usuarios logueados vean esto
+    if 'conectado' in session:  # Evita que usuarios logueados vean esto
         return redirect(url_for('inicio'))
 
     if request.method == 'POST' and 'email_user' in request.form and 'pass_user' in request.form:
@@ -120,26 +120,23 @@ def loginCliente():
             user = Users.query.filter_by(email_user=email_user).first()
             if user and check_password_hash(user.pass_user, pass_user):
                 # Crear datos de sesión
+                session['user_id'] = user.id  # Usa solo 'user_id' como clave principal
                 session['conectado'] = True
-                session['id'] = user.id
                 session['name_surname'] = user.name_surname
                 session['email_user'] = user.email_user
                 session['rol'] = user.rol
-                session.permanent = True # Opcional: hacer la sesión más duradera
+                session.permanent = True  # Sesión permanente
 
                 flash('Inicio de sesión correcto.', 'success')
                 return redirect(url_for('inicio'))
             else:
                 flash('Email o contraseña incorrectos.', 'error')
-                # No es necesario renderizar, podemos redirigir a inicio que mostrará el login si no hay sesión
-                return redirect(url_for('inicio')) # Redirige a inicio, que mostrará login
+                return redirect(url_for('inicio'))
         except Exception as e:
             app.logger.error(f"Error en loginCliente: {e}")
             flash('Ocurrió un error al iniciar sesión.', 'error')
-            return redirect(url_for('inicio')) # Redirige a inicio
+            return redirect(url_for('inicio'))
     else:
-        # Método GET o faltan datos POST, muestra la página de inicio (que mostrará login)
-        # No es necesario renderizar aquí, la ruta '/' maneja esto
         return redirect(url_for('inicio'))
 
 

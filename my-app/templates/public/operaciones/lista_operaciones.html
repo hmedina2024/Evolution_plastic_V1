@@ -2,8 +2,10 @@
 {% block title %}Lista de Operaciones Diarias{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/my_style.css') }}">
+<link rel="stylesheet"
+  href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='css/my_style.css') }}">
 {% endblock %}
 
 {% block body %}
@@ -15,34 +17,50 @@
     </div>
     <div class="row justify-content-end mb-3">
       <div class="col-md-6 mt-0 py-3">
-        <a href="{{ url_for('viewFormOperacion') }}" class="btn btn-info btn-sm">
+        <a href="{{ url_for('viewFormOperacion') }}"
+          class="btn btn-info btn-sm">
           <i class="bi bi-plus-circle me-2"></i> Registrar Nueva Operación
         </a>
       </div>
       <div class="col-md-4 position-relative mt-0 py-3">
-        <label for="filterEmpleado" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Empleado</label>
-        <input type="text" id="filterEmpleado" class="form-control" placeholder="Filtrar por Empleado">
+        <label for="filterEmpleado" class="form-label small text-muted"
+          style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Empleado</label>
+        <input type="text" id="filterEmpleado" class="form-control"
+          placeholder="Filtrar por Empleado">
       </div>
-      
+
       <div class="col-md-2 position-relative mt-0 py-3">
-        <label for="filterFecha" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Fecha de Registro</label>
+        <label for="filterFecha" class="form-label small text-muted"
+          style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Fecha
+          de Registro</label>
         <input type="date" id="filterFecha" class="form-control">
       </div>
     </div>
     <div class="row justify-content-center mb-2">
       <div class="table-responsive text-nowrap table-hover">
-        <table id="tbl_operaciones" class="table table-striped table-bordered" cellspacing="0" width="100%">
+        <table id="tbl_operaciones" class="table table-striped table-bordered"
+          cellspacing="0" width="100%">
           <thead>
             <tr>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">ID</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Proceso</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Actividad</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cod. OP</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha Registro</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">ID</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Proceso</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Actividad</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Orden
+                Prod.</th> <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha
+                Registro</th>
+              <th
+                style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
         </table>
@@ -54,88 +72,132 @@
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script
+  src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script>
 $(document).ready(function() {
     var table = $('#tbl_operaciones').DataTable({
         "serverSide": true,
         "ajax": {
-            "url": "/buscando-operaciones",
+            "url": "/buscando-operaciones", // La URL de tu backend
             "type": "POST",
             "contentType": "application/json",
             "data": function(d) {
+                // Envía los valores de los filtros personalizados
                 d.empleado = $('#filterEmpleado').val();
                 d.fecha = $('#filterFecha').val();
-                d.hora = $('#filterHora').val();
+                // d.hora = $('#filterHora').val(); // Quitaste este filtro? Si no, agrégalo
                 return JSON.stringify(d);
             },
             "dataSrc": function(json) {
-                if (json.fin === 0) return [];
-                return json.data;
+                // Manejo de errores devueltos por el servidor
+                if (json.error) {
+                    console.error("Error del servidor: ", json.error);
+                    alert("Error al cargar los datos: " + json.error); // Muestra error al usuario
+                    return []; // Devuelve array vacío para evitar errores de DataTables
+                }
+                 if (!json.data && json.fin === 0) { // Ajusta la condición si 'fin' ya no se usa
+                      console.warn("Respuesta vacía o indicador 'fin: 0' recibido.");
+                      return [];
+                  }
+                 // Asegúrate que json.data sea siempre un array
+                    return json.data || [];
             },
             "error": function(xhr, error, thrown) {
-                console.log("Error en AJAX: ", xhr.status, error, thrown);
+                // Manejo de errores de red o HTTP
+                console.error("Error en AJAX: ", xhr.status, error, thrown);
+                var errorMsg = "Error al contactar al servidor. Por favor, inténtelo de nuevo.";
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    // Intenta mostrar algún detalle si no es JSON
+                    // errorMsg = xhr.responseText; // Cuidado: puede mostrar HTML de error
+                }
+                alert(errorMsg);
             }
         },
         "columns": [
-            { "data": null, "render": function(data, type, row, meta) { return meta.row + meta.settings._iDisplayStart + 1; } },
+            // Columna para el número de fila
+            { "data": null, "orderable": false, "searchable": false, "render": function(data, type, row, meta) {
+                return meta.row + meta.settings._iDisplayStart + 1;
+            }},
+            // Columna ID Operación
             { "data": "id_operacion" },
-            { "data": "nombre_empleado" },
-            { "data": "proceso" },
-            { "data": "actividad" },
-            { "data": "codigo_op" },
+            // Columna Empleado (ahora usa la clave del backend)
+            { "data": "empleado_nombre" }, // <-- AJUSTADO
+            // Columna Proceso
+            { "data": "proceso_nombre" }, // <-- AJUSTADO
+            // Columna Actividad
+            { "data": "actividad_nombre" }, // <-- AJUSTADO
+            // Columna Código de OP (ahora usa la clave del backend)
+            { "data": "orden_codigo_op" }, // <-- AJUSTADO
+            // Columna Cantidad
             { "data": "cantidad" },
-            { "data": "fecha_registro" },
-            { "data": null, "render": function(data, type, row) {
-                var acciones = `<a href="/detalles-operacion/${row.id_operacion}" class="btn btn-info btn-sm"><i class="bi bi-eye"></i> Ver detalles</a>`;
+            // Columna Fecha Registro
+            { "data": "fecha_registro" }, // Asegúrate que el backend la formatee bien
+            // Columna Acciones
+            { "data": null, "orderable": false, "searchable": false, "render": function(data, type, row) {
+                // Los botones usan row.id_operacion que sigue siendo válido
+                var acciones = `<a href="/detalles-operacion/${row.id_operacion}" class="btn btn-info btn-sm" title="Ver detalles"><i class="bi bi-eye"></i></a>`;
+                 // Solo añadir botones de editar/eliminar si el rol es Administrador
+                 // Asegúrate que la variable de sesión 'rol' esté disponible y sea correcta
                 if ('{{ session["rol"] }}' === 'Administrador') {
-                    acciones += `<a href="/editar-operacion/${row.id_operacion}" class="btn btn-success btn-sm"><i class="bi bi-arrow-clockwise"></i> Actualizar</a>`;
-                    acciones += `<a href="#" onclick="eliminarOperacion('${row.id_operacion}');" class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Eliminar</a>`;
+                  acciones += ` <a href="/editar-operacion/${row.id_operacion}" class="btn btn-success btn-sm" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></a>`;
+                  acciones += ` <a href="#" onclick="eliminarOperacion('${row.id_operacion}');" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash3"></i></a>`;
                 }
                 return acciones;
             }}
         ],
         "pageLength": 10,
-        "order": [[1, "desc"]], // Ordenar por ID descendente inicialmente
-        "responsive": true,
-        "scrollY": "500px",
-        "scrollX": true, // Añadido para habilitar desplazamiento horizontal
+        "order": [[1, "desc"]], // Ordenar por ID (columna índice 1) descendente inicialmente
+        "responsive": true, // Considera si 'responsive' es necesario con 'scrollX'
+        "scrollY": "500px", // Altura del scroll vertical
+        "scrollX": true, // Habilita scroll horizontal
         "scrollCollapse": true,
-        "processing": true,
+        "processing": true, // Muestra indicador de "Procesando..."
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json",
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json", // Asegúrate que este archivo exista
             "lengthMenu": "Mostrar _MENU_ entradas",
             "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
+            "infoEmpty": "Mostrando 0 a 0 de 0 entradas",
+            "infoFiltered": "(filtrado de _MAX_ entradas totales)",
+            "processing": "Procesando...",
+            //"search": "Buscar:", // Si habilitas la búsqueda global
+            "zeroRecords": "No se encontraron registros coincidentes",
             "paginate": {
+                "first": "Primero",
+                "last": "Último",
                 "previous": "Anterior",
                 "next": "Siguiente"
             }
         },
-        "searching": false,
-        "dom": 'lfrtip'
+        "searching": false, // Deshabilitar la búsqueda global de DataTables si solo usas filtros personalizados
+        "dom": 'lfrtip' // Controla qué elementos de DataTables se muestran y en qué orden
     });
 
-    // Evento para el filtro por empleado con debounce
+    // --- Filtros Personalizados ---
     var debounceTimer;
+
+    // Filtro por empleado con debounce (espera antes de buscar)
     $('#filterEmpleado').on('keyup', function() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
-            table.ajax.reload();
-        }, 200);
+            table.ajax.reload(); // Recarga los datos con el nuevo filtro
+        }, 500); // Espera 500ms después de dejar de teclear
     });
 
-    // Evento para el filtro por fecha con debounce
+    // Filtro por fecha (se activa al cambiar la fecha)
     $('#filterFecha').on('change', function() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-            table.ajax.reload();
-        }, 300);
+        table.ajax.reload(); // Recarga inmediatamente al cambiar la fecha
     });
 
 });
 
+// Función para confirmar eliminación (ya la tenías)
 function eliminarOperacion(id_operacion) {
-    if (confirm('¿Estás seguro de eliminar esta operación?')) {
+    if (confirm('¿Estás seguro de eliminar esta operación? ID: ' + id_operacion)) {
+        // Idealmente, esto debería ser una petición DELETE o POST, no GET
+        // Pero si tu ruta /borrar-operacion/ es GET, esto funciona:
         window.location.href = '/borrar-operacion/' + id_operacion;
     }
 }

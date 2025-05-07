@@ -14,20 +14,20 @@
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-operacion" autocomplete="off" enctype="multipart/form-data" id="registroForm">
       <div class="row g-4">
         <div class="col-md-4">
-          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
-          <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
         </div>
         <div class="col-md-3">
-          <label for="nombre_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
-          <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required></select>
+          <label for="id_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2" required></select>
         </div>
         <div class="col-md-3">
-          <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
-          <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required></select>
+          <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="id_actividad" id="id_actividad" class="form-control select2" required></select>
         </div>
         <div class="col-md-2">
-          <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
-          <select name="cod_op" id="cod_op" class="form-control select2" required></select>
+          <label for="id_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
+          <select name="id_op" id="id_op" class="form-control select2" required></select>
         </div>
       </div>
       <div class="row g-4 mt-3">
@@ -36,24 +36,24 @@
           <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
         </div>
         <div class="col-md-3 position-relative">
-          <label for="hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
-          <input class="form-control" type="datetime-local" name="hora_inicio" id="hora_inicio" required />
+          <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_inicio" id="fecha_hora_inicio" required />
           <div class="invalid-feedback" id="hora_inicio_feedback"></div>
         </div>
         <div class="col-md-3 position-relative">
-          <label for="hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin <span class="text-danger">*</span></label>
-          <input class="form-control" type="datetime-local" name="hora_fin" id="hora_fin" required />
+          <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin <span class="text-danger">*</span></label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_fin" id="fecha_hora_fin" required />
           <div class="invalid-feedback" id="hora_fin_feedback"></div>
         </div>
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-5">
-          <label for="pieza" class="form-label fw-bold text-primary">Pieza Realizada</label>
-          <textarea class="form-control" name="pieza" rows="2" ></textarea>
+          <label for="pieza_realizada" class="form-label fw-bold text-primary">Pieza Realizada</label>
+          <textarea class="form-control" name="pieza_realizada" rows="2"></textarea>
         </div>
         <div class="col-md-7">
-          <label for="novedades" class="form-label fw-bold text-primary">Novedades</label>
-          <textarea class="form-control" name="novedades" rows="2" ></textarea>
+          <label for="novedad" class="form-label fw-bold text-primary">Novedades</label>
+          <textarea class="form-control" name="novedad" rows="2"></textarea>
         </div>
       </div>
       <!-- Campo oculto para action -->
@@ -79,8 +79,8 @@
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
-    // Configuración de Select2 (sin cambios)
-    function setupSelect2(selectId, url, placeholder, dataKey) {
+    // Configuración de Select2 para manejar el nuevo formato de las APIs
+    function setupSelect2(selectId, url, placeholder, dataKey, idField, textField) {
         $(`#${selectId}`).select2({
             placeholder: placeholder,
             allowClear: true,
@@ -100,8 +100,8 @@ $(document).ready(function () {
                 processResults: function (data) {
                     return {
                         results: data[dataKey].map(item => ({
-                            id: Object.values(item)[0],
-                            text: Object.values(item)[0]
+                            id: item[idField],  // id_op como valor interno
+                            text: item[textField]  // codigo_op como texto visible
                         })),
                         pagination: { more: data[dataKey].length === 10 }
                     };
@@ -109,10 +109,10 @@ $(document).ready(function () {
                 cache: true
             },
             templateResult: function (data) {
-                return data.text;
+                return data.text;  // Asegura que el texto mostrado sea el codigo_op
             },
             templateSelection: function (data) {
-                return data.text || data.id;
+                return data.text || data.id;  // Muestra codigo_op o id_op si no hay texto
             }
         }).on('select2:open', function () {
             setTimeout(() => {
@@ -121,14 +121,15 @@ $(document).ready(function () {
         });
     }
 
-    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados');
-    setupSelect2('nombre_proceso', '/api/procesos', 'Buscar proceso...', 'procesos');
-    setupSelect2('nombre_actividad', '/api/actividades', 'Buscar actividad...', 'actividades');
-    setupSelect2('cod_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes');
+    // Configurar Select2 para cada campo con el nuevo formato
+    setupSelect2('id_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
+    setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
+    setupSelect2('id_actividad', '/api/actividades', 'Buscar actividad...', 'actividades', 'id_actividad', 'nombre_actividad');
+    setupSelect2('id_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', 'id_op', 'codigo_op');
 
-    // Validaciones de fechas
-    const horaInicioInput = $('#hora_inicio');
-    const horaFinInput = $('#hora_fin');
+    // Validaciones de fechas (sin cambios)
+    const horaInicioInput = $('#fecha_hora_inicio');
+    const horaFinInput = $('#fecha_hora_fin');
     const submitBtn = $('#submitBtn');
     const submitNotifyBtn = $('#submitNotifyBtn');
     const actionInput = $('#action');
@@ -136,7 +137,6 @@ $(document).ready(function () {
     const maxDate = today.toISOString().slice(0, 16);
     const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
 
-    // Configurar límites iniciales para hora_inicio
     horaInicioInput.attr('max', maxDate);
     horaInicioInput.attr('min', minDate);
 
@@ -145,8 +145,10 @@ $(document).ready(function () {
         const horaFin = new Date(horaFinInput.val());
         let isValid = true;
 
-        // Validar hora_inicio
-        if (horaInicio > new Date()) {
+        if (!horaInicioInput.val()) {
+            $('#hora_inicio_feedback').text('¡Debe seleccionar una fecha y hora de inicio!').addClass('show');
+            isValid = false;
+        } else if (horaInicio > new Date()) {
             $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
             isValid = false;
         } else if (horaInicio < new Date(minDate)) {
@@ -156,20 +158,19 @@ $(document).ready(function () {
             $('#hora_inicio_feedback').removeClass('show');
         }
 
-        // Validar hora_fin
-        if (horaFinInput.val()) {
-            if (horaFin < horaInicio) {
-                $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
-                isValid = false;
-            } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
-                $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
-                isValid = false;
-            } else {
-                $('#hora_fin_feedback').removeClass('show');
-            }
+        if (!horaFinInput.val()) {
+            $('#hora_fin_feedback').text('¡Debe seleccionar una fecha y hora de fin!').addClass('show');
+            isValid = false;
+        } else if (horaFin < horaInicio) {
+            $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
+            isValid = false;
+        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) {
+            $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
+            isValid = false;
+        } else {
+            $('#hora_fin_feedback').removeClass('show');
         }
 
-        // Habilitar/deshabilitar ambos botones
         submitBtn.prop('disabled', !isValid);
         submitNotifyBtn.prop('disabled', !isValid);
     }
@@ -177,7 +178,6 @@ $(document).ready(function () {
     horaInicioInput.on('change', validateDates);
     horaFinInput.on('change', validateDates);
 
-    // Establecer el valor de action según el botón clickeado
     submitBtn.on('click', function () {
         console.log("Botón Guardar Registro clickeado");
         actionInput.val('save');
@@ -188,26 +188,26 @@ $(document).ready(function () {
         actionInput.val('save_and_notify');
     });
 
-    // Variable para evitar múltiples envíos
     let isSubmitting = false;
 
-    // Validar y manejar el envío del formulario
     $('#registroForm').on('submit', function (e) {
-        e.preventDefault(); // Prevenir el envío por defecto
+        e.preventDefault();
 
-        // Si ya se está enviando, no hacer nada
         if (isSubmitting) {
+            console.log("Formulario ya está siendo enviado, evitando envío duplicado");
             return false;
         }
 
         validateDates();
-        if (!submitBtn.prop('disabled')) {
-            isSubmitting = true; // Marcar como enviando
+        if (!submitBtn.prop('disabled') && !submitNotifyBtn.prop('disabled')) {
+            isSubmitting = true;
             submitBtn.prop('disabled', true).text('Guardando...');
             submitNotifyBtn.prop('disabled', true).text('Guardando...');
 
-            // Enviar el formulario manualmente
+            console.log("Enviando formulario...");
             this.submit();
+        } else {
+            console.log("Validación fallida, no se envía el formulario");
         }
     });
 });

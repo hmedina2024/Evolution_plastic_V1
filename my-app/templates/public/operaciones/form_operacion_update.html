@@ -1,16 +1,14 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
 {% block title %}Actualizar Operación Diaria{% endblock %}
-<!---->
+
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
 <div class="card shadow-sm" style="border-radius: 10px;">
-  {% if respuestaOperacion|length %}
+  {% if respuestaOperacion and respuestaOperacion|length %}
   <div class="card-header bg-primary text-white text-center">
     <h3 class="fw-bold">
       <a href="/lista-de-operaciones" class="text-white">
@@ -36,23 +34,23 @@
 
       <div class="row g-4">
         <div class="col-md-4">
-          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre del Empleado</label>
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre del Empleado</label>
           <div class="form-control" readonly>{{ respuestaOperacion.nombre_empleado }}</div>
         </div>
         <div class="col-md-3">
-          <label for="nombre_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
-          <select name="nombre_proceso" id="nombre_proceso" class="form-control select2" required>
-            <option value="{{ respuestaOperacion.proceso }}" selected>{{ respuestaOperacion.proceso }}</option>
+          <label for="id_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2" required>
+            <option value="{{ respuestaOperacion.id_proceso }}" selected>{{ respuestaOperacion.proceso }}</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
-          <select name="nombre_actividad" id="nombre_actividad" class="form-control select2" required>
-            <option value="{{ respuestaOperacion.actividad }}" selected>{{ respuestaOperacion.actividad }}</option>
+          <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="id_actividad" id="id_actividad" class="form-control select2" required>
+            <option value="{{ respuestaOperacion.id_actividad }}" selected>{{ respuestaOperacion.actividad }}</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label for="cod_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
+          <label for="id_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
           <div class="form-control" readonly>{{ respuestaOperacion.codigo_op }}</div>
         </div>
       </div>
@@ -64,7 +62,7 @@
         </div>
         <div class="col-md-4">
           <label for="pieza" class="form-label fw-bold text-primary">Pieza</label>
-          <input class="form-control pieza-readonly" type="text" name="pieza" value="{{ respuestaOperacion.pieza}}" />
+          <input class="form-control pieza-readonly" type="text" name="pieza" value="{{ respuestaOperacion.pieza }}" />
         </div>
         <div class="col-md-6">
           <label for="novedad" class="form-label fw-bold text-primary">Novedad</label>
@@ -78,7 +76,7 @@
             class="form-control"
             type="datetime-local"
             name="fecha_hora_inicio"
-            value="{{ respuestaOperacion.fecha_hora_inicio.strftime('%Y-%m-%dT%H:%M') if respuestaOperacion.fecha_hora_inicio else '' }}"
+            value="{{ respuestaOperacion.fecha_hora_inicio }}"
             id="fecha_hora_inicio"
             required
             style="height: 38px; padding: 6px 12px; font-size: 14px;" />
@@ -89,7 +87,7 @@
             class="form-control"
             type="datetime-local"
             name="fecha_hora_fin"
-            value="{{ respuestaOperacion.fecha_hora_fin.strftime('%Y-%m-%dT%H:%M') if respuestaOperacion.fecha_hora_fin else '' }}"
+            value="{{ respuestaOperacion.fecha_hora_fin }}"
             id="fecha_hora_fin"
             required
             style="height: 38px; padding: 6px 12px; font-size: 14px;" />
@@ -108,10 +106,12 @@
   <div class="card-body p-4 text-center">
     <h2>No existe la Operación 😭</h2>
     <hr />
+    <a href="/lista-de-operaciones" class="btn btn-primary">Regresar a la lista</a>
   </div>
   {% endif %}
 </div>
 {% endblock %}
+
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -123,7 +123,9 @@
 
       // Inicializar Select2 con un valor inicial
       if (initialValue && initialText) {
-        $select.append(new Option(initialText, initialValue, true, true));
+        $select.append(new Option(initialText, initialValue, true, true)).trigger('change');
+      } else {
+        $select.append(new Option(placeholder, '', true, true)).trigger('change');
       }
 
       $select.select2({
@@ -143,10 +145,11 @@
             };
           },
           processResults: function (data) {
+            console.log('Datos recibidos de la API:', data); // Depuración
             return {
               results: data[dataKey].map(item => ({
-                id: Object.values(item)[0],
-                text: Object.values(item)[0]
+                id: item.id || item[Object.keys(item)[0]], // Ajusta según la estructura de la API
+                text: item.text || item[Object.values(item)[0]] || Object.values(item)[1] // Ajusta según la estructura
               })),
               pagination: { more: data[dataKey].length === 10 }
             };
@@ -154,10 +157,10 @@
           cache: true
         },
         templateResult: function (data) {
-          return data.text;
+          return data.text || data.id;
         },
         templateSelection: function (data) {
-          return data.text || data.id;
+          return data.text || data.id || placeholder;
         }
       }).on('select2:open', function () {
         setTimeout(() => {
@@ -167,12 +170,12 @@
     }
 
     // Configurar Select2 para cada campo
-    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', '{{ respuestaOperacion.nombre_empleado }}', '{{ respuestaOperacion.nombre_empleado }}');
-    setupSelect2('nombre_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', '{{ respuestaOperacion.proceso }}', '{{ respuestaOperacion.proceso }}');
-    setupSelect2('nombre_actividad', '/api/actividades', 'Buscar actividad...', 'actividades', '{{ respuestaOperacion.actividad }}', '{{ respuestaOperacion.actividad }}');
-    setupSelect2('cod_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', '{{ respuestaOperacion.codigo_op }}', '{{ respuestaOperacion.codigo_op }}');
+    setupSelect2('id_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', '{{ respuestaOperacion.id_empleado }}', '{{ respuestaOperacion.nombre_empleado }}');
+    setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', '{{ respuestaOperacion.id_proceso }}', '{{ respuestaOperacion.proceso }}');
+    setupSelect2('id_actividad', '/api/actividades', 'Buscar actividad...', 'actividades', '{{ respuestaOperacion.id_actividad }}', '{{ respuestaOperacion.actividad }}');
+    setupSelect2('id_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', '{{ respuestaOperacion.id_op }}', '{{ respuestaOperacion.codigo_op }}');
 
-    // Validaciones de fechas
+    // Validaciones de fechas (mantenido sin cambios)
     const horaInicioInput = $('#fecha_hora_inicio');
     const horaFinInput = $('#fecha_hora_fin');
     const submitBtn = $('button[type="submit"]');
@@ -180,7 +183,6 @@
     const maxDate = today.toISOString().slice(0, 16);
     const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
 
-    // Configurar límites iniciales para fecha_hora_inicio
     horaInicioInput.attr('max', maxDate);
     horaInicioInput.attr('min', minDate);
 
@@ -189,7 +191,6 @@
       const horaFin = new Date(horaFinInput.val());
       let isValid = true;
 
-      // Validar hora_inicio
       if (horaInicio > new Date()) {
         $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
         isValid = false;
@@ -200,12 +201,11 @@
         $('#hora_inicio_feedback').removeClass('show');
       }
 
-      // Validar hora_fin
       if (horaFinInput.val()) {
         if (horaFin < horaInicio) {
           $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
           isValid = false;
-        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) { // Más de 24 horas
+        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) {
           $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
           isValid = false;
         } else {
@@ -213,14 +213,12 @@
         }
       }
 
-      // Habilitar/deshabilitar botón
       submitBtn.prop('disabled', !isValid);
     }
 
     horaInicioInput.on('change', validateDates);
     horaFinInput.on('change', validateDates);
 
-    // Validar al intentar enviar el formulario
     $('form').on('submit', function (e) {
       validateDates();
       if (!submitBtn.prop('disabled')) {
