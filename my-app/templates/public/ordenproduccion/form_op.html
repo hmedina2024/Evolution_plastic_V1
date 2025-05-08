@@ -17,12 +17,12 @@
       <div class="row g-4">
         <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cod_op" id="documento" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" onchange="validateCodigoOp()" />
-          <div id="documento-error" class="text-danger"></div>
+          <input class="form-control" type="text" name="cod_op" id="cod_op" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" onchange="validateCodigoOp()" />
+          <div id="cod_op-error" class="text-danger"></div>
         </div>
         <div class="col-md-3">
-          <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente <span class="text-danger">*</span></label>
-          <select name="nombre_cliente" id="nombre_cliente" class="form-control select2" required></select>
+          <label for="id_cliente" class="form-label fw-bold text-primary">Nombre Cliente <span class="text-danger">*</span></label>
+          <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
         </div>
         <div class="col-md-3">
           <label for="estado" class="form-label fw-bold text-primary">Estado <span class="text-danger">*</span></label>
@@ -50,15 +50,15 @@
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-3">
-          <label for="vendedor" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
-          <select name="vendedor" id="vendedor" class="form-control select2" required></select>
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
         </div>
         <div class="col-md-3">
-          <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label> <!-- Quitamos el * -->
-          <select name="supervisor" id="supervisor" class="form-control select2"></select> <!-- Quitamos required -->
+          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
+          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
         </div>
         <div class="col-md-6">
-          <label for="producto" class="form-label fw-bold text-primary">DESCRIPCION PRODUCTO <span class="text-danger">*</span></label>
+          <label for="producto" class="form-label fw-bold text-primary">DESCRIPCIÓN PRODUCTO <span class="text-danger">*</span></label>
           <textarea class="form-control" name="producto" rows="2" required></textarea>
         </div>
       </div>
@@ -79,8 +79,10 @@
 <script>
 $(document).ready(function () {
     // Configuración genérica para Select2 con AJAX
-    function setupSelect2(selectId, url, placeholder, dataKey) {
-        $(`#${selectId}`).select2({
+    function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText) {
+        const $select = $(`#${selectId}`);
+
+        $select.select2({
             placeholder: placeholder,
             allowClear: true,
             minimumInputLength: 0,
@@ -97,18 +99,28 @@ $(document).ready(function () {
                     };
                 },
                 processResults: function (data) {
+                    console.log(`Datos recibidos de ${url}:`, data); // Depuración
+                    const results = data[dataKey].map(item => {
+                        const id = item[keyId];
+                        const text = item[keyText] || item[keyId];
+                        if (!id || !text) {
+                            console.warn("Opción inválida:", item); // Depuración
+                        }
+                        return {
+                            id: id,
+                            text: text
+                        };
+                    });
                     return {
-                        results: data[dataKey].map(item => ({
-                            id: item.id_empleado || Object.values(item)[0],
-                            text: item.nombre_empleado || Object.values(item)[0]
-                        })),
+                        results: results,
                         pagination: { more: data[dataKey].length === 10 }
                     };
                 },
                 cache: true
             },
             templateResult: function (data) {
-                return data.text;
+                if (!data.id) return data.text; // Para el placeholder
+                return $('<span>' + data.text + '</span>');
             },
             templateSelection: function (data) {
                 return data.text || data.id;
@@ -117,13 +129,17 @@ $(document).ready(function () {
             setTimeout(() => {
                 document.querySelector('.select2-search__field').focus();
             }, 50);
+        }).on('select2:select', function (e) {
+            console.log('Opción seleccionada:', e.params.data); // Depuración
+        }).on('select2:unselect', function (e) {
+            console.log('Opción deseleccionada:', e.params.data); // Depuración
         });
     }
 
     // Inicializar campos con Select2
-    setupSelect2('nombre_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes');
-    setupSelect2('vendedor', '/api/empleados', 'Seleccionar Vendedor', 'empleados');
-    setupSelect2('supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores');
+    setupSelect2('id_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
+    setupSelect2('id_empleado', '/api/empleados', 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
+    setupSelect2('id_supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado');
     $('#estado').select2({
         placeholder: 'Seleccionar Estado',
         allowClear: true,
@@ -154,21 +170,21 @@ $(document).ready(function () {
 
     // Validar COD. OP
     function validateCodigoOp() {
-        const documento = document.getElementById('documento').value;
-        const errorDiv = document.getElementById('documento-error');
+        const cod_op = document.getElementById('cod_op').value;
+        const errorDiv = document.getElementById('cod_op-error');
 
         fetch('/validar-codigo-op', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: `documento=${documento}`
+            body: `documento=${cod_op}`
         })
         .then(response => response.json())
         .then(data => {
             if (data.exists) {
                 errorDiv.textContent = 'La OP ya existe.';
-                document.getElementById('documento').value = '';
+                document.getElementById('cod_op').value = '';
             } else {
                 errorDiv.textContent = '';
             }

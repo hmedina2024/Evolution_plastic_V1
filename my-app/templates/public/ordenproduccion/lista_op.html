@@ -1,14 +1,12 @@
 {% extends 'public/base_cpanel.html' %}
-<!-- Cambiando el title -->
+
 {% block title %}Lista de Ordenes de Producción{% endblock %}
 
-<!-- Estilos -->
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/my_style.css') }}">
 {% endblock %}
 
-<!-- Inicio del block -->
 {% block body %}
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
@@ -45,7 +43,7 @@
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha Registro</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Supervisor</th> <!-- Nueva columna -->
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Supervisor</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
@@ -56,7 +54,6 @@
 </div>
 {% endblock %}
 
-<!-- JavaScript -->
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -74,11 +71,14 @@ $(document).ready(function() {
                 return JSON.stringify(d);
             },
             "dataSrc": function(json) {
-                if (json.fin === 0) return [];
+                if (json.error) {
+                    console.error("Error en la respuesta del servidor:", json.error);
+                    return [];
+                }
                 return json.data;
             },
             "error": function(xhr, error, thrown) {
-                console.log("Error en AJAX: ", xhr.status, error, thrown);
+                console.error("Error en AJAX:", xhr.status, error, thrown);
             }
         },
         "columns": [
@@ -89,7 +89,7 @@ $(document).ready(function() {
             { "data": "cantidad" },
             { "data": "estado" },
             { "data": "fecha_registro" },
-            { "data": "nombre_supervisor" },  <!-- Nueva columna para mostrar el nombre del supervisor -->
+            { "data": "nombre_supervisor" },
             { "data": null, "render": function(data, type, row) {
                 return `
                     <a href="/detalles-op/${row.id_op}" class="btn btn-info btn-sm"><i class="bi bi-eye"></i> Ver detalles</a>

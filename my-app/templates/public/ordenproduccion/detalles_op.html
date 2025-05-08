@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 <!-- Cambiando el title -->
-{% block title %}Registrar Orden Producción{% endblock %}
+{% block title %}Detalles de Orden de Producción{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
@@ -8,7 +8,7 @@
 
 <!-- Inicio del block -->
 {% block body %}
-{% if (detalle_op|length) %}
+{% if detalle_op %}
 <div class="card shadow-sm" style="border-radius: 10px;">
   <div class="card-header bg-primary text-white text-center">
     <h3 class="fw-bold">
@@ -56,8 +56,6 @@
       </div>
     </div>
     <div class="row g-4 mt-3">   
-      
-      
       <div class="col-md-3">
         <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>

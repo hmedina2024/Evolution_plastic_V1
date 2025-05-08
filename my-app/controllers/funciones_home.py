@@ -19,6 +19,7 @@ from flask_mail import Message
 import smtplib
 import ssl
 from email.message import EmailMessage
+from sqlalchemy.orm import aliased
 
 # Define la zona horaria local (ajusta según tu ubicación)
 LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
@@ -1493,36 +1494,52 @@ def procesar_form_op(dataForm):
         # Depurar los datos recibidos
         app.logger.debug(f"Datos recibidos del formulario: {dataForm}")
 
-        # Convertir campos numéricos a enteros
+        # Convertir campos numéricos a enteros con depuración
         codigo_op = int(dataForm['cod_op']) if dataForm['cod_op'] else None
+        id_cliente = int(dataForm['id_cliente']) if dataForm['id_cliente'] else None
         cantidad = int(dataForm['cantidad']) if dataForm['cantidad'] else None
-        supervisor = int(dataForm['supervisor']) if dataForm.get(
-            'supervisor') and dataForm['supervisor'].strip() else None
+        id_empleado = int(dataForm['id_empleado']) if dataForm['id_empleado'] else None
+        id_supervisor = int(dataForm['id_supervisor']) if dataForm.get('id_supervisor') and dataForm['id_supervisor'].strip() else None
+        id_usuario_registro = session.get('user_id')  # Obtener el ID del usuario desde la sesión
+
+        # Depurar valores convertidos
+        app.logger.debug(f"Valores convertidos: codigo_op={codigo_op}, id_cliente={id_cliente}, cantidad={cantidad}, id_empleado={id_empleado}, id_supervisor={id_supervisor}, id_usuario_registro={id_usuario_registro}")
+
+        # Validar campos requeridos
+        if not all([codigo_op, id_cliente, cantidad, id_empleado, id_usuario_registro]):
+            app.logger.error("Faltan campos requeridos en el formulario.")
+            return None
 
         # Crear el objeto OrdenProduccion
         orden = OrdenProduccion(
             codigo_op=codigo_op,
-            nombre_cliente=dataForm['nombre_cliente'],
+            id_cliente=id_cliente,
             producto=dataForm['producto'],
             estado=dataForm['estado'],
             cantidad=cantidad,
             odi=dataForm['odi'],
-            empleado=dataForm['vendedor'],
-            id_supervisor=supervisor,  # Ya manejamos el caso de None
-            usuario_registro=session['name_surname']
+            id_empleado=id_empleado,
+            id_supervisor=id_supervisor,
+            id_usuario_registro=id_usuario_registro
         )
         db.session.add(orden)
         db.session.commit()
         app.logger.debug("Orden de producción guardada correctamente.")
         return 1  # Indica éxito (rowcount)
+    except ValueError as ve:
+        db.session.rollback()
+        app.logger.error(f"Error de conversión en procesar_form_op: {str(ve)}")
+        return None
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Se produjo un error en procesar_form_op: {str(e)}")
         return None
 
-
 def validar_cod_op(codigo_op):
     try:
+        codigo_op = int(codigo_op) if codigo_op else None
+        if not codigo_op:
+            return False
         orden = db.session.query(OrdenProduccion).filter_by(
             codigo_op=codigo_op, fecha_borrado=None).first()
         return orden is not None
@@ -1530,72 +1547,110 @@ def validar_cod_op(codigo_op):
         app.logger.error(f"Error en validar_cod_op: {e}")
         return False
 
-# Lista de Orden de Producción con paginación
 
-
-def sql_lista_op_bd(page=1, per_page=10):
+def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None):
     try:
-        offset = (page - 1) * per_page
-        query = db.session.query(OrdenProduccion).order_by(
-            OrdenProduccion.codigo_op.desc()).limit(per_page).offset(offset)
+        # Construir la consulta base
+        query = db.session.query(OrdenProduccion).filter(OrdenProduccion.fecha_borrado.is_(None))
+
+        # Filtrar por código de OP si se proporciona
+        if search_codigo_op:
+            query = query.filter(OrdenProduccion.codigo_op.ilike(f"%{search_codigo_op}%"))
+
+        # Filtrar por fecha de registro si se proporciona
+        if search_fecha:
+            query = query.filter(db.func.date(OrdenProduccion.fecha_registro) == search_fecha)
+
+        # Contar el total de registros (sin paginación, pero con filtros)
+        records_filtered = query.count()
+
+        # Aplicar paginación y ordenamiento
+        query = query.order_by(OrdenProduccion.codigo_op.desc()).offset(start).limit(length)
+
+        # Ejecutar la consulta
         op_bd = query.all()
-        return [{
-            'id_op': o.id_op,
-            'codigo_op': o.codigo_op,
-            'nombre_cliente': o.nombre_cliente,
-            'producto': o.producto,
-            'estado': o.estado,
-            'cantidad': o.cantidad,
-            'odi': o.odi,
-            'empleado': o.empleado,
-            'fecha_registro': o.fecha_registro
-        } for o in op_bd]
+
+        # Obtener el total de registros sin filtros
+        records_total = db.session.query(OrdenProduccion).filter(OrdenProduccion.fecha_borrado.is_(None)).count()
+
+        # Formatear los datos para DataTables
+        data = []
+        for o in op_bd:
+            cliente = o.cliente
+            supervisor = o.supervisor
+            data.append({
+                'id_op': o.id_op,
+                'codigo_op': o.codigo_op,
+                'nombre_cliente': cliente.nombre_cliente if cliente else 'Desconocido',
+                'producto': o.producto,
+                'estado': o.estado,
+                'cantidad': o.cantidad,
+                'fecha_registro': o.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') if o.fecha_registro else 'Sin registro',
+                'nombre_supervisor': f"{supervisor.nombre_empleado} {supervisor.apellido_empleado or ''}".strip() if supervisor else 'Sin supervisor',
+            })
+
+        # Retornar en el formato que espera DataTables
+        return {
+            "draw": int(draw),
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": data
+        }
     except Exception as e:
         app.logger.error(f"Error en la función sql_lista_op_bd: {e}")
-        return None
-
-
-def get_total_op():
-    try:
-        return db.session.query(OrdenProduccion).count()
-    except Exception as e:
-        app.logger.error(f"Error en get_total_op: {e}")
-        return 0
-
-# Detalles del Orden de Producción
+        return {
+            "draw": int(draw),
+            "recordsTotal": 0,
+            "recordsFiltered": 0,
+            "data": [],
+            "error": str(e)
+        }
 
 
 def sql_detalles_op_bd(id_op):
     try:
-        # Consulta con JOIN para obtener el nombre del supervisor
+        # Crear alias para las dos instancias de Empleados
+        empleado_vendedor = aliased(Empleados)
+        empleado_supervisor = aliased(Empleados)
+
+        # Consulta con JOINs para obtener los nombres relacionados
         result = db.session.query(
             OrdenProduccion,
-            db.func.concat(Empleados.nombre_empleado, ' ',
-                           Empleados.apellido_empleado).label('nombre_supervisor')
+            Clientes.nombre_cliente.label('nombre_cliente'),
+            empleado_vendedor.nombre_empleado.label('nombre_empleado_vendedor'),
+            db.func.concat(empleado_supervisor.nombre_empleado, ' ', empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
+            Users.name_surname.label('nombre_usuario_registro')
         ).outerjoin(
-            Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
+            Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
+        ).outerjoin(
+            empleado_vendedor, OrdenProduccion.id_empleado == empleado_vendedor.id_empleado
+        ).outerjoin(
+            empleado_supervisor, OrdenProduccion.id_supervisor == empleado_supervisor.id_empleado
+        ).outerjoin(
+            Users, OrdenProduccion.id_usuario_registro == Users.id
         ).filter(
-            OrdenProduccion.id_op == id_op
+            OrdenProduccion.id_op == id_op,
+            OrdenProduccion.fecha_borrado.is_(None)
         ).first()
 
         if not result:
             return None
 
-        orden, nombre_supervisor = result
+        orden, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
 
         # Formatear los datos
         detalle = {
             'id_op': orden.id_op,
             'codigo_op': orden.codigo_op,
-            'nombre_cliente': orden.nombre_cliente,
-            'producto': orden.producto,
-            'estado': orden.estado,
-            'cantidad': orden.cantidad,
-            'odi': orden.odi,
-            'empleado': orden.empleado,
-            'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
-            'usuario_registro': orden.usuario_registro,
-            'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'  # Nuevo campo
+            'nombre_cliente': nombre_cliente if nombre_cliente else 'Desconocido',
+            'producto': orden.producto if orden.producto else 'Sin descripción',
+            'estado': orden.estado if orden.estado else 'Sin estado',
+            'cantidad': orden.cantidad if orden.cantidad else 0,
+            'odi': orden.odi if orden.odi else 'Sin ODI',
+            'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor',
+            'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden.fecha_registro else 'Sin registro',
+            'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
+            'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'
         }
         app.logger.debug(f"Detalles de la orden: {detalle}")
         return detalle
@@ -1604,46 +1659,58 @@ def sql_detalles_op_bd(id_op):
         app.logger.error(f"Error en la función sql_detalles_op_bd: {str(e)}")
         return None
 
+# Eliminar buscar_op_unico ya que sql_detalles_op_bd lo reemplaza
+# def buscar_op_unico(id):  # Comentar o eliminar esta función
+
 
 def buscar_op_unico(id):
     try:
-        # Consulta con JOIN para obtener el nombre y el ID del supervisor
+        # Crear alias para las dos instancias de Empleados
+        empleado_vendedor = aliased(Empleados)
+        empleado_supervisor = aliased(Empleados)
+
+        # Consulta con JOINs para obtener los nombres relacionados
         result = db.session.query(
             OrdenProduccion,
-            Empleados.id_empleado.label('id_supervisor'),
-            db.func.concat(Empleados.nombre_empleado, ' ',
-                           Empleados.apellido_empleado).label('nombre_supervisor')
+            Clientes.nombre_cliente.label('nombre_cliente'),
+            empleado_vendedor.nombre_empleado.label('nombre_empleado_vendedor'),
+            db.func.concat(empleado_supervisor.nombre_empleado, ' ', empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
+            Users.name_surname.label('nombre_usuario_registro')
         ).outerjoin(
-            Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
+            Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
+        ).outerjoin(
+            empleado_vendedor, OrdenProduccion.id_empleado == empleado_vendedor.id_empleado
+        ).outerjoin(
+            empleado_supervisor, OrdenProduccion.id_supervisor == empleado_supervisor.id_empleado
+        ).outerjoin(
+            Users, OrdenProduccion.id_usuario_registro == Users.id
         ).filter(
-            OrdenProduccion.id_op == id
+            OrdenProduccion.id_op == id,
+            OrdenProduccion.fecha_borrado.is_(None)
         ).first()
 
         if not result:
             return None
 
-        orden, id_supervisor, nombre_supervisor = result
+        orden, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
 
-        if orden:
-            return {
-                'id_op': orden.id_op,
-                'codigo_op': orden.codigo_op,
-                'nombre_cliente': orden.nombre_cliente,
-                'producto': orden.producto,
-                'estado': orden.estado,
-                'cantidad': orden.cantidad,
-                'odi': orden.odi,
-                'empleado': orden.empleado,
-                'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
-                # Se agrega el ID del supervisor
-                'id_supervisor': id_supervisor if id_supervisor else '',
-                'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'
-            }
-        return None
+        return {
+            'id_op': orden.id_op,
+            'codigo_op': orden.codigo_op,
+            'nombre_cliente': nombre_cliente if nombre_cliente else 'Desconocido',
+            'producto': orden.producto if orden.producto else 'Sin descripción',
+            'estado': orden.estado if orden.estado else 'Sin estado',
+            'cantidad': orden.cantidad if orden.cantidad else 0,
+            'odi': orden.odi if orden.odi else 'Sin ODI',
+            'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor',
+            'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden.fecha_registro else 'Sin registro',
+            'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
+            'id_supervisor': orden.id_supervisor,  # ID del supervisor
+            'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor'
+        }
     except Exception as e:
         app.logger.error(f"Ocurrió un error en def buscar_op_unico: {e}")
         return None
-
 
 def procesar_actualizar_form_op(data):
     try:
@@ -1652,33 +1719,33 @@ def procesar_actualizar_form_op(data):
             app.logger.error("ID de la orden no proporcionado")
             return None
 
-        orden = db.session.query(
-            OrdenProduccion).filter_by(id_op=id_op).first()
+        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
         if orden:
-            # Solo actualizamos los campos que vienen en el formulario
+            # Actualizar solo los campos enviados
             if 'producto' in data.form:
                 orden.producto = data.form['producto']
             if 'estado' in data.form:
                 orden.estado = data.form['estado']
             if 'cantidad' in data.form:
-                orden.cantidad = data.form['cantidad']
+                orden.cantidad = int(data.form['cantidad']) if data.form['cantidad'].isdigit() else orden.cantidad
             if 'odi' in data.form:
                 orden.odi = data.form['odi']
-            if 'supervisor' in data.form:
-                orden.id_supervisor = int(
-                    data.form['supervisor']) if data.form['supervisor'] else None  # Nuevo campo
-            # No actualizamos codigo_op, nombre_cliente, empleado porque no se envían
+            if 'supervisor' in data.form and data.form['supervisor']:
+                orden.id_supervisor = int(data.form['supervisor'])  # Solo si hay un valor
+
             db.session.commit()
-            app.logger.debug(
-                f"Orden con id_op {id_op} actualizada correctamente")
+            app.logger.debug(f"Orden con id_op {id_op} actualizada correctamente")
             return 1  # Éxito
         else:
             app.logger.error(f"Orden con id_op {id_op} no encontrada")
             return None
+    except ValueError as ve:
+        db.session.rollback()
+        app.logger.error(f"Error de conversión en procesar_actualizar_form_op: {str(ve)}")
+        return None
     except Exception as e:
         db.session.rollback()
-        app.logger.error(
-            f"Ocurrió un error en procesar_actualizar_form_op: {e}")
+        app.logger.error(f"Ocurrió un error en procesar_actualizar_form_op: {e}")
         return None
 
 # Eliminar Orden de Producción
@@ -2047,18 +2114,26 @@ def get_ordenes_paginadas(page, per_page, search):
     return query.paginate(page=page, per_page=per_page, error_out=False).items
 
 
-def get_clientes_paginados(page, per_page, search=None):
+def get_clientes_paginados(page=1, per_page=10, search=''):
     try:
-        query = db.session.query(Clientes).order_by(Clientes.id_cliente.desc())
+        offset = (page - 1) * per_page
+        query = db.session.query(Clientes).filter(Clientes.fecha_borrado.is_(None))
+
+        # Filtrar por búsqueda si existe
         if search:
-            search = f"%{search}%"
-            query = query.filter(Clientes.nombre_cliente.like(search))
-        if page and per_page:
-            offset = (page - 1) * per_page
-            clientes = query.limit(per_page).offset(offset).all()
-        else:
-            clientes = query.all()
-        return [{'nombre_cliente': c.nombre_cliente} for c in clientes]
+            query = query.filter(
+                Clientes.nombre_cliente.ilike(f'%{search}%')
+            )
+
+        # Paginación
+        total = query.count()
+        clientes = query.offset(offset).limit(per_page).all()
+
+        # Formatear los resultados
+        return [{
+            'id_cliente': c.id_cliente,
+            'nombre_cliente': c.nombre_cliente
+        } for c in clientes]
     except Exception as e:
         app.logger.error(f"Error en get_clientes_paginados: {e}")
         return []
