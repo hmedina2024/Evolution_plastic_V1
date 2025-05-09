@@ -23,6 +23,7 @@
         <div class="col-md-4">
           <label for="id_empresa" class="form-label fw-bold text-primary">Empresa <span class="text-danger">*</span></label>
           <select name="id_empresa" id="id_empresa" class="form-control select2" required>
+            <option value="">Seleccionar empresa...</option>
             {% if data_form and 'id_empresa' in data_form %}
               <option value="{{ data_form.id_empresa }}" selected>{{ data_form.id_empresa }}</option>
             {% endif %}
@@ -30,8 +31,14 @@
         </div>
         <div class="col-md-4">
           <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado <span class="text-danger">*</span></label>
-          <input type="text" name="tipo_empleado" id="tipo_empleado" class="form-control" readonly required value="{{ data_form.tipo_empleado if data_form and 'tipo_empleado' in data_form else '' }}" />
-          <input type="hidden" name="tipo_empleado_value" id="tipo_empleado_value" value="{{ data_form.tipo_empleado if data_form and 'tipo_empleado' in data_form else '' }}" />
+          <select name="tipo_empleado" id="tipo_empleado" class="form-control select2" required>
+            <option value="">Seleccionar tipo empleado...</option>
+            {% for tipo in tipos_empleado %}
+              <option value="{{ tipo.id_tipo_empleado }}" {% if data_form and 'tipo_empleado' in data_form and data_form.tipo_empleado == tipo.id_tipo_empleado|string %}selected{% endif %}>
+                {{ tipo.tipo_empleado }}
+              </option>
+            {% endfor %}
+          </select>
         </div>
       </div>
       <div class="row g-4 mt-3">
@@ -149,38 +156,11 @@ $(document).ready(function () {
     // Configurar Select2 para empresas
     setupSelect2('id_empresa', '/api/empresas', 'Seleccionar empresa...', 'empresas');
 
-    // Llenar automáticamente tipo_empleado según la empresa seleccionada
-    $('#id_empresa').on('change', function () {
-        const idEmpresa = $(this).val();
-        const $tipoEmpleado = $('#tipo_empleado');
-        const $tipoEmpleadoValue = $('#tipo_empleado_value');
-
-        if (idEmpresa) {
-            // Hacer una solicitud AJAX para obtener el tipo_empresa de la empresa seleccionada
-            $.ajax({
-                url: '/api/empresas',
-                data: { id: idEmpresa },
-                dataType: 'json',
-                success: function (data) {
-                    const empresa = data.empresas.find(item => item.id_empresa == idEmpresa);
-                    if (empresa && empresa.tipo_empresa) {
-                        $tipoEmpleado.val(empresa.tipo_empresa);
-                        $tipoEmpleadoValue.val(empresa.tipo_empresa); // Guardar el valor para enviar
-                    } else {
-                        $tipoEmpleado.val('');
-                        $tipoEmpleadoValue.val('');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error al obtener el tipo de empresa:', error);
-                    $tipoEmpleado.val('');
-                    $tipoEmpleadoValue.val('');
-                }
-            });
-        } else {
-            $tipoEmpleado.val('');
-            $tipoEmpleadoValue.val('');
-        }
+    // Configurar Select2 para tipo_empleado (estático)
+    $('#tipo_empleado').select2({
+        placeholder: 'Seleccionar tipo empleado...',
+        allowClear: true,
+        minimumResultsForSearch: Infinity
     });
 
     // Variable para evitar múltiples envíos

@@ -39,32 +39,46 @@ PATH_URL = "public/empleados"
 def viewFormEmpleado():
     if 'conectado' in session:
         tipo_empleado = obtener_tipo_empleado()
-        return render_template(f'{PATH_URL}/form_empleado.html', tipo_empleado=tipo_empleado)
+        if tipo_empleado:
+            # Convertir los objetos Tipo_Empleado a diccionarios para compatibilidad con el template
+            tipos_empleado = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipo_empleado]
+        else:
+            tipos_empleado = []
+        return render_template(f'{PATH_URL}/form_empleado.html', tipos_empleado=tipos_empleado)
     else:
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
 
-@app.route('/form-registrar-empleado', methods=['POST'])
+@app.route('/form-registrar-empleado', methods=['GET', 'POST'])
 def form_registrar_empleado():
     if 'conectado' in session:
-        if 'foto_empleado' in request.files:
-            foto_perfil = request.files['foto_empleado']
-            exito, mensaje = procesar_form_empleado(request.form, foto_perfil)
-            if exito:
-                flash(mensaje, 'success')
-                return redirect(url_for('lista_empleados'))
+        if request.method == 'POST':
+            if 'foto_empleado' in request.files:
+                foto_perfil = request.files['foto_empleado']
+                exito, mensaje = procesar_form_empleado(request.form, foto_perfil)
+                if exito:
+                    flash(mensaje, 'success')
+                    return redirect(url_for('lista_empleados'))
+                else:
+                    flash(mensaje, 'error')
+                    # Pasar los datos del formulario para rellenar los campos en caso de error
+                    tipos_empleado = obtener_tipo_empleado() or []
+                    tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
+                    return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list)
             else:
-                flash(mensaje, 'error')
-                # Pasar los datos del formulario para rellenar los campos en caso de error
-                return render_template('public/empleados/form_empleado.html', data_form=request.form)
+                flash('Debe cargar una foto del empleado.', 'error')
+                tipos_empleado = obtener_tipo_empleado() or []
+                tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
+                return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list)
         else:
-            flash('Debe cargar una foto del empleado.', 'error')
-            return render_template('public/empleados/form_empleado.html', data_form=request.form)
+            # Cargar el formulario inicialmente
+            tipos_empleado = obtener_tipo_empleado() or []
+            tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
+            return render_template('public/empleados/form_empleado.html', data_form=None, tipos_empleado=tipos_empleado_list)
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
-
 
 @app.route("/lista-de-empleados", methods=['GET'])
 def lista_empleados():
@@ -86,6 +100,7 @@ def detalle_empleado(id_empleado=None):
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+
 
 # Búsqueda de empleados
 
@@ -212,15 +227,37 @@ def viewEditarEmpleado(id):
         return redirect(url_for('inicio'))
 
 
-@app.route('/actualizar-empleado/<int:id>', methods=['POST'])
+@app.route('/actualizar-empleado/<int:id>', methods=['GET', 'POST'])
 def actualizar_empleado(id):
     if 'conectado' in session:
-        result, message = procesar_actualizacion_form(request)
-        if result:
-            flash(message, 'success')
+        if request.method == 'POST':
+            result, message = procesar_actualizacion_form(request)
+            if result:
+                flash(message, 'success')
+                return redirect(url_for('lista_empleados'))
+            else:
+                flash(message, 'error')
+                # Obtener los tipos de empleado para el formulario
+                tipo_empleado = obtener_tipo_empleado()
+                if tipo_empleado:
+                    tipos_empleado = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipo_empleado]
+                else:
+                    tipos_empleado = []
+                # Obtener el empleado para mostrar los datos
+                empleado = db.session.query(Empleados).filter_by(id_empleado=id).first()
+                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado)
         else:
-            flash(message, 'error')
-        return redirect(url_for('lista_empleados'))
+            # Método GET: Mostrar el formulario con los datos del empleado
+            empleado = db.session.query(Empleados).filter_by(id_empleado=id).first()
+            if empleado:
+                tipo_empleado = obtener_tipo_empleado()
+                if tipo_empleado:
+                    tipos_empleado = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipo_empleado]
+                else:
+                    tipos_empleado = []
+                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado)
+            else:
+                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=None)
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -1032,14 +1069,12 @@ def api_empresas():
 
 @app.route('/api/tipos-empleado', methods=['GET'])
 def api_tipos_empleado():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    search = request.args.get('search', '', type=str)
-    id_empresa = request.args.get('id_empresa', None, type=int)
-    app.logger.debug(
-        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id_empresa={id_empresa}")
-    tipos = get_tipos_empleado_paginados(page, per_page, search, id_empresa)
-    return jsonify({'tipos_empleado': tipos})
+    try:
+        tipos = Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
+        return jsonify({'tipos_empleado': [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos]})
+    except Exception as e:
+        app.logger.error(f"Error en api_tipos_empleado: {e}")
+        return jsonify({'tipos_empleado': []})
 
 
 # EMPRESAS

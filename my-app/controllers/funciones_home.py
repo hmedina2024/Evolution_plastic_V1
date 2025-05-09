@@ -38,33 +38,20 @@ def procesar_form_empleado(dataForm, foto_perfil):
 
         id_empresa = int(dataForm['id_empresa'])  # Convertir a entero
 
-        # Obtener tipo_empresa y mapearlo a tipo_empleado
+        # Obtener id_tipo_empleado como ID directamente del formulario
         if 'tipo_empleado' not in dataForm or not dataForm['tipo_empleado']:
-            return False, "El tipo de empleado no puede estar vacío."
+            return False, "Debe seleccionar un tipo de empleado."
 
-        # Este es el valor de tipo_empresa de la empresa seleccionada
-        tipo_empresa = dataForm['tipo_empleado']
-
-        # Mapear tipo_empresa a tipo_empleado (ajusta según tus valores)
-        tipo_empleado_map = {
-            "Directo": 1,
-            "Temporal": 2
-            # Agrega más mapeos si es necesario
-        }
-
-        if tipo_empresa not in tipo_empleado_map:
-            return False, f"Tipo de empresa '{tipo_empresa}' no válido."
-
-        tipo_empleado = tipo_empleado_map[tipo_empresa]
+        id_tipo_empleado = int(dataForm['tipo_empleado'])  # Convertir a entero
 
         # Procesar la foto del empleado
         result_foto_perfil = procesar_imagen_perfil(foto_perfil)
 
-        # Crear el nuevo empleado con id_empresa y tipo_empleado
+        # Crear el nuevo empleado con id_empresa e id_tipo_empleado
         empleado = Empleados(
             documento=documento,
             id_empresa=id_empresa,
-            tipo_empleado=tipo_empleado,  # Usar el valor mapeado
+            id_tipo_empleado=id_tipo_empleado,  # Usar id_tipo_empleado en lugar de tipo_empleado
             nombre_empleado=dataForm['nombre_empleado'],
             apellido_empleado=dataForm['apellido_empleado'],
             telefono_empleado=dataForm['telefono_empleado'] if dataForm['telefono_empleado'] else None,
@@ -77,8 +64,7 @@ def procesar_form_empleado(dataForm, foto_perfil):
         return True, "El empleado fue registrado con éxito."
     except Exception as e:
         db.session.rollback()
-        app.logger.error(
-            f'Se produjo un error en procesar_form_empleado: {str(e)}')
+        app.logger.error(f'Se produjo un error en procesar_form_empleado: {str(e)}')
         return False, f'Se produjo un error al registrar el empleado: {str(e)}'
 
 
@@ -112,10 +98,11 @@ def procesar_imagen_perfil(foto):
         app.logger.error("Error al procesar archivo:", e)
         return []
 
-
 def obtener_tipo_empleado():
     try:
-        return Tipo_Empleado.query.distinct(Tipo_Empleado.id_tipo_empleado, Tipo_Empleado.tipo_empleado).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
+        tipos = Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
+        app.logger.debug(f"Tipos de empleado obtenidos: {[(t.id_tipo_empleado, t.tipo_empleado) for t in tipos]}")
+        return tipos
     except Exception as e:
         app.logger.error(f"Error en la función obtener_tipo_empleado: {e}")
         return None
