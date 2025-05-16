@@ -15,17 +15,98 @@
   <div class="card-body p-4">
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm">
       <div class="row g-4">
+        <div class="col-md-2 position-relative">
+          <label for="fecha" class="form-label fw-bold text-primary">Fecha: <span class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha" id="fecha" required />
+        </div>
         <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cod_op" id="cod_op" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" onchange="validateCodigoOp()" />
-          <div id="cod_op-error" class="text-danger"></div>
+          <input class="form-control" type="text" name="cod_op" id="cod_op" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" oninput="validateCodigoOp()" />
+          <div id="cod_op-error" class="text-danger small mt-1"></div>
         </div>
-        <div class="col-md-3">
-          <label for="id_cliente" class="form-label fw-bold text-primary">Nombre Cliente <span class="text-danger">*</span></label>
+        <div class="col-md-4">
+          <label for="version" class="form-label fw-bold text-primary">VERSIÓN OP</label>
+          <input type="text" name="version" id="version" class="form-control"/>
+        </div>
+        <div class="col-md-2">
+          <label for="cotizacion" class="form-label fw-bold text-primary">COTIZACIÓN:</label>
+          <input type="text" name="cotizacion" id="cotizacion" class="form-control"/>
+        </div>
+        <div class="col-md-2">
+          <label for="odi" class="form-label fw-bold text-primary">ODI <span class="text-danger">*</span></label>
+          <input type="text" name="odi" id="odi" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+          <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE CLIENTE <span class="text-danger">*</span></label>
           <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
         </div>
+        <div class="col-md-4">
+          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO</label>
+          <input type="text" name="producto" id="producto" class="form-control"/>
+        </div>
+        <div class="col-md-2">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+        </div>
+        <div class="col-md-2">
+          <label for="medida" class="form-label fw-bold text-primary">UNIDAD DE MEDIDA</label>
+          <input type="text" name="medida" id="medida" class="form-control"/>
+        </div>
+        <div class="col-md-4">
+          <label for="referencia" class="form-label fw-bold text-primary">REFERENCIA</label>
+          <input type="text" name="referencia" id="referencia" class="form-control"/>
+        </div>
+        <div class="col-md-5">
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
+        </div>
+        <div class="col-md-3 position-relative">
+          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA DE ENTREGA <span class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega" required />
+        </div>               
+      </div>
+      <div class="row g-4 mt-3">          
+        <div class="col-md-4">
+          <label for="descripcion_general" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="descripcion_general" name="descripcion_general" rows="10" required></textarea>
+        </div>
+        <div class="col-md-4">
+          <label for="render" class="form-label fw-bold text-primary">RENDER APROBADO</label>
+          {% set url_render = url_for('static', filename='assets/img/Prototipo.png') %}
+          <div class="render-upload-container" id="imagePreview" style="background-image: url('{{ url_render }}');">
+            <input type="file" id="imageUpload" name="render" accept=".png, .jpg, .jpeg" class="render-upload-input">
+            <label for="imageUpload" class="render-upload-label">
+              <i class="bi bi-upload"></i> Cambiar
+            </label>
+            <button type="button" class="render-delete-btn" id="deleteImageBtn" style="display: none;">
+              <i class="bi bi-x-circle"></i> Quitar
+            </button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label for="documentos" class="form-label fw-bold text-primary">Cargar Documentos</label>
+          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple required />
+          <ul class="file-list" id="fileList"></ul>
+        </div>
+      </div>
+      <!-- Botón para agregar piezas y contenedor dinámico -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <button type="button" id="addPieceBtn" class="btn btn-primary">Agregar Pieza</button>
+          <div class="dynamic-form-container" id="dynamicFormsContainer"></div>
+        </div>
+      </div>
+      <div class="row mt-4">
+        <div class="col-md-5">
+          <label for="empaque" class="form-label fw-bold text-primary">EMPAQUE</label>
+          <input type="text" name="empaque" id="empaque" class="form-control"/>
+        </div>
+        <div class="col-md-4">
+          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
+          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
+        </div>
         <div class="col-md-3">
-          <label for="estado" class="form-label fw-bold text-primary">Estado <span class="text-danger">*</span></label>
+          <label for="estado" class="form-label fw-bold text-primary">ESTADO <span class="text-danger">*</span></label>
           <select name="estado" id="estado" class="form-control select2" required>
             <option value="" disabled selected>Seleccionar Estado</option>
             <option value="ANULA">ANULA</option>
@@ -39,29 +120,14 @@
             <option value="TER">TER</option>
           </select>
         </div>
-        <div class="col-md-2">
-          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad <span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
-        </div>
-        <div class="col-md-2">
-          <label for="odi" class="form-label fw-bold text-primary">ODI <span class="text-danger">*</span></label>
-          <input type="text" name="odi" class="form-control" required />
+      </div>
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <label for="materiales" class="form-label fw-bold text-primary">MATERIALES </label>
+          <textarea class="form-control" id="materiales" name="materiales" rows="3" ></textarea>
         </div>
       </div>
-      <div class="row g-4 mt-3">
-        <div class="col-md-3">
-          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
-          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
-        </div>
-        <div class="col-md-3">
-          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
-        </div>
-        <div class="col-md-6">
-          <label for="producto" class="form-label fw-bold text-primary">DESCRIPCIÓN PRODUCTO <span class="text-danger">*</span></label>
-          <textarea class="form-control" name="producto" rows="2" required></textarea>
-        </div>
-      </div>
+      <input type="hidden" name="piezas" id="piezasData">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4">
           Guardar Registro <i class="bi bi-save ms-2"></i>
@@ -74,125 +140,517 @@
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
-    // Configuración genérica para Select2 con AJAX
-    function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText) {
-        const $select = $(`#${selectId}`);
+  // Configuración genérica para Select2 con AJAX
+  function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText, initialValue) {
+    const $select = $(`#${selectId}`);
 
-        $select.select2({
-            placeholder: placeholder,
-            allowClear: true,
-            minimumInputLength: 0,
-            dropdownAutoWidth: true,
-            ajax: {
-                url: url,
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {
-                        search: params.term || '',
-                        page: params.page || 1,
-                        per_page: 10
-                    };
-                },
-                processResults: function (data) {
-                    console.log(`Datos recibidos de ${url}:`, data); // Depuración
-                    const results = data[dataKey].map(item => {
-                        const id = item[keyId];
-                        const text = item[keyText] || item[keyId];
-                        if (!id || !text) {
-                            console.warn("Opción inválida:", item); // Depuración
-                        }
-                        return {
-                            id: id,
-                            text: text
-                        };
-                    });
-                    return {
-                        results: results,
-                        pagination: { more: data[dataKey].length === 10 }
-                    };
-                },
-                cache: true
-            },
-            templateResult: function (data) {
-                if (!data.id) return data.text; // Para el placeholder
-                return $('<span>' + data.text + '</span>');
-            },
-            templateSelection: function (data) {
-                return data.text || data.id;
+    $select.select2({
+      placeholder: placeholder,
+      allowClear: true,
+      minimumInputLength: 0,
+      dropdownAutoWidth: true,
+      width: '100%',
+      ajax: {
+        url: url,
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            search: params.term || '',
+            page: params.page || 1,
+            per_page: 10
+          };
+        },
+        processResults: function (data, params) {
+          console.log(`Datos recibidos de ${url} para "${params.term}":`, data);
+
+          let items = [];
+          if (data && Array.isArray(data[dataKey])) {
+            items = data[dataKey];
+          } else {
+            console.warn(`La propiedad '${dataKey}' no es un array o no existe en la respuesta de ${url}:`, data);
+          }
+
+          const results = items.map(item => {
+            const id = item[keyId];
+            const text = item[keyText] || item[keyId];
+            if (typeof id === 'undefined' || typeof text === 'undefined') {
+              console.warn("Opción inválida (id o texto indefinido):", item, ` Usando keyId: ${keyId}, keyText: ${keyText}`);
             }
-        }).on('select2:open', function () {
-            setTimeout(() => {
-                document.querySelector('.select2-search__field').focus();
-            }, 50);
-        }).on('select2:select', function (e) {
-            console.log('Opción seleccionada:', e.params.data); // Depuración
-        }).on('select2:unselect', function (e) {
-            console.log('Opción deseleccionada:', e.params.data); // Depuración
-        });
+            return {
+              id: id,
+              text: text
+            };
+          });
+          return {
+            results: results,
+            pagination: { more: items.length === 10 }
+          };
+        },
+        cache: true
+      },
+      templateResult: function (data) {
+        if (!data.id) return data.text;
+        return $('<span>' + data.text + '</span>');
+      },
+      templateSelection: function (data) {
+        return data.text || data.id;
+      }
+    }).on('select2:open', function () {
+      setTimeout(() => {
+        const searchField = document.querySelector('.select2-container--open .select2-search__field');
+        if (searchField) {
+          searchField.focus();
+        }
+      }, 50);
+    }).on('select2:select', function (e) {
+      console.log('Opción seleccionada:', e.params.data);
+    }).on('select2:unselect', function (e) {
+      console.log('Opción deseleccionada:', e.params.data);
+    });
+  }
+
+  // Inicializar campos con Select2
+  setupSelect2('id_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
+  setupSelect2('id_empleado', '/api/empleados', 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
+  setupSelect2('id_supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado');
+  setupSelect2('id_pieza', '/api/piezas', 'Seleccionar Pieza', 'piezas', 'id_pieza', 'nombre_pieza');
+
+  $('#estado').select2({
+    placeholder: 'Seleccionar Estado',
+    allowClear: true,
+    minimumResultsForSearch: Infinity,
+    width: '100%'
+  });
+
+  // Validación de fechas
+  $('#fecha, #fecha_entrega').on('change', function () {
+    const fechaRegistro = new Date($('#fecha').val());
+    const fechaEntrega = new Date($('#fecha_entrega').val());
+    if (fechaRegistro && fechaEntrega && fechaEntrega < fechaRegistro) {
+      alert('La fecha de entrega debe ser posterior a la fecha de registro.');
+      $('#fecha_entrega').val('').addClass('is-invalid');
+    } else {
+      $('#fecha_entrega').removeClass('is-invalid');
+    }
+  });
+
+  // Variable para evitar múltiples envíos
+  let isSubmitting = false;
+  const submitBtn = $('#registroForm button[type="submit"]');
+
+  // Manejar el envío del formulario principal
+  $('#registroForm').on('submit', function (e) {
+    if (isSubmitting) {
+      console.log('Formulario ya en proceso de envío.');
+      e.preventDefault();
+      return false;
     }
 
-    // Inicializar campos con Select2
-    setupSelect2('id_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
-    setupSelect2('id_empleado', '/api/empleados', 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
-    setupSelect2('id_supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado');
-    $('#estado').select2({
-        placeholder: 'Seleccionar Estado',
-        allowClear: true,
-        minimumResultsForSearch: Infinity
-    });
+    const form = this;
+    if (!form.checkValidity()) {
+      e.preventDefault();
+      $(form).addClass('was-validated');
+      console.log('Formulario principal no válido.');
+    } else {
+      console.log('Formulario principal válido, procediendo al envío.');
+      isSubmitting = true;
+      submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...');
 
-    // Variable para evitar múltiples envíos
-    let isSubmitting = false;
-    const submitBtn = $('button[type="submit"]');
-
-    // Manejar el envío del formulario
-    $('#registroForm').on('submit', function (e) {
-        e.preventDefault();
-
-        if (isSubmitting) {
-            return false;
-        }
-
-        const form = this;
-        if (form.checkValidity()) {
-            isSubmitting = true;
-            submitBtn.prop('disabled', true).text('Guardando...');
-            form.submit();
-        } else {
-            form.reportValidity();
-        }
-    });
-
-    // Validar COD. OP
-    function validateCodigoOp() {
-        const cod_op = document.getElementById('cod_op').value;
-        const errorDiv = document.getElementById('cod_op-error');
-
-        fetch('/validar-codigo-op', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `documento=${cod_op}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.exists) {
-                errorDiv.textContent = 'La OP ya existe.';
-                document.getElementById('cod_op').value = '';
-            } else {
-                errorDiv.textContent = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+      // Simular envío (reemplaza con tu lógica real)
+      setTimeout(() => {
+        isSubmitting = false;
+        submitBtn.prop('disabled', false).html('Guardar Registro <i class="bi bi-save ms-2"></i>');
+      }, 2000); // Ajusta el tiempo según tu backend
     }
+  });
+
+  // Validar COD. OP
+  window.validateCodigoOp = function() {
+    const codOpInput = document.getElementById('cod_op');
+    const cod_op = codOpInput.value;
+    const errorDiv = document.getElementById('cod_op-error');
+
+    if (!cod_op) {
+      errorDiv.textContent = '';
+      return;
+    }
+    codOpInput.value = cod_op.replace(/[^0-9]/g, '');
+
+    fetch('/validar-codigo-op', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `documento=${codOpInput.value}`
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error en la respuesta de validación: ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.exists) {
+        errorDiv.textContent = 'El Código OP ya existe.';
+        codOpInput.classList.add('is-invalid');
+      } else {
+        errorDiv.textContent = '';
+        codOpInput.classList.remove('is-invalid');
+        codOpInput.classList.add('is-valid');
+      }
+    })
+    .catch(error => {
+      console.error('Error al validar Código OP:', error);
+      errorDiv.textContent = 'Error al validar. Intente de nuevo.';
+      codOpInput.classList.remove('is-valid', 'is-invalid'); // Limpiar estados
+    });
+  }
+
+  // Manejar la carga de la imagen del render
+  const imageUpload = document.getElementById('imageUpload');
+  const imagePreview = document.getElementById('imagePreview');
+  const deleteBtn = document.getElementById('deleteImageBtn');
+  const defaultImage = "{{ url_for('static', filename='assets/img/Prototipo.png') }}";
+
+  imageUpload.addEventListener('change', function () {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imagePreview.style.backgroundImage = `url('${e.target.result}')`;
+        deleteBtn.style.display = 'block'; // Mostrar el botón "Quitar"
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+
+  deleteBtn.addEventListener('click', function () {
+    imagePreview.style.backgroundImage = `url('${defaultImage}')`;
+    imageUpload.value = '';
+    deleteBtn.style.display = 'none'; // Ocultar el botón "Quitar"
+  });
+
+  // Manejar la carga de archivos y mostrar la lista
+  const fileInput = document.getElementById('documentos');
+  const fileList = document.getElementById('fileList');
+
+  fileInput.addEventListener('change', function () {
+    fileList.innerHTML = ''; // Limpiar la lista anterior
+    const files = Array.from(this.files);
+
+    files.forEach(file => {
+      // Validar tamaño (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+      if (file.size > maxSize) {
+        alert(`El archivo ${file.name} es demasiado grande. El tamaño máximo permitido es 5MB.`);
+        return;
+      }
+
+      const li = document.createElement('li');
+      const fileName = document.createElement('span');
+      fileName.className = 'file-name';
+      fileName.textContent = file.name;
+      li.appendChild(fileName);
+      fileList.appendChild(li);
+
+      // Añadir evento para descargar el archivo
+      li.addEventListener('click', (function(fileCopy) {
+        return function() {
+          console.log('Descargando archivo:', fileCopy.name);
+          const url = URL.createObjectURL(fileCopy);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileCopy.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        };
+      })(file));
+    });
+  });
+
+  // Almacenar las piezas dinámicamente
+  let pieces = [];
+  let currentNewPieceId = null; // Variable para rastrear el ID del formulario nuevo abierto
+
+  // Función para cerrar todos los formularios abiertos
+  function closeAllForms() {
+    $('.piece-form').remove(); // Cierra todos los formularios abiertos (nuevos y guardados)
+    currentNewPieceId = null; // Resetea el ID del formulario nuevo
+  }
+
+  // Función para obtener el nombre de la pieza desde la API
+  async function getPieceName(pieceId) {
+    try {
+      const response = await fetch(`/api/piezas?search=${pieceId}&per_page=1`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (data && Array.isArray(data.piezas) && data.piezas.length > 0) {
+        return data.piezas[0].nombre_pieza || 'Pieza Desconocida';
+      }
+      return 'Pieza Desconocida';
+    } catch (error) {
+      console.error('Error al obtener el nombre de la pieza:', error);
+      return 'Pieza Desconocida';
+    }
+  }
+
+  // Función para generar el formulario de pieza
+  function generatePieceForm(pieceId) {
+    const pieceData = pieces.find(p => p.id === pieceId) || {
+      id_pieza: '',
+      cabezoteCantidad: '',
+      cabezoteTamaño: '',
+      cabezoteMontaje: '',
+      cabezoteMontajeTamaño: '',
+      cabezoteMaterial: '',
+      cabezoteCantidadMaterial: '',
+      id_proceso: [],
+      cabezoteOtrosProcesos: '',
+      cabezoteDescGeneral: ''
+    };
+
+    // Determinar si es un formulario nuevo o uno guardado
+    const isNew = !pieces.some(p => p.id === pieceId);
+    const pieceNameField = isNew
+      ? `<select name="id_pieza_${pieceId || 'new'}" id="id_pieza_${pieceId || 'new'}" class="form-control select2" required></select>`
+      : `<input type="text" class="form-control" value="${pieceData.pieceName || 'Cargando...'}" disabled readonly>
+          <input type="hidden" name="id_pieza_${pieceId}" value="${pieceData.id_pieza}">`;
+
+    return `
+      <div class="piece-form ${pieceId ? 'active' : ''}" id="pieceForm_${pieceId || 'new'}">
+        <div class="card-header bg-primary text-white text-center">
+          <h3 class="fw-bold">PIEZA</h3>
+        </div>
+        <div class="row">
+          <div class="col-md-3">
+            <label for="id_pieza_${pieceId || 'new'}" class="form-label fw-bold text-primary">Nombre Pieza</label>
+            ${pieceNameField}
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="cabezoteCantidad_${pieceId || 'new'}" class="form-label">Cantidad</label>
+            <input type="text" class="form-control" id="cabezoteCantidad_${pieceId || 'new'}" name="cabezoteCantidad_${pieceId || 'new'}" value="${pieceData.cabezoteCantidad}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="cabezoteTamaño_${pieceId || 'new'}" class="form-label">Tamaño</label>
+            <input type="text" class="form-control" id="cabezoteTamaño_${pieceId || 'new'}" name="cabezoteTamaño_${pieceId || 'new'}" value="${pieceData.cabezoteTamaño}">
+          </div>
+          <div class="col-md-8 mb-3">
+            <label for="cabezoteMontaje_${pieceId || 'new'}" class="form-label">Montaje</label>
+            <input type="text" class="form-control" id="cabezoteMontaje_${pieceId || 'new'}" name="cabezoteMontaje_${pieceId || 'new'}" value="${pieceData.cabezoteMontaje}">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label for="cabezoteMontajeTamaño_${pieceId || 'new'}" class="form-label">Tamaño del Montaje</label>
+            <input type="text" class="form-control" id="cabezoteMontajeTamaño_${pieceId || 'new'}" name="cabezoteMontajeTamaño_${pieceId || 'new'}" value="${pieceData.cabezoteMontajeTamaño}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="cabezoteMaterial_${pieceId || 'new'}" class="form-label">Material</label>
+            <input type="text" class="form-control" id="cabezoteMaterial_${pieceId || 'new'}" name="cabezoteMaterial_${pieceId || 'new'}" value="${pieceData.cabezoteMaterial}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="cabezoteCantidadMaterial_${pieceId || 'new'}" class="form-label">Cantidad Material</label>
+            <textarea class="form-control" id="cabezoteCantidadMaterial_${pieceId || 'new'}" name="cabezoteCantidadMaterial_${pieceId || 'new'}" rows="3">${pieceData.cabezoteCantidadMaterial}</textarea>
+          </div>
+          <div class="col-md-12">
+            <label for="processContainer_${pieceId || 'new'}" class="form-label fw-bold text-primary">Proceso</label>
+            <div id="processContainer_${pieceId || 'new'}" class="process-container">
+              <!-- Los checkboxes se generarán dinámicamente aquí -->
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="cabezoteOtrosProcesos_${pieceId || 'new'}" class="form-label">OTRO PROCESO</label>
+              <input type="text" class="form-control" id="cabezoteOtrosProcesos_${pieceId || 'new'}" name="cabezoteOtrosProcesos_${pieceId || 'new'}" value="${pieceData.cabezoteOtrosProcesos}">
+            </div>
+            <div class="col-md-12">
+              <label for="cabezoteDescGeneral_${pieceId || 'new'}" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL </label>
+              <textarea class="form-control" id="cabezoteDescGeneral_${pieceId || 'new'}" name="cabezoteDescGeneral_${pieceId || 'new'}" rows="5" >${pieceData.cabezoteDescGeneral}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-success save-piece-btn" data-piece-id="${pieceId || 'new'}">Guardar</button>
+          <button type="button" class="btn btn-danger close-piece-btn" data-piece-id="${pieceId || 'new'}">Cerrar</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Inicializar formulario de pieza al hacer clic en "Agregar Pieza"
+  $('#addPieceBtn').on('click', function () {
+    // Cerrar todos los formularios abiertos
+    closeAllForms();
+
+    // Verificar si ya hay un formulario nuevo abierto
+    if (currentNewPieceId) {
+      const $existingForm = $(`#pieceForm_${currentNewPieceId}`);
+      if ($existingForm.length) {
+        $existingForm.remove();
+        currentNewPieceId = null;
+        return;
+      }
+    }
+
+    const newPieceId = Date.now(); // Usar timestamp como ID único
+    currentNewPieceId = newPieceId; // Actualizar el ID del formulario nuevo
+    const pieceForm = $(generatePieceForm(newPieceId));
+    $('#addPieceBtn').before(pieceForm); // Insertar el formulario justo encima del botón "Agregar Pieza"
+
+    // Inicializar Select2 para el nuevo campo
+    setupSelect2(`id_pieza_${newPieceId}`, '/api/piezas', 'Seleccionar Pieza', 'piezas', 'id_pieza', 'nombre_pieza', { id_pieza: '' });
+
+    // Inicializar checkboxes de procesos
+    setupProcessCheckboxes(`processContainer_${newPieceId}`, '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
+  });
+
+  // Guardar pieza con validación
+  $(document).on('click', '.save-piece-btn', function () {
+    const pieceId = $(this).data('piece-id');
+    const isNew = !pieces.some(p => p.id === pieceId);
+    const $pieceSelect = $(`#id_pieza_${pieceId}`);
+    const pieceName = isNew ? ($pieceSelect.find('option[value="' + $pieceSelect.val() + '"]').text() || 'Pieza Sin Nombre') : $(`.piece-button[data-piece-id="${pieceId}"]`).text();
+
+    // Validar que se haya seleccionado un nombre de pieza solo si es un formulario nuevo
+    if (isNew && !$pieceSelect.val()) {
+      alert('Debe seleccionar un nombre de pieza antes de guardar.');
+      return;
+    }
+
+    const formData = {
+      id: pieceId,
+      id_pieza: isNew ? $pieceSelect.val() : $(`input[name="id_pieza_${pieceId}"]`).val(),
+      pieceName: pieceName,
+      cabezoteCantidad: $(`#cabezoteCantidad_${pieceId}`).val(),
+      cabezoteTamaño: $(`#cabezoteTamaño_${pieceId}`).val(),
+      cabezoteMontaje: $(`#cabezoteMontaje_${pieceId}`).val(),
+      cabezoteMontajeTamaño: $(`#cabezoteMontajeTamaño_${pieceId}`).val(),
+      cabezoteMaterial: $(`#cabezoteMaterial_${pieceId}`).val(),
+      cabezoteCantidadMaterial: $(`#cabezoteCantidadMaterial_${pieceId}`).val(),
+      id_proceso: $(`#processContainer_${pieceId} input[type="checkbox"]:checked`).map(function() { return this.value; }).get(),
+      cabezoteOtrosProcesos: $(`#cabezoteOtrosProcesos_${pieceId}`).val(),
+      cabezoteDescGeneral: $(`#cabezoteDescGeneral_${pieceId}`).val()
+    };
+
+    // Buscar y actualizar o agregar la pieza
+    const existingPieceIndex = pieces.findIndex(p => p.id === pieceId);
+    if (existingPieceIndex > -1) {
+      pieces[existingPieceIndex] = formData;
+    } else {
+      pieces.push(formData);
+      // Generar botón de la pieza solo si es nueva
+      $('#addPieceBtn').before(`
+        <a href="#" class="piece-button" data-piece-id="${pieceId}">${pieceName} <button type="button" class="btn btn-danger btn-sm delete-piece-btn" data-piece-id="${pieceId}"><i class="bi bi-trash"></i></button></a>
+      `);
+    }
+
+    // Actualizar el campo oculto con los datos de las piezas
+    $('#piezasData').val(JSON.stringify(pieces));
+
+    $(`#pieceForm_${pieceId}`).remove();
+    currentNewPieceId = null; // Resetear el ID del formulario nuevo
+  });
+
+  // Cerrar formulario de pieza
+  $(document).on('click', '.close-piece-btn', function () {
+    const pieceId = $(this).data('piece-id');
+    $(`#pieceForm_${pieceId}`).remove();
+    if (pieceId === currentNewPieceId) {
+      currentNewPieceId = null; // Resetear si se cierra un formulario nuevo
+    }
+  });
+
+  // Eliminar pieza
+  $(document).on('click', '.delete-piece-btn', function (e) {
+    e.preventDefault();
+    const pieceId = $(this).data('piece-id');
+    if (confirm('¿Seguro que desea eliminar esta pieza?')) {
+      pieces = pieces.filter(p => p.id !== pieceId);
+      $(`.piece-button[data-piece-id="${pieceId}"]`).remove();
+      $('#piezasData').val(JSON.stringify(pieces));
+    }
+  });
+
+  // Reabrir formulario de pieza al hacer clic en el botón
+  $(document).on('click', '.piece-button', async function (e) {
+    e.preventDefault();
+    const pieceId = $(this).data('piece-id');
+    const $pieceForm = $(`#pieceForm_${pieceId}`);
+
+    // Si el formulario ya está abierto, cerrarlo
+    if ($pieceForm.length) {
+      $pieceForm.remove();
+      return;
+    }
+
+    // Cerrar todos los formularios abiertos antes de abrir uno nuevo
+    closeAllForms();
+
+    // Si no existe, crearlo y mostrarlo
+    const pieceData = pieces.find(p => p.id === pieceId) || { id_pieza: '' };
+    if (pieceData && pieceData.id_pieza && !pieceData.pieceName) {
+      // Obtener el nombre de la pieza desde la API si no está almacenado
+      pieceData.pieceName = await getPieceName(pieceData.id_pieza);
+      const pieceIndex = pieces.findIndex(p => p.id === pieceId);
+      if (pieceIndex > -1) {
+        pieces[pieceIndex] = pieceData;
+      }
+    }
+
+    const pieceForm = $(generatePieceForm(pieceId));
+    $('#addPieceBtn').before(pieceForm); // Insertar el formulario justo encima del botón "Agregar Pieza"
+
+    // Inicializar checkboxes de procesos
+    setupProcessCheckboxes(`processContainer_${pieceId}`, '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
+  });
+
+  // Función para checkboxes de procesos (modificada para cada formulario dinámico)
+  function setupProcessCheckboxes(selectId, url, placeholder, dataKey, idField, textField) {
+    const $processContainer = $(`#${selectId}`);
+    $.ajax({
+      url: url,
+      dataType: 'json',
+      delay: 250,
+      data: {
+        search: '',
+        page: 1,
+        per_page: 100
+      },
+      success: function (data) {
+        console.log('Datos recibidos de la API:', data);
+        $processContainer.empty();
+        data[dataKey].forEach(item => {
+          const div = $('<div>').addClass('process-checkbox');
+          const checkbox = $('<input>').attr({
+            type: 'checkbox',
+            name: `id_proceso_${selectId}`,
+            value: item[idField],
+            id: `${selectId}_${item[idField]}`
+          });
+          const label = $('<label>').attr('for', `${selectId}_${item[idField]}`).text(item[textField]);
+          div.append(checkbox, label);
+          $processContainer.append(div);
+
+          // Restaurar selección de checkboxes si hay datos previos
+          const pieceData = pieces.find(p => p.id === selectId.split('_')[1]);
+          if (pieceData && pieceData.id_proceso.includes(item[idField])) {
+            checkbox.prop('checked', true);
+          }
+        });
+      },
+      error: function (xhr, status, error) {
+        console.error('Error al cargar los procesos:', error);
+      }
+    });
+  }
 });
 </script>
 {% endblock %}

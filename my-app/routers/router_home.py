@@ -1,5 +1,6 @@
 # Asegúrate de importar las nuevas funciones
 from controllers.funciones_home import sql_detalles_empresaBD, buscar_empresa_unica, eliminar_empresa
+from werkzeug.exceptions import RequestEntityTooLarge
 from app import app
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Blueprint, request
 from flask_paginate import Pagination, get_page_args
@@ -9,7 +10,7 @@ from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
 from conexion.models import db, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
-from controllers.funciones_home import get_empleados_paginados, get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas, get_clientes_paginados
+from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,
@@ -759,13 +760,16 @@ def validate_cod_op():
 @app.route('/form-registrar-op', methods=['POST'])
 def form_op():
     if 'conectado' in session:
-        resultado = procesar_form_op(request.form)
-        if resultado == 1:
-            flash('Orden de producción registrada correctamente.', 'success')
-            return redirect(url_for('lista_op'))
-        else:
-            flash(
-                'La orden de producción NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
+        try:
+            resultado = procesar_form_op(request.form, request.files)
+            if resultado == 1:
+                flash('Orden de producción registrada correctamente.', 'success')
+                return redirect(url_for('lista_op'))
+            else:
+                flash('La orden de producción NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
+                return render_template('public/ordenproduccion/form_op.html'), 400
+        except RequestEntityTooLarge:
+            flash('Uno o más archivos exceden el tamaño máximo permitido (5MB).', 'error')
             return render_template('public/ordenproduccion/form_op.html'), 400
     else:
         flash('Primero debes iniciar sesión.', 'error')
@@ -829,10 +833,17 @@ def actualizar_op():
 
 @app.route('/borrar-op/<int:id_op>', methods=['GET'])
 def borrar_op(id_op):
-    resp = eliminar_op(id_op)
-    if resp:
-        flash('La Orden de Producción fue eliminada correctamente', 'success')
-        return redirect(url_for('lista_op'))
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+    resultado = eliminar_op(id_op)
+    if resultado == 1:
+        flash('Orden de producción eliminada correctamente.', 'success')
+    else:
+        flash('No se pudo eliminar la orden de producción.', 'error')
+
+    return redirect(url_for('lista_op'))
 
 
 @app.route('/buscando-ordenes-produccion', methods=['POST'])
@@ -996,11 +1007,30 @@ def api_procesos():
     procesos_data = [
         {
             'id_proceso': proc.id_proceso,
-            'nombre_proceso': proc.nombre_proceso
+            'nombre_proceso': proc.nombre_proceso.upper()
         }
         for proc in procesos
     ]
     return jsonify({'procesos': procesos_data})
+
+
+@app.route('/api/piezas', methods=['GET'])
+def api_piezas():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(
+        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+
+    piezas = get_piezas_paginados(page, per_page, search)
+    piezas_data = [
+        {
+            'id_pieza': piez.id_pieza,
+            'nombre_pieza': piez.nombre_pieza.upper()
+        }
+        for piez in piezas
+    ]
+    return jsonify({'piezas': piezas_data})
 
 
 @app.route('/api/actividades', methods=['GET'])

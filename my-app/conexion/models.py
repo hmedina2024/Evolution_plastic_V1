@@ -3,6 +3,7 @@ from app import db  # Importa db desde app.py, donde se inicializa
 # Quitamos import datetime ya que no se usa directamente aquí
 from sqlalchemy.sql import func  # Importa func para usar func.now()
 from sqlalchemy import Enum # Para el Enum de Empresa
+from datetime import datetime
 
 # --- Modelo Empresa ---
 # Definido antes porque otros modelos dependen de él
@@ -86,12 +87,27 @@ class Empleados(db.Model):
 class Procesos(db.Model):
     __tablename__ = 'tbl_procesos'
     id_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    codigo_proceso = db.Column(db.String(50), nullable=False, unique=True)
-    nombre_proceso = db.Column(db.String(50), nullable=True)
+    nombre_proceso = db.Column(db.String(50), nullable=False)
     descripcion_proceso = db.Column(db.String(200), nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
-    # Relación inversa 'operaciones' definida en Operaciones
+
+    # Relaciones
+    orden_piezas_procesos = db.relationship('OrdenPiezasProcesos', backref='proceso', lazy=True)
+
+
+# --- Modelo Piezas ---
+class Piezas(db.Model):
+    __tablename__ = 'tbl_piezas'
+    id_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_pieza = db.Column(db.String(50), nullable=True)
+    descripcion_pieza = db.Column(db.String(200), nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    orden_piezas = db.relationship('OrdenPiezas', backref='pieza', lazy=True)
+
 
 # --- Modelo Actividades ---
 class Actividades(db.Model):
@@ -122,28 +138,6 @@ class Clientes(db.Model):
     # Relación con TipoDocumento
     tipo_documento_rel = db.relationship('TipoDocumento', backref='clientes')
     # Relación inversa 'ordenes_produccion' definida en OrdenProduccion
-
-# --- Modelo OrdenProduccion ---
-class OrdenProduccion(db.Model):
-    __tablename__ = 'tbl_ordenproduccion'
-    id_op = db.Column(db.Integer, primary_key=True)
-    codigo_op = db.Column(db.Integer, nullable=False, unique=True)
-    id_cliente = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
-    producto = db.Column(db.String(200), nullable=True)
-    estado = db.Column(db.String(50), nullable=True)
-    cantidad = db.Column(db.Integer, nullable=True)
-    odi = db.Column(db.String(50), nullable=True)
-    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
-    id_supervisor = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
-    id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    fecha_borrado = db.Column(db.DateTime, nullable=True)
-
-    # Relaciones
-    cliente = db.relationship('Clientes', backref='ordenes')
-    empleado = db.relationship('Empleados', foreign_keys=[id_empleado], backref='ordenes_empleado')
-    supervisor = db.relationship('Empleados', foreign_keys=[id_supervisor], backref='ordenes_supervisor')
-    usuario_registro = db.relationship('Users', backref='ordenes_registradas')
 
 # --- Modelo Operaciones ---
 # (Registro de trabajo diario)
@@ -194,3 +188,80 @@ class Jornadas(db.Model):
     # Relaciones
     empleado = db.relationship('Empleados', backref='jornadas') # foreign_keys no es necesario
     usuario_reg = db.relationship('Users', backref='jornadas_registradas')
+    
+    
+class OrdenProduccion(db.Model):
+    __tablename__ = 'tbl_ordenproduccion'
+    id_op = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    codigo_op = db.Column(db.BigInteger, nullable=False, unique=True)
+    id_cliente = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
+    producto = db.Column(db.String(200), nullable=True)
+    version = db.Column(db.String(50), nullable=True)
+    cotizacion = db.Column(db.String(50), nullable=True)
+    estado = db.Column(db.String(50), nullable=True)
+    cantidad = db.Column(db.Integer, nullable=True)
+    medida = db.Column(db.String(50), nullable=True)
+    referencia = db.Column(db.String(100), nullable=True)
+    odi = db.Column(db.String(50), nullable=True)
+    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    id_supervisor = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    fecha = db.Column(db.Date, nullable=True)
+    fecha_entrega = db.Column(db.Date, nullable=True)
+    descripcion_general = db.Column(db.Text, nullable=True)
+    empaque = db.Column(db.String(100), nullable=True)
+    materiales = db.Column(db.Text, nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones con cascade para eliminación automática
+    cliente = db.relationship('Clientes', backref='ordenes', lazy=True)
+    empleado = db.relationship('Empleados', foreign_keys=[id_empleado], backref='ordenes_empleado', lazy=True)
+    supervisor = db.relationship('Empleados', foreign_keys=[id_supervisor], backref='ordenes_supervisor', lazy=True)
+    usuario_registro = db.relationship('Users', backref='ordenes_registradas', lazy=True)
+    documentos = db.relationship('DocumentosOP', backref='orden', lazy=True, cascade="all, delete-orphan")
+    renders = db.relationship('RendersOP', backref='orden', lazy=True, cascade="all, delete-orphan")
+    orden_piezas = db.relationship('OrdenPiezas', backref='orden', lazy=True, cascade="all, delete-orphan")
+
+class DocumentosOP(db.Model):
+    __tablename__ = 'tbl_documentos_op'
+    id_documento = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    documento_path = db.Column(db.String(255), nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+class RendersOP(db.Model):
+    __tablename__ = 'tbl_renders_op'
+    id_render = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    render_path = db.Column(db.String(255), nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+class OrdenPiezas(db.Model):
+    __tablename__ = 'tbl_orden_piezas'
+    id_orden_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    id_pieza = db.Column(db.Integer, db.ForeignKey('tbl_piezas.id_pieza'), nullable=False)
+    cantidad = db.Column(db.Integer, nullable=True)
+    tamano = db.Column(db.String(100), nullable=True)
+    montaje = db.Column(db.String(100), nullable=True)
+    montaje_tamano = db.Column(db.String(100), nullable=True)
+    material = db.Column(db.String(100), nullable=True)
+    cantidad_material = db.Column(db.Text, nullable=True)
+    otros_procesos = db.Column(db.String(100), nullable=True)
+    descripcion_general = db.Column(db.Text, nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    procesos = db.relationship('OrdenPiezasProcesos', backref='orden_pieza', lazy=True, cascade="all, delete-orphan")
+
+class OrdenPiezasProcesos(db.Model):
+    __tablename__ = 'tbl_orden_piezas_procesos'
+    id_orden_pieza_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza', ondelete='CASCADE'), nullable=False)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
