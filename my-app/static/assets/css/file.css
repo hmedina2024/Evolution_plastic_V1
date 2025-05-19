@@ -61,6 +61,11 @@
 .card-header {
   padding: 0.25rem 1rem;
   line-height: 1.2;
+  border-radius: 10px 10px 0 0;
+  position: sticky; /* Cambiar a sticky */
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .card-header h3 {
@@ -360,4 +365,50 @@
 
 .table-actions .btn {
   margin-right: 5px;
+}
+
+
+.form-control[readonly] {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+  }
+
+  .piece-card {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+  }
+
+  /* Estilo para la línea de separación azul */
+  .separator-line {
+    border: 0;
+    height: 5px;
+    background-color: #042f5d; /* Color azul que coincide con text-primary de Bootstrap */
+    margin: 20px 0;
+  }
+
+  .card-header {
+  border-radius: 10px 10px 0 0;
+  position: sticky; /* Cambiar a sticky */
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.render-container {
+    position: relative;
+}
+.render-img {
+    width: 200px;
+    height: 200px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+.render-upload-input {
+    display: none;
+}
+.render-upload-label, .render-delete-btn {
+    margin-top: 5px;
 }

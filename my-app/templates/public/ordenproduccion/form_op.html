@@ -85,7 +85,7 @@
         </div>
         <div class="col-md-4">
           <label for="documentos" class="form-label fw-bold text-primary">Cargar Documentos</label>
-          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple required />
+          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" />
           <ul class="file-list" id="fileList"></ul>
         </div>
       </div>
@@ -123,8 +123,8 @@
       </div>
       <div class="row mt-4">
         <div class="col-md-12">
-          <label for="materiales" class="form-label fw-bold text-primary">MATERIALES </label>
-          <textarea class="form-control" id="materiales" name="materiales" rows="3" ></textarea>
+          <label for="materiales" class="form-label fw-bold text-primary">MATERIALES <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="materiales" name="materiales" rows="3" required></textarea>
         </div>
       </div>
       <input type="hidden" name="piezas" id="piezasData">

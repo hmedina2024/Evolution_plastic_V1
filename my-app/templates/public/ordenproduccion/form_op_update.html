@@ -5,6 +5,7 @@
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+
 {% endblock %}
 
 {% block body %}
@@ -20,19 +21,18 @@
   </div>
   <div class="card-body p-4">
     <form method="POST" action="{{ url_for('actualizar_op') }}" autocomplete="off" enctype="multipart/form-data" id="actualizarForm">
-      <input type="hidden" name="id_op" value="{{ respuestaOp.id_op }}" />
-      <!-- Campos ocultos para enviar datos no editables -->
-      <input type="hidden" name="codigo_op" value="{{ respuestaOp.codigo_op }}" />
-      <input type="hidden" name="nombre_cliente" value="{{ respuestaOp.nombre_cliente }}" />
-      <input type="hidden" name="empleado" value="{{ respuestaOp.empleado }}" />
+      <!-- Información principal -->
+      <h4 class="fw-bold text-primary mb-4">Detalles Generales</h4>
       <div class="row g-4">
         <div class="col-md-2">
-          <label for="codigo_op" class="form-label fw-bold text-primary">Código OP</label>
+          <label for="id_op" class="form-label fw-bold text-primary">Código OP</label>
           <div class="form-control" readonly>{{ respuestaOp.codigo_op }}</div>
+          <input type="hidden" name="id_op" value="{{ respuestaOp.id_op }}" />
+          <input type="hidden" name="codigo_op" value="{{ respuestaOp.codigo_op }}" />
         </div>
         <div class="col-md-3">
-          <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
-          <div class="form-control" readonly>{{ respuestaOp.nombre_cliente }}</div>
+          <label for="id_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
+          <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
         </div>
         <div class="col-md-7">
           <label for="producto" class="form-label fw-bold text-primary">Producto</label>
@@ -40,6 +40,14 @@
         </div>
       </div>
       <div class="row g-4 mt-3">
+        <div class="col-md-2">
+          <label for="version" class="form-label fw-bold text-primary">Versión</label>
+          <input class="form-control" type="text" name="version" value="{{ respuestaOp.version }}" />
+        </div>
+        <div class="col-md-2">
+          <label for="cotizacion" class="form-label fw-bold text-primary">Cotización</label>
+          <input class="form-control" type="text" name="cotizacion" value="{{ respuestaOp.cotizacion }}" />
+        </div>
         <div class="col-md-2">
           <label for="estado" class="form-label fw-bold text-primary">Estado</label>
           <select name="estado" class="form-control" required>
@@ -57,33 +65,211 @@
         </div>
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
-          <input class="form-control" type="text" name="cantidad" value="{{ respuestaOp.cantidad }}" required />
+          <input class="form-control" type="number" name="cantidad" value="{{ respuestaOp.cantidad }}" required />
         </div>
+        <div class="col-md-2">
+          <label for="medida" class="form-label fw-bold text-primary">Medida</label>
+          <input class="form-control" type="text" name="medida" value="{{ respuestaOp.medida }}" />
+        </div>
+        <div class="col-md-2">
+          <label for="referencia" class="form-label fw-bold text-primary">Referencia</label>
+          <input class="form-control" type="text" name="referencia" value="{{ respuestaOp.referencia }}" />
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
         <div class="col-md-2">
           <label for="odi" class="form-label fw-bold text-primary">ODI</label>
           <input class="form-control" type="text" name="odi" value="{{ respuestaOp.odi }}" required />
         </div>
         <div class="col-md-3">
-          <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
-          <div class="form-control" readonly>{{ respuestaOp.empleado }}</div>
+          <label for="id_empleado" class="form-label fw-bold text-primary">Vendedor</label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
         </div>
         <div class="col-md-3">
-          <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-          <select name="supervisor" id="supervisor" class="form-control select2"></select>
+          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
+          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
         </div>
-        <div class="col-md-3">
-          <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha de Registro</label>
-          <div class="form-control" readonly>{{ respuestaOp.fecha_registro }}</div>
+        <div class="col-md-2">
+          <label for="fecha" class="form-label fw-bold text-primary">Fecha</label>
+          <div class="form-control" readonly>{{ respuestaOp.fecha }}</div>
+          <input type="hidden" name="fecha" value="{{ respuestaOp.fecha }}" />
+        </div>
+        <div class="col-md-2">
+          <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha de Entrega</label>
+          <input class="form-control" type="date" name="fecha_entrega" value="{{ respuestaOp.fecha_entrega }}" required />
         </div>
       </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-12">
+          <label for="descripcion_general" class="form-label fw-bold text-primary">Descripción General</label>
+          <textarea class="form-control" name="descripcion_general" rows="3">{{ respuestaOp.descripcion_general }}</textarea>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-4">
+          <label for="empaque" class="form-label fw-bold text-primary">Empaque</label>
+          <input class="form-control" type="text" name="empaque" value="{{ respuestaOp.empaque }}" />
+        </div>
+        <div class="col-md-8">
+          <label for="materiales" class="form-label fw-bold text-primary">Materiales</label>
+          <textarea class="form-control" name="materiales" rows="3">{{ respuestaOp.materiales }}</textarea>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+          <div class="form-control" readonly>{{ respuestaOp.fecha_registro }}</div>
+        </div>
+        <div class="col-md-3">
+          <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
+          <div class="form-control" readonly>{{ respuestaOp.usuario_registro }}</div>
+        </div>
+      </div>
+
+      <!-- Render -->
+      <h4 class="fw-bold text-primary mt-5 mb-4">RENDER APROBADO</h4>
+      <div class="col-md-12 text-center">
+        <div class="col-md-4 text-center">
+          <div class="render-container">
+            {% if respuestaOp.renders %}
+              {% for render in respuestaOp.renders %}
+                <div class="col-md-9 text-center">
+                  <br />
+                  <img style="background-image: url('{{ url_render }}');"
+                    src="/static/render_op/{{ render }}" alt="Render"
+                    class="render-upload-container" id="imagePreview"/>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="col-md-12 text-center">
+                <label class="form-label fw-bold text-primary">Render</label>
+                <br />
+                <img style="width: 200px; border-radius: 10px;"
+                  src="{{ url_for('static', filename='assets/img/default_render.png') }}"
+                  alt="Render por defecto" class="img-thumbnail render-img" id="imagePreview"/>
+              </div>
+            {% endif %}
+            <div class="mt-2">
+              <input type="file" id="imageUpload" name="render" accept=".png, .jpg, .jpeg" class="render-upload-input d-none">
+              <label for="imageUpload" class="btn btn-primary btn-sm render-upload-label">
+                <i class="bi bi-upload"></i> {{ "Cambiar" if respuestaOp.renders and respuestaOp.renders[0] else "Agregar" }}
+              </label>
+              <button type="button" class="btn btn-danger btn-sm render-delete-btn" id="deleteImageBtn" style="display: {{ 'inline-block' if respuestaOp.renders and respuestaOp.renders[0] else 'none' }};">
+                <i class="bi bi-x-circle"></i> Quitar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documentos adjuntos -->
+      <h4 class="fw-bold text-primary mt-5 mb-4">Documentos Adjuntos</h4>
+      {% if respuestaOp.documentos %}
+        <div class="row g-4">
+          {% for doc in respuestaOp.documentos %}
+            <div class="col-md-4">
+              <a href="{{ url_for('static', filename=doc.documento_path) }}" download="{{ doc.documento_nombre_original }}" class="btn btn-outline-primary">
+                <i class="bi bi-download"></i> Descargar {{ doc.documento_nombre_original }}
+              </a>
+              <div class="delete-checkbox">
+                <input type="checkbox" name="delete_docs[]" value="{{ doc.id_documento }}" id="delete_doc_{{ doc.id_documento }}" />
+                <label for="delete_doc_{{ doc.id_documento }}">Eliminar este documento</label>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">No hay documentos adjuntos.</p>
+      {% endif %}
+      <div class="row g-4 mt-3">
+        <div class="col-md-4">
+          <label for="documentos" class="form-label fw-bold text-primary">Agregar Nuevos Documentos</label>
+          <input type="file" name="documentos" class="form-control" multiple />
+        </div>
+      </div>
+
+      <!-- Piezas -->
+      <h4 class="fw-bold text-primary mt-5 mb-4">Piezas Asociadas</h4>
+      <div id="piezas-container">
+        {% if respuestaOp.piezas %}
+          {% for pieza in respuestaOp.piezas %}
+            <div class="piece-container piece-card">
+              <input type="hidden" name="pieza_id[]" value="{{ pieza.id_orden_pieza }}" />
+              <div class="row g-4">
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Nombre Pieza</label>
+                  <div class="form-control" readonly>{{ pieza.nombre_pieza }}</div>
+                  <input type="hidden" name="id_pieza[]" value="{{ pieza.id_pieza }}" />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Cantidad</label>
+                  <input class="form-control" type="number" name="cantidad_pieza[]" value="{{ pieza.cantidad }}"/>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Tamaño</label>
+                  <input class="form-control" type="text" name="tamano[]" value="{{ pieza.tamano }}" />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Montaje</label>
+                  <input class="form-control" type="text" name="montaje[]" value="{{ pieza.montaje }}" />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Tamaño Montaje</label>
+                  <input class="form-control" type="text" name="montaje_tamano[]" value="{{ pieza.montaje_tamano }}" />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold text-primary">Material</label>
+                  <input class="form-control" type="text" name="material[]" value="{{ pieza.material }}" />
+                </div>
+              </div>
+              <div class="row g-4 mt-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-primary">Cantidad Material</label>
+                  <input class="form-control" type="text" name="cantidad_material[]" value="{{ pieza.cantidad_material }}" />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-primary">Otros Procesos</label>
+                  <input class="form-control" type="text" name="otros_procesos[]" value="{{ pieza.otros_procesos }}" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold text-primary">Procesos Asociados</label>
+                  <input class="form-control" type="text" readonly value="{{ pieza.procesos|join(', ') }}" />
+                  <input type="hidden" name="procesos[{{ loop.index0 }}][]" value="{{ pieza.procesos|join(',') }}" />
+                </div>
+              </div>
+              <div class="row g-4 mt-3">
+                <div class="col-md-12">
+                  <label class="form-label fw-bold text-primary">Descripción General</label>
+                  <textarea class="form-control" name="descripcion_general_pieza[]" rows="2">{{ pieza.descripcion_general }}</textarea>
+                </div>
+              </div>
+              <div class="text-end mt-3">
+                <button type="button" class="btn btn-danger remove-piece-btn">Eliminar Pieza</button>
+              </div>
+            </div>
+            {% if not loop.last %}
+              <hr class="separator-line" />
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No hay piezas asociadas.</p>
+        {% endif %}
+      </div>
       <div class="text-center mt-4">
-        <button type="submit" class="btn btn-primary">Actualizar</button>
+        <button type="button" id="add-piece-btn" class="btn btn-success">Agregar Nueva Pieza</button>
+      </div>
+
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary">Actualizar Orden</button>
       </div>
     </form>
   </div>
   {% else %}
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">ACTUALIZAR DATOS DE LA OP</h3>
+  </div>
   <div class="card-body p-4 text-center">
-    <h2>No existe la Orden de Producción 😭</h2>
+    <h2>No existe la Operación 😭</h2>
     <hr />
   </div>
   {% endif %}
@@ -97,7 +283,8 @@
 $(document).ready(function () {
     // Configuración genérica para Select2 con AJAX
     function setupSelect2(selectId, url, placeholder, dataKey, selectedId, selectedText) {
-        $(`#${selectId}`).select2({
+        const $select = $(`#${selectId}`);
+        $select.select2({
             placeholder: placeholder,
             allowClear: true,
             minimumInputLength: 0,
@@ -114,11 +301,25 @@ $(document).ready(function () {
                     };
                 },
                 processResults: function (data) {
-                    return {
-                        results: data[dataKey].map(item => ({
+                    let results;
+                    if (dataKey === 'clientes') {
+                        results = data[dataKey].map(item => ({
+                            id: item.id_cliente,
+                            text: item.nombre_cliente
+                        }));
+                    } else if (dataKey === 'empleados' || dataKey === 'supervisores') {
+                        results = data[dataKey].map(item => ({
                             id: item.id_empleado,
                             text: item.nombre_empleado
-                        })),
+                        }));
+                    } else if (dataKey === 'piezas') {
+                        results = data[dataKey].map(item => ({
+                            id: item.id_pieza,
+                            text: item.nombre_pieza
+                        }));
+                    }
+                    return {
+                        results: results,
                         pagination: { more: data[dataKey].length === 10 }
                     };
                 },
@@ -136,22 +337,156 @@ $(document).ready(function () {
             }, 50);
         });
 
-        // Preseleccionar el supervisor actual si existe
+        // Preseleccionar el valor actual si existe
         if (selectedId && selectedText) {
             const option = new Option(selectedText, selectedId, true, true);
-            $(`#${selectId}`).append(option).trigger('change');
+            $select.append(option);
+            $select.trigger('change');
         }
     }
 
-    // Inicializar el campo Supervisor con Select2
+    // Inicializar Select2 para Nombre Cliente
     setupSelect2(
-        'supervisor',
+        'id_cliente',
+        '/api/clientes',
+        'Seleccionar Cliente',
+        'clientes',
+        '{{ respuestaOp.id_cliente }}',
+        '{{ respuestaOp.nombre_cliente }}'
+    );
+
+    // Inicializar Select2 para Vendedor
+    setupSelect2(
+        'id_empleado',
+        '/api/empleados',
+        'Seleccionar Vendedor',
+        'empleados',
+        '{{ respuestaOp.id_empleado }}',
+        '{{ respuestaOp.empleado }}'
+    );
+
+    // Inicializar Select2 para Supervisor
+    setupSelect2(
+        'id_supervisor',
         '/api/supervisores',
         'Seleccionar Supervisor',
         'supervisores',
-        '{{ respuestaOp.id_supervisor }}',  // ID del supervisor actual
-        '{{ respuestaOp.nombre_supervisor }}'  // Nombre del supervisor actual
+        '{{ respuestaOp.id_supervisor }}',
+        '{{ respuestaOp.nombre_supervisor }}'
     );
+
+    // Contador para generar IDs únicos para nuevos campos
+    let pieceCounter = $('.piece-container').length;
+
+    // Plantilla para una nueva pieza
+    function getPieceTemplate(counter) {
+        return `
+            <div class="piece-container piece-card">
+                <input type="hidden" name="pieza_id[]" value="" />
+                <div class="row g-4">
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Nombre Pieza</label>
+                        <select name="id_pieza[]" id="pieza-select-${counter}" class="form-control select2 new-pieza-select" required></select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Cantidad</label>
+                        <input class="form-control" type="number" name="cantidad_pieza[]" required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Tamaño</label>
+                        <input class="form-control" type="text" name="tamano[]" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Montaje</label>
+                        <input class="form-control" type="text" name="montaje[]" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Tamaño Montaje</label>
+                        <input class="form-control" type="text" name="montaje_tamano[]" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-primary">Material</label>
+                        <input class="form-control" type="text" name="material[]" />
+                    </div>
+                </div>
+                <div class="row g-4 mt-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-primary">Cantidad Material</label>
+                        <input class="form-control" type="text" name="cantidad_material[]" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-primary">Otros Procesos</label>
+                        <input class="form-control" type="text" name="otros_procesos[]" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-primary">Procesos Asociados</label>
+                        <input class="form-control" type="text" readonly value="" placeholder="Procesos no definidos" />
+                        <input type="hidden" name="procesos[${counter}][]" value="" />
+                    </div>
+                </div>
+                <div class="row g-4 mt-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold text-primary">Descripción General</label>
+                        <textarea class="form-control" name="descripcion_general_pieza[]" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="text-end mt-3">
+                    <button type="button" class="btn btn-danger remove-piece-btn">Eliminar Pieza</button>
+                </div>
+            </div>
+            <hr class="separator-line" />
+        `;
+    }
+
+    // Agregar nueva pieza
+    $('#add-piece-btn').on('click', function () {
+        const $newPiece = $(getPieceTemplate(pieceCounter));
+        $('#piezas-container').append($newPiece);
+
+        // Inicializar Select2 para la nueva pieza
+        const selectId = `pieza-select-${pieceCounter}`;
+        setupSelect2(
+            selectId,
+            '/api/piezas',
+            'Seleccionar Pieza',
+            'piezas',
+            null,
+            null
+        );
+
+        pieceCounter++;
+    });
+
+    // Eliminar pieza
+    $(document).on('click', '.remove-piece-btn', function () {
+        const $piece = $(this).closest('.piece-container');
+        $piece.next('.separator-line').remove();
+        $piece.remove();
+    });
+
+    // Manejar previsualización y eliminación de render
+    const $imagePreview = $('#imagePreview');
+    const $imageUpload = $('#imageUpload');
+    const $deleteImageBtn = $('#deleteImageBtn');
+    const defaultImage = "{{ url_for('static', filename='assets/img/default_render.png') }}";
+
+    $imageUpload.on('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                $imagePreview.attr('src', e.target.result);
+                $deleteImageBtn.css('display', 'inline-block');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    $deleteImageBtn.on('click', function () {
+        $imagePreview.attr('src', defaultImage);
+        $deleteImageBtn.css('display', 'none');
+        $imageUpload.val('');
+    });
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
@@ -166,10 +501,38 @@ $(document).ready(function () {
         }
 
         const form = this;
+        const formData = new FormData(form);
+
+        // Depuración: Verificar datos enviados
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+
         if (form.checkValidity()) {
             isSubmitting = true;
             submitBtn.prop('disabled', true).text('Actualizando...');
-            form.submit();
+            $.ajax({
+                url: form.action,
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    if (response.success) {
+                        alert('Orden actualizada con éxito');
+                        window.location.href = '/lista-de-op';
+                    } else {
+                        alert('Error al actualizar la orden: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error en la solicitud: ' + error);
+                },
+                complete: function() {
+                    isSubmitting = false;
+                    submitBtn.prop('disabled', false).text('Actualizar Orden');
+                }
+            });
         } else {
             form.reportValidity();
         }

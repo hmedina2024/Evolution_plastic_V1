@@ -228,6 +228,7 @@ class DocumentosOP(db.Model):
     id_documento = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
     documento_path = db.Column(db.String(255), nullable=False)
+    documento_nombre_original = db.Column(db.String(255), nullable=False)  # Nuevo campo
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 

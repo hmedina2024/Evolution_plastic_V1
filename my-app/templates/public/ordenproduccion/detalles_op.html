@@ -3,7 +3,9 @@
 {% block title %}Detalles de Orden de Producción{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/file.css') }}" />
+
 {% endblock %}
 
 <!-- Inicio del block -->
@@ -19,52 +21,227 @@
     </h3>
   </div>
   <div class="card-body p-4">
+    <!-- Información principal -->
+    <h4 class="fw-bold text-primary mb-4">Detalles Generales</h4>
     <div class="row g-4">
       <div class="col-md-2">
-        <label for="id_op" class="form-label fw-bold text-primary">Código OP</label>
+        <label for="id_op" class="form-label fw-bold text-primary">Código
+          OP</label>
         <div class="form-control" readonly>{{ detalle_op.codigo_op }}</div>
       </div>
       <div class="col-md-3">
-        <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
+        <label for="nombre_cliente"
+          class="form-label fw-bold text-primary">Nombre Cliente</label>
         <div class="form-control" readonly>{{ detalle_op.nombre_cliente }}</div>
       </div>
       <div class="col-md-7">
-        <label for="producto" class="form-label fw-bold text-primary">Producto</label>
+        <label for="producto"
+          class="form-label fw-bold text-primary">Producto</label>
         <div class="form-control" readonly>{{ detalle_op.producto }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-2">
-        <label for="estado" class="form-label fw-bold text-primary">Estado</label>
+        <label for="version"
+          class="form-label fw-bold text-primary">Versión</label>
+        <div class="form-control" readonly>{{ detalle_op.version }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="cotizacion"
+          class="form-label fw-bold text-primary">Cotización</label>
+        <div class="form-control" readonly>{{ detalle_op.cotizacion }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="estado"
+          class="form-label fw-bold text-primary">Estado</label>
         <div class="form-control" readonly>{{ detalle_op.estado }}</div>
       </div>
       <div class="col-md-2">
-        <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+        <label for="cantidad"
+          class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
       </div>
+      <div class="col-md-2">
+        <label for="medida"
+          class="form-label fw-bold text-primary">Medida</label>
+        <div class="form-control" readonly>{{ detalle_op.medida }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="referencia"
+          class="form-label fw-bold text-primary">Referencia</label>
+        <div class="form-control" readonly>{{ detalle_op.referencia }}</div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
       <div class="col-md-2">
         <label for="odi" class="form-label fw-bold text-primary">ODI</label>
         <div class="form-control" readonly>{{ detalle_op.odi }}</div>
       </div>
       <div class="col-md-3">
-        <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
+        <label for="empleado"
+          class="form-label fw-bold text-primary">Vendedor</label>
         <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
       </div>
       <div class="col-md-3">
-        <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor }}</div>
+        <label for="supervisor"
+          class="form-label fw-bold text-primary">Supervisor</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor
+          }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="fecha" class="form-label fw-bold text-primary">Fecha</label>
+        <div class="form-control" readonly>{{ detalle_op.fecha }}</div>
+      </div>
+      <div class="col-md-2">
+        <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha
+          de Entrega</label>
+        <div class="form-control" readonly>{{ detalle_op.fecha_entrega }}</div>
       </div>
     </div>
-    <div class="row g-4 mt-3">   
+    <div class="row g-4 mt-3">
+      <div class="col-md-12">
+        <label for="descripcion_general"
+          class="form-label fw-bold text-primary">Descripción General</label>
+        <textarea class="form-control" readonly
+          rows="3">{{ detalle_op.descripcion_general }}</textarea>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-4">
+        <label for="empaque"
+          class="form-label fw-bold text-primary">Empaque</label>
+        <div class="form-control" readonly>{{ detalle_op.empaque }}</div>
+      </div>
+      <div class="col-md-8">
+        <label for="materiales"
+          class="form-label fw-bold text-primary">Materiales</label>
+        <textarea class="form-control" readonly
+          rows="3">{{ detalle_op.materiales }}</textarea>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
       <div class="col-md-3">
-        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+        <label for="fecha_registro"
+          class="form-label fw-bold text-primary">Fecha y Hora de
+          Registro</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>
       </div>
       <div class="col-md-3">
-        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
-        <div class="form-control" readonly>{{ detalle_op.usuario_registro }}</div>
+        <label for="usuario_registro"
+          class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_op.usuario_registro
+          }}</div>
       </div>
     </div>
+
+    <!-- Renders -->
+    <h4 class="fw-bold text-primary mt-5 mb-4">Render</h4>
+    <div class="row g-4">
+      {% if detalle_op.renders %}
+      {% for render in detalle_op.renders %}
+      <div class="col-md-4 text-center">
+        <label class="form-label fw-bold text-primary">Render</label>
+        <br />
+        <img style="width: 200px; border-radius: 10px;"
+          src="/static/render_op/{{ render }}" alt="Render"
+          class="img-thumbnail render-img" />
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="col-md-4 text-center">
+        <label class="form-label fw-bold text-primary">Render</label>
+        <br />
+        <img style="width: 200px; border-radius: 10px;"
+          src="{{ url_for('static', filename='assets/img/default_render.png') }}"
+          alt="Render por defecto" class="img-thumbnail render-img" />
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Documentos adjuntos -->
+    <h4 class="fw-bold text-primary mt-5 mb-4">Documentos Adjuntos</h4>
+    {% if detalle_op.documentos %}
+    <div class="row g-4">
+      {% for doc in detalle_op.documentos %}
+      <div class="col-md-4">
+        <a href="{{ url_for('static', filename=doc.documento_path) }}"
+          download="{{ doc.documento_nombre_original }}"
+          class="btn btn-outline-primary">
+          <i class="bi bi-download"></i> Descargar {{
+          doc.documento_nombre_original }}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No hay documentos adjuntos.</p>
+    {% endif %}
+
+    <!-- Piezas -->
+    <h4 class="fw-bold text-primary mt-5 mb-4">Piezas Asociadas</h4>
+    {% if detalle_op.piezas %}
+    {% for pieza in detalle_op.piezas %}
+    <div class="piece-card">
+      <div class="row g-4">
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Nombre Pieza</label>
+          <div class="form-control" readonly>{{ pieza.nombre_pieza }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Cantidad</label>
+          <div class="form-control" readonly>{{ pieza.cantidad }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Tamaño</label>
+          <div class="form-control" readonly>{{ pieza.tamano }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Montaje</label>
+          <div class="form-control" readonly>{{ pieza.montaje }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Tamaño Montaje</label>
+          <div class="form-control" readonly>{{ pieza.montaje_tamano }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Material</label>
+          <div class="form-control" readonly>{{ pieza.material }}</div>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label class="form-label fw-bold text-primary">Cantidad
+            Material</label>
+          <div class="form-control" readonly>{{ pieza.cantidad_material }}</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold text-primary">Otros Procesos</label>
+          <div class="form-control" readonly>{{ pieza.otros_procesos }}</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-primary">Procesos
+            Asociados</label>
+          <div class="form-control" readonly>{{ pieza.procesos|join(', ')
+            }}</div>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
+        <div class="col-md-12">
+          <label class="form-label fw-bold text-primary">Descripción
+            General</label>
+          <textarea class="form-control" readonly
+            rows="2">{{ pieza.descripcion_general }}</textarea>
+        </div>
+      </div>
+    </div>
+    <!-- Añadir línea de separación azul, excepto después del último elemento -->
+    {% if not loop.last %}
+    <hr class="separator-line" />
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <p class="text-muted">No hay piezas asociadas.</p>
+    {% endif %}
   </div>
 </div>
 {% else %}

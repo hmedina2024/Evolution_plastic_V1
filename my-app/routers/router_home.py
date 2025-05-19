@@ -26,7 +26,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
                                         procesar_form_operacion, sql_lista_operaciones_bd, sql_detalles_operaciones_bd, buscar_operacion_unico,
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
-                                        sql_detalles_op_bd, buscar_op_unico, procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
+                                        sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada
                                         )
@@ -794,41 +794,40 @@ def lista_op():
 
 @app.route("/detalles-op/<int:id_op>", methods=['GET'])
 def detalle_op(id_op=None):
-    if 'conectado' in session:
-        if id_op is None:
-            return redirect(url_for('inicio'))
-        else:
-            app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
-            detalle_op = sql_detalles_op_bd(id_op) or []
-            return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
-    else:
+    if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
+    if id_op is None:
+        flash('ID de orden no proporcionado.', 'error')
+        return redirect(url_for('inicio'))
 
-@app.route("/editar-op/<int:id>", methods=['GET'])
-def viewEditarop(id):
-    print(f"Recibido ID: {id}")
-    if 'conectado' in session:
-        respuestaOp = buscar_op_unico(id)
-        if respuestaOp:
-            return render_template('public/ordenproduccion/form_op_update.html', respuestaOp=respuestaOp)
-        else:
-            flash('La Orden de Producción no existe.', 'error')
-            return redirect(url_for('inicio'))
-    else:
+    app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
+    detalle_op = sql_detalles_op_bd(id_op)
+    return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
+
+
+@app.route("/editar-op/<int:id_op>", methods=['GET'])
+def viewEditarop(id_op=None):
+    if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+
+    if id_op is None:
+        flash('ID de orden no proporcionado.', 'error')
+        return redirect(url_for('inicio'))
+
+    app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
+    respuestaOp = sql_detalles_op_bd(id_op)
+    return render_template('public/ordenproduccion/form_op_update.html', respuestaOp=respuestaOp)
 
 @app.route('/actualizar-op', methods=['POST'])
 def actualizar_op():
     result_data = procesar_actualizar_form_op(request)
     if result_data:
-        flash('Orden de producción actualizada correctamente', 'success')
-        return redirect(url_for('lista_op'))
+        return jsonify({"success": True, "message": "Orden de producción actualizada correctamente"})
     else:
-        flash('No se pudo actualizar la orden de producción', 'error')
-        return redirect(url_for('lista_op'))
+        return jsonify({"success": False, "message": "No se pudo actualizar la orden de producción"})
 
 
 @app.route('/borrar-op/<int:id_op>', methods=['GET'])
