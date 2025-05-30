@@ -2,8 +2,11 @@
 {% block title %}Actualizar Operación Diaria{% endblock %}
 
 {% block customCSS %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
 {% block body %}
@@ -34,44 +37,66 @@
 
       <div class="row g-4">
         <div class="col-md-4">
-          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre del Empleado</label>
-          <div class="form-control" readonly>{{ respuestaOperacion.nombre_empleado }}</div>
+          <label for="id_empleado"
+            class="form-label fw-bold text-primary">Nombre del Empleado</label>
+          <div class="form-control" readonly>{{
+            respuestaOperacion.nombre_empleado }}</div>
         </div>
         <div class="col-md-3">
-          <label for="id_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
-          <select name="id_proceso" id="id_proceso" class="form-control select2" required>
-            <option value="{{ respuestaOperacion.id_proceso }}" selected>{{ respuestaOperacion.proceso }}</option>
+          <label for="id_proceso"
+            class="form-label fw-bold text-primary">Proceso <span
+              class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2"
+            required>
+            <option value="{{ respuestaOperacion.id_proceso }}" selected>{{
+              respuestaOperacion.proceso }}</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
-          <select name="id_actividad" id="id_actividad" class="form-control select2" required>
-            <option value="{{ respuestaOperacion.id_actividad }}" selected>{{ respuestaOperacion.actividad }}</option>
+          <label for="id_actividad"
+            class="form-label fw-bold text-primary">Actividad <span
+              class="text-danger">*</span></label>
+          <select name="id_actividad" id="id_actividad"
+            class="form-control select2" required>
+            <option value="{{ respuestaOperacion.id_actividad }}" selected>{{
+              respuestaOperacion.actividad }}</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label for="id_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
-          <div class="form-control" readonly>{{ respuestaOperacion.codigo_op }}</div>
+          <label for="id_op" class="form-label fw-bold text-primary">Orden de
+            Producción <span class="text-danger">*</span></label>
+          <div class="form-control" readonly>{{ respuestaOperacion.codigo_op
+            }}</div>
         </div>
       </div>
 
       <div class="row g-4 mt-3">
         <div class="col-md-2">
-          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
-          <input class="form-control" type="number" name="cantidad" id="cantidad" value="{{ respuestaOperacion.cantidad }}" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+          <label for="cantidad"
+            class="form-label fw-bold text-primary">Cantidad</label>
+          <input class="form-control" type="number" name="cantidad"
+            id="cantidad" value="{{ respuestaOperacion.cantidad }}" required
+            pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
         </div>
         <div class="col-md-4">
-          <label for="pieza" class="form-label fw-bold text-primary">Pieza</label>
-          <input class="form-control pieza-readonly" type="text" name="pieza" value="{{ respuestaOperacion.pieza }}" />
+          <label for="pieza"
+            class="form-label fw-bold text-primary">Pieza</label>
+          <input class="form-control pieza-readonly" type="text" name="pieza"
+            value="{{ respuestaOperacion.pieza }}" />
         </div>
         <div class="col-md-6">
-          <label for="novedad" class="form-label fw-bold text-primary">Novedad</label>
-          <input class="form-control pieza-readonly" type="text" name="novedad" value="{{ respuestaOperacion.novedad }}" />
+          <label for="novedad"
+            class="form-label fw-bold text-primary">Novedad</label>
+          <input class="form-control pieza-readonly" type="text" name="novedad"
+            value="{{ respuestaOperacion.novedad }}" />
         </div>
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-3">
-          <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y hora de Inicio</label>
+          <label for="fecha_hora_inicio"
+            class="form-label fw-bold text-primary">Fecha y hora de
+            Inicio</label>
           <input
             class="form-control"
             type="datetime-local"
@@ -82,7 +107,8 @@
             style="height: 38px; padding: 6px 12px; font-size: 14px;" />
         </div>
         <div class="col-md-3">
-          <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y hora de Fin</label>
+          <label for="fecha_hora_fin"
+            class="form-label fw-bold text-primary">Fecha y hora de Fin</label>
           <input
             class="form-control"
             type="datetime-local"
@@ -93,10 +119,13 @@
             style="height: 38px; padding: 6px 12px; font-size: 14px;" />
         </div>
         <div class="col-md-3">
-          <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
-          <div class="form-control" readonly>{{ respuestaOperacion.fecha_registro }}</div>
+          <label for="fecha_registro"
+            class="form-label fw-bold text-primary">Fecha y Hora de
+            Registro</label>
+          <div class="form-control" readonly>{{
+            respuestaOperacion.fecha_registro }}</div>
         </div>
-      </div>      
+      </div>
       <div class="text-center mt-4">
         <button type="submit" class="btn btn-primary">Actualizar</button>
       </div>
@@ -106,7 +135,8 @@
   <div class="card-body p-4 text-center">
     <h2>No existe la Operación 😭</h2>
     <hr />
-    <a href="/lista-de-operaciones" class="btn btn-primary">Regresar a la lista</a>
+    <a href="/lista-de-operaciones" class="btn btn-primary">Regresar a la
+      lista</a>
   </div>
   {% endif %}
 </div>
@@ -114,8 +144,10 @@
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script
+  src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
   $(document).ready(function () {
     function setupSelect2(selectId, url, placeholder, dataKey, initialValue, initialText) {
@@ -180,8 +212,8 @@
     const horaFinInput = $('#fecha_hora_fin');
     const submitBtn = $('button[type="submit"]');
     const today = new Date();
-    const maxDate = today.toISOString().slice(0, 16);
-    const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
+    // const maxDate = today.toISOString().slice(0, 16);
+    // const minDate = new Date(today.setDate(today.getDate() - 5)).toISOString().slice(0, 16);
 
     horaInicioInput.attr('max', maxDate);
     horaInicioInput.attr('min', minDate);
@@ -191,27 +223,27 @@
       const horaFin = new Date(horaFinInput.val());
       let isValid = true;
 
-      if (horaInicio > new Date()) {
-        $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
-        isValid = false;
-      } else if (horaInicio < new Date(minDate)) {
-        $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
-        isValid = false;
-      } else {
-        $('#hora_inicio_feedback').removeClass('show');
-      }
+      // if (horaInicio > new Date()) {
+      //   $('#hora_inicio_feedback').text('¡No puede ser mayor a la fecha actual!').addClass('show');
+      //   isValid = false;
+      // } else if (horaInicio < new Date(minDate)) {
+      //   $('#hora_inicio_feedback').text('¡No puede ser menor a 5 días atrás!').addClass('show');
+      //   isValid = false;
+      // } else {
+      //   $('#hora_inicio_feedback').removeClass('show');
+      // }
 
-      if (horaFinInput.val()) {
-        if (horaFin < horaInicio) {
-          $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
-          isValid = false;
-        } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) {
-          $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
-          isValid = false;
-        } else {
-          $('#hora_fin_feedback').removeClass('show');
-        }
-      }
+      // if (horaFinInput.val()) {
+      //   if (horaFin < horaInicio) {
+      //     $('#hora_fin_feedback').text('¡No puede ser menor a la hora de inicio!').addClass('show');
+      //     isValid = false;
+      //   } else if ((horaFin - horaInicio) > 24 * 60 * 60 * 1000) {
+      //     $('#hora_fin_feedback').text('¡La diferencia no puede superar 24 horas!').addClass('show');
+      //     isValid = false;
+      //   } else {
+      //     $('#hora_fin_feedback').removeClass('show');
+      //   }
+      // }
 
       submitBtn.prop('disabled', !isValid);
     }

@@ -1,5 +1,7 @@
 {% extends 'public/base_cpanel.html' %}
 
+{% block title %}Registrar Orden de Producción{% endblock %}
+
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
@@ -14,8 +16,8 @@
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-jornada" autocomplete="off" enctype="multipart/form-data">
       <div class="row g-4">
         <div class="col-md-4">
-          <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
-          <select name="nombre_empleado" id="nombre_empleado" class="form-control select2" required></select>
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="nombre_empleado" class="form-control select2" required></select>
         </div>
       </div>
       <div class="row g-4 mt-3">
@@ -64,7 +66,7 @@
 <script>
 $(document).ready(function () {
     // Configuración de Select2 (sin cambios aquí)
-    function setupSelect2(selectId, url, placeholder, dataKey) {
+    function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText) {
         $(`#${selectId}`).select2({
             placeholder: placeholder,
             allowClear: true,
@@ -84,8 +86,8 @@ $(document).ready(function () {
                 processResults: function (data) {
                     return {
                         results: data[dataKey].map(item => ({
-                            id: Object.values(item)[0],
-                            text: Object.values(item)[0]
+                            id: item.id_empleado,
+                            text: item.nombre_empleado
                         })),
                         pagination: { more: data[dataKey].length === 10 }
                     };
@@ -105,7 +107,7 @@ $(document).ready(function () {
         });
     }
 
-    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados');
+    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
@@ -130,6 +132,60 @@ $(document).ready(function () {
             form.submit();
         } else {
             form.reportValidity(); // Mostrar errores de validación del navegador
+        }
+    });
+
+    // Establecer fecha y hora por defecto para Llegada Programada (6:00 AM)
+    const fechaLlegadaProgramada = new Date();
+    fechaLlegadaProgramada.setHours(6, 0, 0, 0);
+    const fechaLlegadaProgramadaISO = fechaLlegadaProgramada.toISOString().slice(0, 16);
+    $('#fecha_hora_llegada_programada').val(fechaLlegadaProgramadaISO);
+
+    // Establecer fecha y hora por defecto para Salida Programada (2:00 PM)
+    const fechaSalidaProgramada = new Date();
+    fechaSalidaProgramada.setHours(14, 0, 0, 0);
+    const fechaSalidaProgramadaISO = fechaSalidaProgramada.toISOString().slice(0, 16);
+    $('#fecha_hora_salida_programada').val(fechaSalidaProgramadaISO);
+
+    // Restricciones para FH. Llegada Real
+    const fechaLlegadaInput = document.querySelector('input[name="fecha_hora_llegada"]');
+    const hoy = new Date();
+    const cincoDiasAtras = new Date();
+    cincoDiasAtras.setDate(hoy.getDate() - 5);
+
+    // Formatear fechas a YYYY-MM-DDTHH:mm (ISO 8601)
+    const hoyISO = hoy.toISOString().slice(0, 16);
+    const cincoDiasAtrasISO = cincoDiasAtras.toISOString().slice(0, 16);
+
+    fechaLlegadaInput.max = hoyISO;
+    fechaLlegadaInput.min = cincoDiasAtrasISO;
+
+    // Restricciones para FH. Salida Real
+    const fechaSalidaInput = document.querySelector('input[name="fecha_hora_salida"]');
+    const fechaLlegadaRealInput = document.querySelector('input[name="fecha_hora_llegada"]');
+
+    fechaSalidaInput.addEventListener('change', function() {
+        const llegadaRealValue = fechaLlegadaRealInput.value;
+        const salidaRealValue = fechaSalidaInput.value;
+
+        if (llegadaRealValue && salidaRealValue) {
+            const llegadaReal = new Date(llegadaRealValue);
+            const salidaReal = new Date(salidaRealValue);
+
+            if (salidaReal < llegadaReal) {
+                alert('La fecha de salida no puede ser anterior a la fecha de llegada.');
+                fechaSalidaInput.value = '';
+                return;
+            }
+
+            const diffEnMilisegundos = salidaReal.getTime() - llegadaReal.getTime();
+            const diffEnHoras = diffEnMilisegundos / (1000 * 60 * 60);
+
+            if (diffEnHoras > 24) {
+                alert('La diferencia entre la fecha de llegada y la fecha de salida no puede ser mayor a 24 horas.');
+                fechaSalidaInput.value = '';
+                return;
+            }
         }
     });
 });

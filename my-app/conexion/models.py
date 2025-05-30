@@ -87,13 +87,16 @@ class Empleados(db.Model):
 class Procesos(db.Model):
     __tablename__ = 'tbl_procesos'
     id_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nombre_proceso = db.Column(db.String(50), nullable=False)
+    codigo_proceso = db.Column(db.String(50), nullable=False, unique=True)
+    nombre_proceso = db.Column(db.String(50), nullable=True) # Ajustado a nullable=True como en tu SQL
     descripcion_proceso = db.Column(db.String(200), nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False) # Considera usar default=func.now() para consistencia
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
     # Relaciones
     orden_piezas_procesos = db.relationship('OrdenPiezasProcesos', backref='proceso', lazy=True)
+    # Asegúrate de que las relaciones inversas ('operaciones') estén definidas si las necesitas
+    operaciones = db.relationship('Operaciones', lazy=True) # Ejemplo
 
 
 # --- Modelo Piezas ---
@@ -102,7 +105,7 @@ class Piezas(db.Model):
     id_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre_pieza = db.Column(db.String(50), nullable=True)
     descripcion_pieza = db.Column(db.String(200), nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
     # Relaciones
@@ -163,7 +166,7 @@ class Operaciones(db.Model):
 
     # Relaciones
     empleado = db.relationship('Empleados', backref='operaciones') # foreign_keys no es necesario si solo hay una FK a Empleados
-    proceso_rel = db.relationship('Procesos', backref='operaciones')
+    proceso_rel = db.relationship('Procesos')
     actividad_rel = db.relationship('Actividades', backref='operaciones')
     orden_produccion = db.relationship('OrdenProduccion', backref='operaciones')
     usuario_reg = db.relationship('Users', backref='operaciones_registradas')
@@ -188,12 +191,12 @@ class Jornadas(db.Model):
     # Relaciones
     empleado = db.relationship('Empleados', backref='jornadas') # foreign_keys no es necesario
     usuario_reg = db.relationship('Users', backref='jornadas_registradas')
-    
-    
+
+
 class OrdenProduccion(db.Model):
     __tablename__ = 'tbl_ordenproduccion'
     id_op = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    codigo_op = db.Column(db.BigInteger, nullable=False, unique=True)
+    codigo_op = db.Column(db.Integer, nullable=False, unique=True)
     id_cliente = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
     producto = db.Column(db.String(200), nullable=True)
     version = db.Column(db.String(50), nullable=True)
@@ -210,7 +213,7 @@ class OrdenProduccion(db.Model):
     descripcion_general = db.Column(db.Text, nullable=True)
     empaque = db.Column(db.String(100), nullable=True)
     materiales = db.Column(db.Text, nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
@@ -229,7 +232,7 @@ class DocumentosOP(db.Model):
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
     documento_path = db.Column(db.String(255), nullable=False)
     documento_nombre_original = db.Column(db.String(255), nullable=False)  # Nuevo campo
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
 class RendersOP(db.Model):
@@ -237,7 +240,7 @@ class RendersOP(db.Model):
     id_render = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
     render_path = db.Column(db.String(255), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
 class OrdenPiezas(db.Model):
@@ -253,7 +256,7 @@ class OrdenPiezas(db.Model):
     cantidad_material = db.Column(db.Text, nullable=True)
     otros_procesos = db.Column(db.String(100), nullable=True)
     descripcion_general = db.Column(db.Text, nullable=True)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
     # Relaciones
@@ -264,5 +267,5 @@ class OrdenPiezasProcesos(db.Model):
     id_orden_pieza_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza', ondelete='CASCADE'), nullable=False)
     id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)

@@ -131,18 +131,6 @@
   /* Espacio entre ítems */
 }
 
-.render-upload-container {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-  aspect-ratio: 16/9;
-  border: 2px dashed #ccc;
-  border-radius: 8px;
-  overflow: hidden;
-  background-size: cover;
-  background-position: center;
-}
-
 .render-upload-label {
   position: absolute;
   top: 10px;

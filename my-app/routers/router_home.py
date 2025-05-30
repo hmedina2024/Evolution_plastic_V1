@@ -2,6 +2,7 @@
 from controllers.funciones_home import sql_detalles_empresaBD, buscar_empresa_unica, eliminar_empresa
 from werkzeug.exceptions import RequestEntityTooLarge
 from app import app
+import json
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Blueprint, request
 from flask_paginate import Pagination, get_page_args
 from controllers.funciones_home import get_total_operaciones, sql_lista_op_bd,  sql_lista_jornadas_bd, get_total_jornadas
@@ -28,7 +29,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
                                         sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
-                                        eliminar_jornada
+                                        eliminar_jornada, generar_codigo_op, get_jornadas_serverside  # <--- IMPORTACIÓN AGREGADA AQUÍ
                                         )
 
 PATH_URL = "public/empleados"
@@ -742,7 +743,8 @@ def viewFormOp():
         # Usamos la versión paginada, pero aquí solo necesitamos una lista
         clientes = buscar_cliente_bd()
         empleados = obtener_vendedor()
-        return render_template('public/ordenproduccion/form_op.html', clientes=clientes, empleados=empleados)
+        codigo_op = generar_codigo_op()  # Generar el código de OP
+        return render_template('public/ordenproduccion/form_op.html', clientes=clientes, empleados=empleados, codigo_op=codigo_op)
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -776,13 +778,6 @@ def form_op():
         return redirect(url_for('inicio'))
 
 
-@app.route('/validar-codigo-op', methods=['POST'])
-def validar_codigo_op():
-    documento = request.form.get('documento')
-    exists = validar_cod_op(documento)
-    return jsonify({'exists': exists})
-
-
 @app.route('/lista-de-op', methods=['GET'])
 def lista_op():
     if 'conectado' in session:
@@ -809,7 +804,7 @@ def detalle_op(id_op=None):
 
 @app.route("/editar-op/<int:id_op>", methods=['GET'])
 def viewEditarop(id_op=None):
-    if 'conectado' not in session:
+    if 'conectado' not in session or not session.get('conectado'):
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
@@ -819,16 +814,50 @@ def viewEditarop(id_op=None):
 
     app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
     respuestaOp = sql_detalles_op_bd(id_op)
-    return render_template('public/ordenproduccion/form_op_update.html', respuestaOp=respuestaOp)
+
+    if not respuestaOp:
+        flash('No se encontraron detalles para la orden.', 'error')
+        return redirect(url_for('inicio'))
+
+    # Extraer datos de la respuesta
+    orden = respuestaOp  # Usamos el diccionario completo como base para orden
+    clientes = respuestaOp  # Ejemplo; ajusta según tu lógica
+    empleados = respuestaOp  # Ejemplo; ajusta
+    supervisores = respuestaOp  # Ejemplo; ajusta
+
+    # Preparar piezas en el formato esperado
+    piezas = [
+        {
+            'id': p.get('id_orden_pieza'),
+            'id_pieza': p.get('id_pieza', ''),  # Asegúrate de que id_pieza esté presente
+            'pieceName': p.get('nombre_pieza', 'Pieza Desconocida'),
+            'cabezoteCantidad': p.get('cantidad'),
+            'cabezoteTamaño': p.get('tamano'),
+            'cabezoteMontaje': p.get('montaje'),
+            'cabezoteMontajeTamaño': p.get('montaje_tamano'),
+            'cabezoteMaterial': p.get('material'),
+            'cabezoteCantidadMaterial': p.get('cantidad_material'),
+            'id_proceso': p.get('procesos', []),
+            'cabezoteOtrosProcesos': p.get('otros_procesos'),
+            'cabezoteDescGeneral': p.get('descripcion_general')
+        }
+        for p in respuestaOp.get('piezas', [])
+    ]
+    piezas_json = json.dumps(piezas)
+
+    # Asegurarse de que las fechas estén en formato correcto para el input type="date"
+    orden['fecha'] = orden.get('fecha', '2025-05-18')  # Ajusta si el formato no coincide
+    orden['fecha_entrega'] = orden.get('fecha_entrega', '2025-05-26')
+
+    return render_template('public/ordenproduccion/form_op_update.html', id_op=id_op, orden=orden, clientes=clientes, empleados=empleados, supervisores=supervisores, piezas_json=piezas_json)
 
 @app.route('/actualizar-op', methods=['POST'])
 def actualizar_op():
-    result_data = procesar_actualizar_form_op(request)
-    if result_data:
-        return jsonify({"success": True, "message": "Orden de producción actualizada correctamente"})
+    result_data = procesar_actualizar_form_op(request, request.files)
+    if isinstance(result_data, dict):
+        return jsonify(result_data)
     else:
-        return jsonify({"success": False, "message": "No se pudo actualizar la orden de producción"})
-
+        return jsonify({'success': False, 'message': 'Error desconocido al procesar la solicitud'})
 
 @app.route('/borrar-op/<int:id_op>', methods=['GET'])
 def borrar_op(id_op):
@@ -867,6 +896,42 @@ def buscando_ordenes_produccion():
     )
 
     return jsonify(result)
+@app.route('/buscando-jornadas', methods=['POST'])
+def buscando_jornadas_route(): # Renombrada para evitar conflicto si 'buscando_jornadas' ya existe como función
+    if 'conectado' not in session:
+        return jsonify({'error': 'Usuario no autenticado'}), 401
+    try:
+        data = request.get_json()
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        search_empleado = data.get('empleado', '').strip()
+        search_fecha = data.get('fecha', '').strip()
+        # Asegúrate de que 'order' exista y tenga al menos un elemento.
+        order_info = data.get('order')
+        if not order_info or not isinstance(order_info, list) or len(order_info) == 0:
+            order_info = [{'column': 1, 'dir': 'asc'}] # Orden por defecto si no se proporciona
+
+        # Llama a la función del controlador
+        jornadas_data, total_records, filtered_records = get_jornadas_serverside(
+            draw=draw,
+            start=start,
+            length=length,
+            search_empleado=search_empleado,
+            search_fecha=search_fecha,
+            order_info=order_info[0] # Pasa el primer diccionario de ordenamiento
+        )
+
+        return jsonify({
+            'draw': draw,
+            'recordsTotal': total_records,
+            'recordsFiltered': filtered_records,
+            'data': jornadas_data
+        })
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-jornadas: {str(e)}")
+        # Considera devolver un error más específico o registrar más detalles
+        return jsonify({'error': 'Ocurrió un error al procesar la solicitud.', 'details': str(e)}), 500
 
 # Jornada
 
@@ -908,15 +973,22 @@ def lista_jornadas():
 @app.route('/form-registrar-jornada', methods=['POST'])
 def form_jornada():
     if 'conectado' in session:
-        resultado = procesar_form_jornada(request.form)
-        if resultado:
-            return redirect(url_for('lista_jornadas'))
-        else:
-            flash('La Jornada NO fue registrada.', 'error')
+        try:
+            resultado = procesar_form_jornada(request.form)
+            if resultado:
+                flash('Jornada registrada correctamente', 'success')
+                return redirect(url_for('lista_jornadas'))
+            else:
+                flash('La Jornada NO fue registrada.', 'error')
+                return render_template('public/jornada/form_jornadas.html')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Ocurrió un error en form_jornada: {e}")
+            flash(f"Error al registrar la jornada: {e}", 'error')
             return render_template('public/jornada/form_jornadas.html')
-    else:
-        flash('primero debes iniciar sesión.', 'error')
-        return redirect(url_for('inicio'))
+        else:
+            flash('primero debes iniciar sesión.', 'error')
+            return redirect(url_for('inicio'))
 
 
 @app.route("/detalles-jornada/<string:id_jornada>", methods=['GET'])
@@ -936,9 +1008,12 @@ def detalle_jornada(id_jornada=None):
 def viewEditarJornada(id):
     if 'conectado' in session:
         respuesta_jornada = buscar_jornada_unico(id)
+        app.logger.debug(f"Respuesta de buscar_jornada_unico en la RUTA viewEditarJornada: {respuesta_jornada}") # Log para ver el contenido
         if respuesta_jornada:
-            return render_template('public/jornada/form_jornada_update.html', respuesta_jornada=respuesta_jornada)
+            # Asegurarse de que el nombre de la variable coincida con el que espera el template
+            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuesta_jornada)
         else:
+            app.logger.debug(f"respuesta_jornada es None o Falsy en la RUTA viewEditarJornada, mostrando flash.") # Log
             flash('La Jornada no existe.', 'error')
             return redirect(url_for('inicio'))
     else:
@@ -951,6 +1026,27 @@ def actualizar_jornada():
     result_data = procesar_actualizacion_jornada(request)
     if result_data:
         return redirect(url_for('lista_jornadas'))
+@app.route('/actualizar-jornada/<int:id_jornada>', methods=['POST'])
+def actualizar_jornada_post(id_jornada):
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+    if request.method == 'POST':
+        # Aquí llamaremos a la función que procesa la actualización en funciones_home.py
+        # Asumimos que se llamará procesar_actualizacion_jornada y que recibirá el id y request.form
+        exito, mensaje = procesar_actualizacion_jornada(id_jornada, request.form)
+        if exito:
+            flash(mensaje, 'success')
+            return redirect(url_for('lista_jornadas'))
+        else:
+            flash(mensaje, 'error')
+            # Si falla, volvemos a cargar el formulario de edición con los datos actuales
+            # para que el usuario pueda corregir.
+            respuestaJornada = buscar_jornada_unico(id_jornada) # Re-obtener datos para el form
+            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuestaJornada)
+    # Si no es POST, redirigir o manejar como error, aunque esta ruta es solo para POST.
+    return redirect(url_for('lista_jornadas'))
 
 
 @app.route('/borrar-jornada/<int:id_jornada>', methods=['GET'])

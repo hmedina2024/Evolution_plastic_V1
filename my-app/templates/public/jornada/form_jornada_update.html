@@ -1,154 +1,159 @@
 {% extends 'public/base_cpanel.html' %}
-<!--Cambiando el title-->
-{% block title %}Actualizar Operacion Diaria{% endblock %}
-<!---->
+
+{% block title %}Actualizar Jornada{% endblock %}
+
 {% block customCSS %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename ='assets/css/file.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!--Inicio del block-->
 {% block body %}
-<div class="card" style="border-radius: 0px !important">
-  {% if respuestaOperacion|length %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center mt-5 mb-3">
-        <a href="/lista-de-operaciones">
-          <i class="bi bi-arrow-left-circle"></i>
-        </a>
-        ACTUALIZAR DATOS DE LA OPERACION
-      </h3>
-      <hr />
-    </div>
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <!-- DEBUG: {{ respuestaJornada }} -->
+  {% if respuestaJornada %}
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">
+      <a href="{{ url_for('lista_jornadas') }}" class="text-white">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      ACTUALIZAR JORNADA
+    </h3>
   </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal mx-auto" method="POST" action="{{ url_for('actualizar_jornada_post', id_jornada=respuestaJornada.id_jornada) }}" autocomplete="off">
+      <input type="hidden" name="id_jornada" value="{{ respuestaJornada.id_jornada }}">
 
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-10">
-      <form
-        class="form-horizontal mx-auto"
-        method="POST"
-        action="{{ url_for('actualizarOperacion', id = respuestaOperacion.id_operacion ) }}"
-        autocomplete="off"
-        enctype="multipart/form-data">
-        <input
-          type="text"
-          class="form-control"
-          name="id_operacion"
-          value="{{ respuestaOperacion.id_operacion }}"
-          required
-          hidden />
-
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <label for="nombre_empleado" class="form-label fw-bold text-primary" >
-                  Nombre del Empleado
-              </label>
-              <div class="form-control" readonly>
-                  {{ respuestaOperacion.nombre_empleado }}
-              </div>
-          </div>
-            <div class="col-md-6">
-              <label for="proceso" class="form-label fw-bold text-primary">
-                Proceso
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="proceso"
-                value="{{ respuestaOperacion.proceso }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="actividad" class="form-label fw-bold text-primary">
-                Actividad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="actividad"
-                value="{{ respuestaOperacion.actividad }}"
-                required />
-            </div>
-            </div>
-            <div class="col-md-6">
-              <label for="cantidad" class="form-label fw-bold text-primary">
-                Cantidad
-              </label>
-              <input
-                class="form-control"
-                type="int"
-                name="cantidad"
-                value="{{ respuestaOperacion.cantidad }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="novedad" class="form-label fw-bold text-primary">
-                Novedad
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="novedad"
-                value="{{ respuestaOperacion.novedad }}"
-                required />
-            </div>
-          </div>
-
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">
-                Fecha y hora de Inico
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="fecha_hora_inicio"
-                value="{{ respuestaOperacion.fecha_hora_inicio }}"
-                id="fecha_hora_inicio"
-                required />
-            </div>
-            <div class="col-md-6">
-              <label for="fecha_hora_fin" class="form-label fw-bold text-primary">
-                Fecha y hora de Fin
-              </label>
-              <input
-                class="form-control"
-                type="text"
-                name="fecha_hora_fin"
-                value="{{ respuestaOperacion.fecha_hora_fin }}"
-                id="fecha_hora_fin"
-                required />
-            </div>
-          </div>   
-
-          <div class="mb-3 mt-4 text-center">
-            <button type="submit" class="btn rounded-pill btn-primary">
-              Guardar registro ahora
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
+      <div class="row g-4">
+        <div class="col-md-6">
+          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado_select" class="form-control select2" required>
+            {% if respuestaJornada.id_empleado %}
+            <option value="{{ respuestaJornada.id_empleado }}" selected>{{ respuestaJornada.nombre_empleado }}</option>
+            {% endif %}
+          </select>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">FH. Llegada Programada</label>
+          <input class="form-control" type="datetime-local" id="fecha_hora_llegada_programada" name="fecha_hora_llegada_programada" value="{{ respuestaJornada.fecha_hora_llegada_programada if respuestaJornada.fecha_hora_llegada_programada else '' }}" />
+        </div>
+        <div class="col-md-3">
+          <label for="fecha_hora_salida_programada" class="form-label fw-bold text-primary">FH. Salida Programada</label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_salida_programada" id="fecha_hora_salida_programada" value="{{ respuestaJornada.fecha_hora_salida_programada if respuestaJornada.fecha_hora_salida_programada else '' }}" />
+        </div>
+        <div class="col-md-6">
+          <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">Novedades de la Jornada Programada</label>
+          <textarea class="form-control" name="novedad_jornada_programada" rows="2">{{ respuestaJornada.novedad_jornada_programada if respuestaJornada.novedad_jornada_programada else '' }}</textarea>
+        </div>
+      </div>
+
+      
+
+      <div class="row g-4 mt-3">
+        <div class="col-md-3">
+          <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Llegada Real</label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_llegada" value="{{ respuestaJornada.fecha_hora_llegada if respuestaJornada.fecha_hora_llegada else '' }}" />
+        </div>
+        <div class="col-md-3">
+          <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Salida Real</label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_salida" value="{{ respuestaJornada.fecha_hora_salida if respuestaJornada.fecha_hora_salida else '' }}" />
+        </div>
+        <div class="col-md-6">
+          <label for="novedad_jornada" class="form-label fw-bold text-primary">Novedades de la Jornada Real</label>
+          <textarea class="form-control" name="novedad_jornada" rows="2">{{ respuestaJornada.novedad_jornada if respuestaJornada.novedad_jornada else '' }}</textarea>
+        </div>
+      </div>
+
+
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary rounded-pill px-4">
+          Actualizar Jornada
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </form>
   </div>
   {% else %}
-  <div class="row justify-content-center mb-2">
-    <div class="col-md-12">
-      <h3 class="text-center">No existe la Operación</h3>
-    </div>
+  <div class="card-body p-4 text-center">
+    <h4 class="text-danger">No se encontró la jornada especificada.</h4>
+    <a href="{{ url_for('lista_jornadas') }}" class="btn btn-primary mt-3">Volver a la lista</a>
   </div>
-
   {% endif %}
 </div>
-{% endblock %} {% block customJS %}
-<script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function () {
+    function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText) {
+        $(`#${selectId}`).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0, 
+            dropdownAutoWidth: true,
+            width: '100%',
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    let items = [];
+                    if (data && Array.isArray(data[dataKey])) {
+                        items = data[dataKey];
+                    }
+                    return {
+                        results: items.map(item => ({
+                            id: item[keyId],
+                            text: item[keyText]
+                        })),
+                        pagination: {
+                            more: (params.page * 10) < (data.total_count || items.length) // Ajustar si la API devuelve total_count
+                        }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) { return data.text; },
+            templateSelection: function (data) { return data.text || data.id; }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                const searchField = document.querySelector('.select2-search__field');
+                if (searchField) {
+                    searchField.focus();
+                }
+            }, 50);
+        });
+    }
+
+    setupSelect2('id_empleado_select', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
+
+    // Si ya hay un empleado seleccionado (viene de respuestaJornada),
+    // y el Select2 no lo muestra automáticamente, puedes inicializarlo.
+    // Esto es útil si el valor inicial no está en la primera página de resultados del AJAX.
+    var initialEmpleadoId = "{{ respuestaJornada.id_empleado if respuestaJornada else '' }}";
+    var initialEmpleadoNombre = "{{ respuestaJornada.nombre_empleado if respuestaJornada else '' }}";
+    if (initialEmpleadoId && initialEmpleadoNombre) {
+        var $select = $('#id_empleado_select');
+        // Comprobar si la opción ya existe para evitar duplicados
+        if ($select.find("option[value='" + initialEmpleadoId + "']").length === 0) {
+            var option = new Option(initialEmpleadoNombre, initialEmpleadoId, true, true);
+            $select.append(option).trigger('change');
+        }
+        // Para asegurar que el valor se muestre correctamente
+        $select.val(initialEmpleadoId).trigger('change');
+    }
+});
+</script>
 {% endblock %}
