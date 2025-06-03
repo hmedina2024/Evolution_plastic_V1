@@ -81,11 +81,14 @@ CREATE TABLE `tbl_actividades` (
   `codigo_actividad` varchar(50) NOT NULL,
   `nombre_actividad` varchar(50) DEFAULT NULL,
   `descripcion_actividad` varchar(200) DEFAULT NULL,
+  `id_proceso` int NOT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_actividad`),
-  UNIQUE KEY `codigo_actividad_UNIQUE` (`codigo_actividad`)
-) ENGINE=InnoDB AUTO_INCREMENT=318 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  UNIQUE KEY `codigo_actividad_UNIQUE` (`codigo_actividad`),
+  KEY `fk_actividad_proceso` (`id_proceso`),
+  CONSTRAINT `fk_actividad_proceso` FOREIGN KEY (`id_proceso`) REFERENCES `tbl_procesos` (`id_proceso`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_clientes
 CREATE TABLE `tbl_clientes` (

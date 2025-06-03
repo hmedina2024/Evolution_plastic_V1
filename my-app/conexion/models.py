@@ -119,9 +119,13 @@ class Actividades(db.Model):
     codigo_actividad = db.Column(db.String(50), nullable=False, unique=True)
     nombre_actividad = db.Column(db.String(50), nullable=True)
     descripcion_actividad = db.Column(db.String(200), nullable=True)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=False) # Nueva FK
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
-    # Relación inversa 'operaciones' definida en Operaciones
+    
+    # Relación con Procesos (Una Actividad pertenece a Un Proceso)
+    proceso = db.relationship('Procesos', backref=db.backref('actividades', lazy='dynamic'))
+    # Relación inversa 'operaciones' definida en Operaciones (si aún es relevante directamente con actividad)
 
 # --- Modelo Clientes ---
 class Clientes(db.Model):
@@ -247,15 +251,19 @@ class OrdenPiezas(db.Model):
     __tablename__ = 'tbl_orden_piezas'
     id_orden_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
-    id_pieza = db.Column(db.Integer, db.ForeignKey('tbl_piezas.id_pieza'), nullable=False)
-    cantidad = db.Column(db.Integer, nullable=True)
+    # id_pieza ya no será una FK obligatoria a tbl_piezas si los detalles se guardan aquí.
+    # Considerar hacerlo nullable o eliminarlo si tbl_piezas no se usa como maestro para este flujo.
+    id_pieza = db.Column(db.Integer, db.ForeignKey('tbl_piezas.id_pieza'), nullable=True) # Renombrado para claridad, y nullable
+    nombre_pieza_op = db.Column(db.String(100), nullable=False) # Nuevo campo para el nombre específico de la pieza en esta OP
+    cantidad = db.Column(db.Integer, nullable=False) # Hacerlo no nullable si siempre se requiere
     tamano = db.Column(db.String(100), nullable=True)
     montaje = db.Column(db.String(100), nullable=True)
     montaje_tamano = db.Column(db.String(100), nullable=True)
     material = db.Column(db.String(100), nullable=True)
-    cantidad_material = db.Column(db.Text, nullable=True)
-    otros_procesos = db.Column(db.String(100), nullable=True)
-    descripcion_general = db.Column(db.Text, nullable=True)
+    cantidad_material = db.Column(db.String(100), nullable=True) # Ajustado a String si es más apropiado que Text
+    # 'otros_procesos' se manejará creando un registro en tbl_procesos y vinculándolo. Este campo puede eliminarse de OrdenPiezas.
+    # otros_procesos_texto = db.Column(db.String(255), nullable=True) # Si se quiere mantener un campo de texto adicional para notas de proceso
+    descripcion_pieza = db.Column(db.Text, nullable=True) # Renombrado para claridad (era descripcion_general)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 

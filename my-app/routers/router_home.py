@@ -763,16 +763,15 @@ def validate_cod_op():
 def form_op():
     if 'conectado' in session:
         try:
-            resultado = procesar_form_op(request.form, request.files)
-            if resultado == 1:
-                flash('Orden de producción registrada correctamente.', 'success')
-                return redirect(url_for('lista_op'))
-            else:
-                flash('La orden de producción NO fue registrada. Verifica los datos e intenta de nuevo.', 'error')
-                return render_template('public/ordenproduccion/form_op.html'), 400
+            # procesar_form_op ahora devuelve una tupla (respuesta_json, status_code)
+            respuesta_json, status_code = procesar_form_op(request.form, request.files)
+            return respuesta_json, status_code
         except RequestEntityTooLarge:
-            flash('Uno o más archivos exceden el tamaño máximo permitido (5MB).', 'error')
-            return render_template('public/ordenproduccion/form_op.html'), 400
+            app.logger.error("Error: Archivo demasiado grande en /form-registrar-op")
+            return jsonify({'status': 'error', 'message': 'Uno o más archivos exceden el tamaño máximo permitido (5MB).'}), 413
+        except Exception as e:
+            app.logger.error(f"Error inesperado en /form-registrar-op: {str(e)}")
+            return jsonify({'status': 'error', 'message': 'Ocurrió un error inesperado en el servidor.'}), 500
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))

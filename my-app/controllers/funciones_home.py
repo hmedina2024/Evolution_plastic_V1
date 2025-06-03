@@ -7,15 +7,15 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users
-import datetime
+from conexion.models import db, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa
+# import datetime # datetime ya se importa desde datetime
 import pytz
 import re
 import openpyxl  # Para generar el Excel
-from flask import send_file, session, Flask, url_for,jsonify,flash
-from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado
+from flask import send_file, session, Flask, url_for, jsonify, flash
+# from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado # Ya importado arriba
 from sqlalchemy import or_, func, desc, asc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # datetime ya importado arriba
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Message
 import smtplib
@@ -29,501 +29,581 @@ magic.Magic(mime=True)
 # Define la zona horaria local (ajusta según tu ubicación)
 LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
 
+# Definiciones de extensiones permitidas
+ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_DOC_EXTENSIONS = {'pdf', 'doc', 'docx',
+                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv'}
 
-# Empleados
+
+# --- Funciones de Empleados ---
 def procesar_form_empleado(dataForm, foto_perfil):
     try:
-        # Formateando documento
-        documento_sin_puntos = re.sub('[^0-9]+', '', dataForm['documento'])
+        documento_sin_puntos = re.sub(
+            '[^0-9]+', '', dataForm.get('documento', ''))
+        if not documento_sin_puntos:
+            raise ValueError("Documento es requerido.")
         documento = int(documento_sin_puntos)
 
-        # Obtener id_empresa y validar que esté presente
-        if 'id_empresa' not in dataForm or not dataForm['id_empresa']:
-            return False, "Debe seleccionar una empresa."
+        id_empresa_str = dataForm.get('id_empresa')
+        if not id_empresa_str or not id_empresa_str.isdigit():
+            raise ValueError("Debe seleccionar una empresa válida.")
+        id_empresa = int(id_empresa_str)
 
-        id_empresa = int(dataForm['id_empresa'])  # Convertir a entero
+        id_tipo_empleado_str = dataForm.get('tipo_empleado')
+        if not id_tipo_empleado_str or not id_tipo_empleado_str.isdigit():
+            raise ValueError("Debe seleccionar un tipo de empleado válido.")
+        id_tipo_empleado = int(id_tipo_empleado_str)
 
-        # Obtener id_tipo_empleado como ID directamente del formulario
-        if 'tipo_empleado' not in dataForm or not dataForm['tipo_empleado']:
-            return False, "Debe seleccionar un tipo de empleado."
+        nombre_empleado = dataForm.get('nombre_empleado')
+        if not nombre_empleado:
+            raise ValueError("Nombre del empleado es requerido.")
 
-        id_tipo_empleado = int(dataForm['tipo_empleado'])  # Convertir a entero
+        result_foto_perfil = None
+        if foto_perfil and foto_perfil.filename:
+            valido, nombre_foto_o_msg = procesar_imagen_perfil(
+                foto_perfil, 'fotos_empleados', ALLOWED_RENDER_EXTENSIONS)
+            if not valido:
+                raise ValueError(f"Foto empleado: {nombre_foto_o_msg}")
+            result_foto_perfil = nombre_foto_o_msg
 
-        # Procesar la foto del empleado
-        result_foto_perfil = procesar_imagen_perfil(foto_perfil)
-
-        # Crear el nuevo empleado con id_empresa e id_tipo_empleado
         empleado = Empleados(
             documento=documento,
             id_empresa=id_empresa,
-            # Usar id_tipo_empleado en lugar de tipo_empleado
             id_tipo_empleado=id_tipo_empleado,
-            nombre_empleado=dataForm['nombre_empleado'],
-            apellido_empleado=dataForm['apellido_empleado'],
-            telefono_empleado=dataForm['telefono_empleado'] if dataForm['telefono_empleado'] else None,
-            email_empleado=dataForm['email_empleado'] if dataForm['email_empleado'] else None,
-            cargo=dataForm['cargo'] if dataForm['cargo'] else None,
+            nombre_empleado=nombre_empleado,
+            apellido_empleado=dataForm.get('apellido_empleado'),
+            telefono_empleado=dataForm.get('telefono_empleado'),
+            email_empleado=dataForm.get('email_empleado'),
+            cargo=dataForm.get('cargo'),
             foto_empleado=result_foto_perfil
         )
         db.session.add(empleado)
         db.session.commit()
         return True, "El empleado fue registrado con éxito."
+    except ValueError as ve:
+        app.logger.warning(
+            f"Error de validación en procesar_form_empleado: {str(ve)}")
+        return False, str(ve)
     except Exception as e:
         db.session.rollback()
         app.logger.error(
-            f'Se produjo un error en procesar_form_empleado: {str(e)}')
-        return False, f'Se produjo un error al registrar el empleado: {str(e)}'
+            f'Se produjo un error en procesar_form_empleado: {str(e)}', exc_info=True)
+        return False, f'Se produjo un error interno al registrar el empleado.'
 
 
-def procesar_imagen_perfil(foto):
+def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
     try:
-        # Nombre original del archivo
-        filename = secure_filename(foto.filename)
-        extension = os.path.splitext(filename)[1]
+        if foto_storage and foto_storage.filename:
+            filename = secure_filename(foto_storage.filename)
+            extension = os.path.splitext(filename)[1].lower().strip('.')
+            if extension not in allowed_extensions_set:
+                app.logger.warning(
+                    f"Extensión de archivo no permitida: .{extension} para {subfolder}. Permitidas: {', '.join(allowed_extensions_set)}")
+                return False, f"Extensión .{extension} no permitida. Permitidas: {', '.join(allowed_extensions_set)}"
 
-        # Creando un string de 50 caracteres
-        nuevoNameFile = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
-        nombreFile = nuevoNameFile + extension
+            nuevoNameFile = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
+            nombreFile = f"{nuevoNameFile}.{extension}"
 
-        # Construir la ruta completa de subida del archivo
-        basepath = os.path.abspath(os.path.dirname(__file__))
-        upload_dir = os.path.join(basepath, f'../static/fotos_empleados/')
+            basepath = os.path.abspath(os.path.dirname(__file__))
+            upload_dir = os.path.normpath(
+                os.path.join(basepath, f'../static/{subfolder}'))
+            os.makedirs(upload_dir, exist_ok=True)
 
-        # Validar si existe la ruta y crearla si no existe
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-            # Dando permiso a la carpeta
-            os.chmod(upload_dir, 0o755)
-
-        # Construir la ruta completa de subida del archivo
-        upload_path = os.path.join(upload_dir, nombreFile)
-        foto.save(upload_path)
-
-        return nombreFile
-
+            upload_path = os.path.join(upload_dir, nombreFile)
+            foto_storage.save(upload_path)
+            return True, nombreFile
+        return True, None  # No hay archivo, pero no es un error de validación de la función en sí
     except Exception as e:
-        app.logger.error("Error al procesar archivo:", e)
-        return []
+        app.logger.error(
+            f"Error al procesar imagen en '{subfolder}': {e}", exc_info=True)
+        return False, "Error interno al guardar la imagen."
 
 
 def obtener_tipo_empleado():
     try:
-        tipos = Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(
-            Tipo_Empleado.id_tipo_empleado.asc()).all()
-        app.logger.debug(
-            f"Tipos de empleado obtenidos: {[(t.id_tipo_empleado, t.tipo_empleado) for t in tipos]}")
-        return tipos
+        return Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
     except Exception as e:
-        app.logger.error(f"Error en la función obtener_tipo_empleado: {e}")
-        return None
-
-# Lista de Empleados con paginación
+        app.logger.error(
+            f"Error en la función obtener_tipo_empleado: {e}", exc_info=True)
+        return []
 
 
 def sql_lista_empleadosBD():
     try:
-        empleados = db.session.query(Empleados, Empresa).\
-            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            filter(Empleados.fecha_borrado.is_(None)).\
-            order_by(Empleados.nombre_empleado.asc()).\
-            all()
-        return empleados
+        return db.session.query(Empleados, Empresa).join(Empresa, Empleados.id_empresa == Empresa.id_empresa).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.nombre_empleado.asc()).all()
     except Exception as e:
-        app.logger.error(f"Error al listar empleados: {str(e)}")
+        app.logger.error(f"Error al listar empleados: {str(e)}", exc_info=True)
         return []
 
 
-# Total empleados:
 def get_total_empleados():
     try:
-        return db.session.query(Empleados).filter(Empleados.fecha_borrado.is_(None)).count()
+        return db.session.query(func.count(Empleados.id_empleado)).filter(Empleados.fecha_borrado.is_(None)).scalar() or 0
     except Exception as e:
-        app.logger.error(f"Error en get_total_empleados: {e}")
+        app.logger.error(f"Error en get_total_empleados: {e}", exc_info=True)
         return 0
-
-# Detalles del Empleado
 
 
 def sql_detalles_empleadosBD(id_empleado):
     try:
-        empleado = db.session.query(Empleados, Empresa).\
+        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado).\
             join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            filter(Empleados.id_empleado == id_empleado).first()
-        if empleado:
-            e, empresa = empleado
+            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
+            filter(Empleados.id_empleado == id_empleado, Empleados.fecha_borrado.is_(None)).\
+            first()
+        if empleado_tupla:
+            e, empresa, tipo_emp = empleado_tupla
             return {
-                'id_empleado': e.id_empleado,
-                'documento': e.documento,
-                'nombre_empleado': e.nombre_empleado,
-                'apellido_empleado': e.apellido_empleado,
-                # Usamos tipo_empresa de Empresa
-                'tipo_empleado': empresa.tipo_empresa if empresa else None,
-                # Usamos nombre_empresa de Empresa
+                'id_empleado': e.id_empleado, 'documento': e.documento,
+                'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
+                'tipo_empleado': tipo_emp.tipo_empleado if tipo_emp else None,
+                'id_tipo_empleado': e.id_tipo_empleado,
+                'id_empresa': e.id_empresa,
                 'nombre_empresa': empresa.nombre_empresa if empresa else None,
-                'telefono_empleado': e.telefono_empleado,
-                'email_empleado': e.email_empleado,
-                'cargo': e.cargo,
-                'foto_empleado': e.foto_empleado,
-                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+                'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
+                'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
+                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
             }
         return None
     except Exception as e:
         app.logger.error(
-            f"Error en la función sql_detalles_empleadosBD: {str(e)}")
+            f"Error en sql_detalles_empleadosBD: {str(e)}", exc_info=True)
         return None
-
-# Funcion Empleados Informe (Reporte)
 
 
 def empleados_reporte():
     try:
-        empleados = db.session.query(Empleados).order_by(
-            Empleados.id_empleado.desc()).all()
+        empleados = db.session.query(Empleados).join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado, isouter=True).filter(
+            Empleados.fecha_borrado.is_(None)).order_by(Empleados.id_empleado.desc()).all()
         return [{
-            'id_empleado': e.id_empleado,
-            'documento': e.documento,
-            'nombre_empleado': e.nombre_empleado,
-            'apellido_empleado': e.apellido_empleado,
-            'email_empleado': e.email_empleado,
-            'telefono_empleado': e.telefono_empleado,
-            'cargo': e.cargo,
-            'fecha_registro': e.fecha_registro.strftime('%d de %b %Y %I:%M %p'),
-            'tipo_empleado': 'Directo' if e.tipo_empleado == 1 else 'Temporal'
+            'id_empleado': e.id_empleado, 'documento': e.documento,
+            'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
+            'email_empleado': e.email_empleado, 'telefono_empleado': e.telefono_empleado,
+            'cargo': e.cargo, 'fecha_registro': e.fecha_registro.strftime('%d de %b %Y %I:%M %p') if e.fecha_registro else 'N/A',
+            'tipo_empleado': e.tipo_empleado_ref.tipo_empleado if e.tipo_empleado_ref else 'N/A'
         } for e in empleados]
     except Exception as e:
-        app.logger.error(f"Error en la función empleados_reporte: {e}")
-        return None
+        app.logger.error(f"Error en empleados_reporte: {e}", exc_info=True)
+        return []
+
+
 def generar_codigo_op():
     try:
-        # Obtener el último código de OP registrado
-        ultima_op = db.session.query(OrdenProduccion).order_by(OrdenProduccion.codigo_op.desc()).first()
-        if ultima_op and ultima_op.codigo_op:
-            # Si existe un último código, incrementar en 1
-            ultimo_codigo = int(ultima_op.codigo_op)
-            nuevo_codigo = ultimo_codigo + 1
+        ultima_op = db.session.query(OrdenProduccion.codigo_op).order_by(
+            OrdenProduccion.id_op.desc()).first()
+        if ultima_op and ultima_op[0] and str(ultima_op[0]).isdigit():
+            nuevo_codigo = int(ultima_op[0]) + 1
         else:
-            # Si no hay códigos registrados, empezar en 1
-            nuevo_codigo = 1
+            max_codigo_op = db.session.query(
+                func.max(OrdenProduccion.codigo_op)).scalar()
+            nuevo_codigo = (
+                int(max_codigo_op) + 1) if max_codigo_op and str(max_codigo_op).isdigit() else 1
         return str(nuevo_codigo)
     except Exception as e:
-        app.logger.error(f"Error al generar código de OP: {e}")
-        return None
+        app.logger.error(f"Error al generar código de OP: {e}", exc_info=True)
+        return "1"
 
 
 def generar_reporte_excel():
-    data_empleados = empleados_reporte()
-    wb = openpyxl.Workbook()
-    hoja = wb.active
+    try:
+        data_empleados = empleados_reporte()
+        if not data_empleados:
+            flash("No hay datos de empleados para generar el reporte.", "warning")
+            return redirect(url_for('lista_empleados'))
 
-    # Agregar la fila de encabezado con los títulos
-    cabecera_excel = ("Documento", "Nombre", "Apellido", "Tipo Empleado",
-                      "Telefono", "Email", "Profesión", "Fecha de Ingreso")
-    hoja.append(cabecera_excel)
+        wb = openpyxl.Workbook()
+        hoja = wb.active
+        cabecera_excel = ("Documento", "Nombre", "Apellido", "Tipo Empleado",
+                          "Telefono", "Email", "Profesión", "Fecha de Ingreso")
+        hoja.append(cabecera_excel)
 
-    # Formato para números en moneda colombiana y sin decimales
-    formato_moneda_colombiana = '#,##0'
+        for registro in data_empleados:
+            hoja.append((
+                registro.get('documento'), registro.get(
+                    'nombre_empleado'), registro.get('apellido_empleado'),
+                registro.get('tipo_empleado'), registro.get(
+                    'telefono_empleado'), registro.get('email_empleado'),
+                registro.get('cargo'), registro.get('fecha_registro')
+            ))
 
-    # Agregar los registros a la hoja
-    for registro in data_empleados:
-        hoja.append((
-            registro['documento'],
-            registro['nombre_empleado'],
-            registro['apellido_empleado'],
-            registro['tipo_empleado'],
-            registro['telefono_empleado'],
-            registro['email_empleado'],
-            registro['cargo'],
-            registro['fecha_registro']
-        ))
-
-        # Itera a través de las filas y aplica el formato a la columna G (Profesión)
-        for fila_num in range(2, hoja.max_row + 1):
-            columna = 7  # Columna G (Profesión)
-            celda = hoja.cell(row=fila_num, column=columna)
-            celda.number_format = formato_moneda_colombiana
-
-    fecha_actual = datetime.datetime.now()
-    archivo_excel = f"Reporte_empleados_{fecha_actual.strftime('%Y_%m_%d')}.xlsx"
-    carpeta_descarga = "../static/downloads-excel"
-    ruta_descarga = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), carpeta_descarga)
-
-    if not os.path.exists(ruta_descarga):
-        os.makedirs(ruta_descarga)
-        # Dando permisos a la carpeta
-        os.chmod(ruta_descarga, 0o755)
-
-    ruta_archivo = os.path.join(ruta_descarga, archivo_excel)
-    wb.save(ruta_archivo)
-
-    # Enviar el archivo como respuesta HTTP
-    return send_file(ruta_archivo, as_attachment=True)
+        fecha_actual = datetime.now()
+        archivo_excel = f"Reporte_empleados_{fecha_actual.strftime('%Y_%m_%d_%H%M%S')}.xlsx"
+        carpeta_descarga = os.path.join(
+            app.root_path, 'static', 'downloads-excel')
+        os.makedirs(carpeta_descarga, exist_ok=True)
+        ruta_archivo = os.path.join(carpeta_descarga, archivo_excel)
+        wb.save(ruta_archivo)
+        return send_file(ruta_archivo, as_attachment=True)
+    except Exception as e:
+        app.logger.error(f"Error al generar reporte Excel: {e}", exc_info=True)
+        flash("Error al generar el reporte Excel.", "error")
+        return redirect(url_for('lista_empleados'))
 
 
 def buscar_empleado_bd(search):
     try:
-        query = db.session.query(Empleados).filter(
-            db.or_(
-                Empleados.nombre_empleado.ilike(f'%{search}%'),
-                Empleados.apellido_empleado.ilike(f'%{search}%')
-            ),
-            Empleados.fecha_borrado.is_(None)
-        ).order_by(Empleados.id_empleado.desc()).all()
+        if not search or not search.strip():
+            return []
+        search_term = f"%{search.strip()}%"
+        empleados = db.session.query(Empleados).join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado, isouter=True)\
+            .filter(Empleados.fecha_borrado.is_(None))\
+            .filter(or_(Empleados.nombre_empleado.ilike(search_term), Empleados.apellido_empleado.ilike(search_term), Empleados.documento.ilike(search_term)))\
+            .order_by(Empleados.nombre_empleado.asc()).limit(20).all()
 
         return [{
-            'id_empleado': e.id_empleado,
-            'documento': e.documento,
-            'nombre_empleado': e.nombre_empleado,
-            'apellido_empleado': e.apellido_empleado,
+            'id_empleado': e.id_empleado, 'documento': e.documento,
+            'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
             'cargo': e.cargo,
-            'tipo_empleado': 'Directo' if e.tipo_empleado == 1 else 'Temporal'
-        } for e in query]
+            'tipo_empleado': e.tipo_empleado_ref.tipo_empleado if e.tipo_empleado_ref else 'N/A'
+        } for e in empleados]
     except Exception as e:
-        app.logger.error(f"Ocurrió un error en buscar_empleado_bd: {e}")
+        app.logger.error(
+            f"Ocurrió un error en buscar_empleado_bd: {e}", exc_info=True)
         return []
 
 
 def validate_document(documento):
     try:
-        empleado = db.session.query(Empleados).filter_by(
-            documento=documento, fecha_borrado=None).first()
+        documento_limpio = re.sub('[^0-9]+', '', str(documento))
+        if not documento_limpio:
+            return False
+        empleado = db.session.query(Empleados.id_empleado).filter_by(
+            documento=documento_limpio, fecha_borrado=None).first()
         return empleado is not None
     except Exception as e:
-        app.logger.error(f"Error en validate_document: {e}")
+        app.logger.error(f"Error en validate_document: {e}", exc_info=True)
         return False
 
 
-def buscar_empleado_unico(id):
+def buscar_empleado_unico(id_empleado_param):
     try:
-        empleado = db.session.query(Empleados, Empresa).\
+        if not id_empleado_param:
+            return None
+        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado).\
             join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            filter(Empleados.id_empleado == id, Empleados.fecha_borrado.is_(None)).\
+            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
+            filter(Empleados.id_empleado == id_empleado_param, Empleados.fecha_borrado.is_(None)).\
             first()
-        if empleado:
-            e, empresa = empleado
+        if empleado_tupla:
+            e, empresa, tipo_emp = empleado_tupla
             return {
-                'id_empleado': e.id_empleado,
-                'documento': e.documento,
-                'id_empresa': e.id_empresa,
-                'nombre_empresa': empresa.nombre_empresa if empresa else None,
-                'nombre_empleado': e.nombre_empleado,
-                'apellido_empleado': e.apellido_empleado,
-                'tipo_empleado': empresa.tipo_empresa if empresa else None,
-                'telefono_empleado': e.telefono_empleado,
-                'email_empleado': e.email_empleado,
-                'cargo': e.cargo,
-                'foto_empleado': e.foto_empleado,
+                'id_empleado': e.id_empleado, 'documento': e.documento,
+                'id_empresa': e.id_empresa, 'nombre_empresa': empresa.nombre_empresa,
+                'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
+                'id_tipo_empleado': e.id_tipo_empleado, 'tipo_empleado': tipo_emp.tipo_empleado,
+                'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
+                'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
                 'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
             }
         return None
     except Exception as e:
-        app.logger.error(f"Error al buscar empleado: {str(e)}")
+        app.logger.error(
+            f"Error al buscar empleado único (ID: {id_empleado_param}): {str(e)}", exc_info=True)
         return None
 
 
-def procesar_actualizacion_form(data):
+def procesar_actualizacion_form(data_request):
     try:
+        id_empleado_str = data_request.form.get('id_empleado')
+        if not id_empleado_str or not id_empleado_str.isdigit():
+            return False, "ID de empleado inválido o faltante."
+
         empleado = db.session.query(Empleados).filter_by(
-            id_empleado=data.form['id_empleado']).first()
-        if empleado:
-            # Formatear documento
-            documento_sin_puntos = re.sub(
-                '[^0-9]+', '', data.form['documento'])
-            documento = int(documento_sin_puntos)
+            id_empleado=int(id_empleado_str)).first()
+        if not empleado or empleado.fecha_borrado is not None:
+            return False, "El empleado no existe o ha sido eliminado."
 
-            # Obtener id_empresa y validar que esté presente
-            if 'id_empresa' not in data.form or not data.form['id_empresa']:
-                return False, "Debe seleccionar una empresa."
+        documento_str = data_request.form.get('documento', '')
+        documento_sin_puntos = re.sub('[^0-9]+', '', documento_str)
+        if not documento_sin_puntos:
+            return False, "Documento es requerido."
+        documento = int(documento_sin_puntos)
 
-            id_empresa = int(data.form['id_empresa'])
+        if str(empleado.documento) != str(documento):
+            otro_empleado_con_mismo_doc = db.session.query(Empleados.id_empleado).filter(
+                Empleados.documento == documento, Empleados.id_empleado != empleado.id_empleado, Empleados.fecha_borrado.is_(None)).first()
+            if otro_empleado_con_mismo_doc:
+                return False, f"El documento '{documento}' ya está registrado para otro empleado."
 
-            # Obtener tipo_empresa y mapearlo a tipo_empleado
-            if 'tipo_empleado' not in data.form or not data.form['tipo_empleado']:
-                return False, "El tipo de empleado no puede estar vacío."
+        id_empresa_str = data_request.form.get('id_empresa')
+        if not id_empresa_str or not id_empresa_str.isdigit():
+            return False, "Debe seleccionar una empresa."
 
-            tipo_empresa = data.form['tipo_empleado']
-            tipo_empleado_map = {
-                "Directo": 1,
-                "Temporal": 2
-                # Agrega más mapeos si es necesario
-            }
+        id_tipo_empleado_str = data_request.form.get('id_tipo_empleado')
+        if not id_tipo_empleado_str or not id_tipo_empleado_str.isdigit():
+            return False, "Debe seleccionar un tipo de empleado."
 
-            if tipo_empresa not in tipo_empleado_map:
-                return False, f"Tipo de empresa '{tipo_empresa}' no válido."
+        empleado.documento = documento
+        empleado.id_empresa = int(id_empresa_str)
+        empleado.nombre_empleado = data_request.form.get('nombre_empleado')
+        if not empleado.nombre_empleado:
+            return False, "Nombre del empleado es requerido."
+        empleado.apellido_empleado = data_request.form.get('apellido_empleado')
+        empleado.id_tipo_empleado = int(id_tipo_empleado_str)
+        empleado.telefono_empleado = data_request.form.get('telefono_empleado')
+        empleado.email_empleado = data_request.form.get('email_empleado')
+        empleado.cargo = data_request.form.get('cargo')
 
-            tipo_empleado = tipo_empleado_map[tipo_empresa]
+        foto_empleado_file = data_request.files.get('foto_empleado')
+        if foto_empleado_file and foto_empleado_file.filename:
+            valido, nombre_foto_o_msg = procesar_imagen_perfil(
+                foto_empleado_file, 'fotos_empleados', ALLOWED_RENDER_EXTENSIONS)
+            if not valido:
+                return False, f"Foto empleado: {nombre_foto_o_msg}"
+            if nombre_foto_o_msg:
+                if empleado.foto_empleado and empleado.foto_empleado != nombre_foto_o_msg:
+                    try:
+                        path_foto_anterior = os.path.join(
+                            app.root_path, 'static', 'fotos_empleados', empleado.foto_empleado)
+                        if os.path.exists(path_foto_anterior):
+                            os.remove(path_foto_anterior)
+                    except Exception as e_remove:
+                        app.logger.error(
+                            f"Error eliminando foto anterior del empleado: {e_remove}")
+                empleado.foto_empleado = nombre_foto_o_msg
 
-            empleado.documento = documento
-            empleado.id_empresa = id_empresa
-            empleado.nombre_empleado = data.form['nombre_empleado']
-            empleado.apellido_empleado = data.form['apellido_empleado']
-            empleado.tipo_empleado = tipo_empleado
-            empleado.telefono_empleado = data.form['telefono_empleado'] if data.form['telefono_empleado'] else None
-            empleado.email_empleado = data.form['email_empleado'] if data.form['email_empleado'] else None
-            empleado.cargo = data.form['cargo'] if data.form['cargo'] else None
-
-            # Actualizar la foto si se proporciona una nueva
-            if 'foto_empleado' in data.files and data.files['foto_empleado']:
-                file = data.files['foto_empleado']
-                foto_form = procesar_imagen_perfil(file)
-                empleado.foto_empleado = foto_form
-
-            db.session.commit()
-            return True, "Empleado actualizado con éxito."
-        return False, "El empleado no existe."
+        db.session.commit()
+        return True, "Empleado actualizado con éxito."
+    except ValueError as ve:
+        db.session.rollback()
+        app.logger.warning(
+            f"Error de validación en procesar_actualizacion_form: {str(ve)}")
+        return False, str(ve)
     except Exception as e:
         db.session.rollback()
         app.logger.error(
-            f"Ocurrió un error en procesar_actualizacion_form: {str(e)}")
-        return False, f"Error al actualizar el empleado: {str(e)}"
-
-# Eliminar Empleado
+            f"Ocurrió un error en procesar_actualizacion_form: {str(e)}", exc_info=True)
+        return False, f"Error interno al actualizar el empleado."
 
 
-def eliminar_empleado(id_empleado, foto_empleado):
+def eliminar_empleado(id_empleado, foto_empleado_nombre):
     try:
         empleado = db.session.query(Empleados).filter_by(
             id_empleado=id_empleado).first()
         if empleado:
-            # Usar datetime.now() en lugar de datetime.datetime.now()
             empleado.fecha_borrado = datetime.now()
             db.session.commit()
-
-            # Eliminando foto_empleado desde el directorio
-            if foto_empleado:  # Verificar que foto_empleado no sea None o vacío
-                basepath = path.dirname(__file__)
-                url_file = path.join(
-                    basepath, '../static/fotos_empleados', foto_empleado)
-
-                if path.exists(url_file):
-                    remove(url_file)  # Borrar foto desde la carpeta
-
-            return 1  # Indica éxito (rowcount)
-        return 0  # Empleado no encontrado
+            if foto_empleado_nombre:
+                try:
+                    basepath = os.path.abspath(os.path.dirname(__file__))
+                    url_file = os.path.join(
+                        basepath, '../static/fotos_empleados', foto_empleado_nombre)
+                    if os.path.exists(url_file):
+                        os.remove(url_file)
+                except Exception as e_remove_foto:
+                    app.logger.error(
+                        f"Error eliminando foto del empleado al borrar: {e_remove_foto}")
+            return True
+        return False
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error en eliminar_empleado: {e}")
-        return 0
+        app.logger.error(f"Error en eliminar_empleado: {e}", exc_info=True)
+        return False
 
-# Usuarios
-# Lista de Usuarios con paginación
+# --- Funciones de Usuarios ---
 
 
 def sql_lista_usuarios_bd(page=1, per_page=10):
     try:
         offset = (page - 1) * per_page
-        query = db.session.query(Users).filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(
-            None)).order_by(Users.created_user.desc()).limit(per_page).offset(offset)
+        query = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None))\
+                           .order_by(Users.created_user.desc())\
+                           .limit(per_page).offset(offset)
         usuarios_bd = query.all()
         return [{
-            'id': u.id,
-            'name_surname': u.name_surname,
-            'email_user': u.email_user,
-            'rol': u.rol,
-            'created_user': u.created_user
+            'id': u.id, 'name_surname': u.name_surname, 'email_user': u.email_user,
+            'rol': u.rol, 'created_user': u.created_user.strftime('%Y-%m-%d %I:%M %p') if u.created_user else 'N/A'
         } for u in usuarios_bd]
     except Exception as e:
-        app.logger.error(f"Error en la función sql_lista_usuarios_bd: {e}")
-        return None
-
-# Total Usuarios
+        app.logger.error(f"Error en sql_lista_usuarios_bd: {e}", exc_info=True)
+        return []
 
 
 def get_total_usuarios():
     try:
-        return db.session.query(Users).filter(Users.email_user != 'admin@admin.com').count()
+        return Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None)).count()
     except Exception as e:
-        app.logger.error(f"Error en get_total_usuarios: {e}")
+        app.logger.error(f"Error en get_total_usuarios: {e}", exc_info=True)
         return 0
 
-# Eliminar usuario
 
-
-def eliminar_usuario(id):
+def eliminar_usuario(user_id):
     try:
-        usuario = db.session.query(Users).filter_by(id=id).first()
-        if usuario:
+        usuario = Users.query.get(user_id)
+        if usuario and usuario.email_user != 'admin@admin.com':
             usuario.fecha_borrado = datetime.now()
             db.session.commit()
-            return 1  # Indica éxito (rowcount)
-        return 0
+            return True
+        return False
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error en eliminar_usuario: {e}")
-        return 0
+        app.logger.error(f"Error en eliminar_usuario: {e}", exc_info=True)
+        return False
 
-# Procesos
+# --- Funciones de Procesos ---
 
 
 def procesar_form_proceso(dataForm):
     try:
+        codigo_proceso = dataForm.get('codigo_proceso')
+        nombre_proceso = dataForm.get('nombre_proceso')
+        if not codigo_proceso or not nombre_proceso:
+            raise ValueError("Código y Nombre del proceso son requeridos.")
+
+        existente = Procesos.query.filter_by(
+            codigo_proceso=codigo_proceso, fecha_borrado=None).first()
+        if existente:
+            raise ValueError(
+                f"El código de proceso '{codigo_proceso}' ya existe.")
+
         proceso = Procesos(
-            codigo_proceso=dataForm['cod_proceso'],
-            nombre_proceso=dataForm['nombre_proceso'],
-            descripcion_proceso=dataForm['descripcion_proceso']
+            codigo_proceso=codigo_proceso,
+            nombre_proceso=nombre_proceso,
+            descripcion_proceso=dataForm.get('descripcion_proceso'),
         )
         db.session.add(proceso)
         db.session.commit()
-        return 1  # Indica éxito (rowcount)
+        return True, "Proceso registrado correctamente."
+    except ValueError as ve:
+        app.logger.warning(
+            f"Error de validación en procesar_form_proceso: {str(ve)}")
+        return False, str(ve)
     except Exception as e:
         db.session.rollback()
         app.logger.error(
-            f'Se produjo un error en procesar_form_proceso: {str(e)}')
-        return None
-
-# Lista de Procesos con paginación
+            f'Se produjo un error en procesar_form_proceso: {str(e)}', exc_info=True)
+        return False, "Error interno al registrar el proceso."
 
 
 def sql_lista_procesos_bd(page=1, per_page=10):
     try:
         offset = (page - 1) * per_page
-        query = db.session.query(Procesos).order_by(
-            Procesos.id_proceso.desc()).limit(per_page).offset(offset)
+        query = Procesos.query.filter(Procesos.fecha_borrado.is_(None))\
+                              .order_by(Procesos.id_proceso.desc())\
+                              .limit(per_page).offset(offset)
         procesos_bd = query.all()
         return [{
             'id_proceso': p.id_proceso,
             'codigo_proceso': p.codigo_proceso,
             'nombre_proceso': p.nombre_proceso,
             'descripcion_proceso': p.descripcion_proceso,
-            'fecha_registro': p.fecha_registro
+            'fecha_registro': p.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if p.fecha_registro else 'N/A'
         } for p in procesos_bd]
     except Exception as e:
-        app.logger.error(f"Error en la función sql_lista_procesos_bd: {e}")
-        return None
-
-# Total procesos:
+        app.logger.error(f"Error en sql_lista_procesos_bd: {e}", exc_info=True)
+        return []
 
 
 def get_total_procesos():
     try:
-        return db.session.query(Procesos).count()
+        return Procesos.query.filter(Procesos.fecha_borrado.is_(None)).count()
     except Exception as e:
-        app.logger.error(f"Error en get_total_procesos: {e}")
+        app.logger.error(f"Error en get_total_procesos: {e}", exc_info=True)
         return 0
 
-# Detalles del Proceso
 
-
-def sql_detalles_procesos_bd(id_proceso):
+def sql_detalles_procesos_bd(id_proceso_param):
     try:
-        proceso = db.session.query(Procesos).filter_by(
-            codigo_proceso=id_proceso).first()
+        proceso = Procesos.query.filter_by(
+            id_proceso=id_proceso_param, fecha_borrado=None).first()
         if proceso:
+            actividades_asociadas = [{'id_actividad': act.id_actividad, 'nombre_actividad': act.nombre_actividad,
+                                      'codigo_actividad': act.codigo_actividad} for act in proceso.actividades if act.fecha_borrado is None]
             return {
-                'id_proceso': proceso.id_proceso,
-                'codigo_proceso': proceso.codigo_proceso,
-                'nombre_proceso': proceso.nombre_proceso,
-                'descripcion_proceso': proceso.descripcion_proceso,
-                'fecha_registro': proceso.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+                'id_proceso': proceso.id_proceso, 'codigo_proceso': proceso.codigo_proceso,
+                'nombre_proceso': proceso.nombre_proceso, 'descripcion_proceso': proceso.descripcion_proceso,
+                'fecha_registro': proceso.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if proceso.fecha_registro else 'N/A',
+                'actividades': actividades_asociadas
             }
         return None
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_procesos_bd: {e}")
+        app.logger.error(
+            f"Error en sql_detalles_procesos_bd: {e}", exc_info=True)
         return None
 
 
-def buscar_proceso_unico(id):
+def buscar_proceso_unico(id_proceso_param):
     try:
+        return Procesos.query.filter_by(id_proceso=id_proceso_param, fecha_borrado=None).first()
+    except Exception as e:
+        app.logger.error(
+            f"Ocurrió un error en buscar_proceso_unico: {e}", exc_info=True)
+        return None
+
+
+def procesar_actualizar_proceso(id_proceso, dataForm):
+    try:
+        proceso = Procesos.query.get(id_proceso)
+        if not proceso or proceso.fecha_borrado is not None:
+            return False, "Proceso no encontrado o ya fue eliminado."
+
+        codigo_proceso = dataForm.get('codigo_proceso')
+        nombre_proceso = dataForm.get('nombre_proceso')
+        if not codigo_proceso or not nombre_proceso:
+            raise ValueError("Código y Nombre del proceso son requeridos.")
+
+        if proceso.codigo_proceso != codigo_proceso:
+            otro_proceso_con_codigo = Procesos.query.filter(
+                Procesos.codigo_proceso == codigo_proceso, Procesos.id_proceso != id_proceso, Procesos.fecha_borrado.is_(None)).first()
+            if otro_proceso_con_codigo:
+                raise ValueError(
+                    f"El código de proceso '{codigo_proceso}' ya está en uso.")
+
+        proceso.codigo_proceso = codigo_proceso
+        proceso.nombre_proceso = nombre_proceso
+        proceso.descripcion_proceso = dataForm.get('descripcion_proceso')
+        db.session.commit()
+        return True, "Proceso actualizado correctamente."
+    except ValueError as ve:
+        db.session.rollback()
+        app.logger.warning(
+            f"Error de validación al actualizar proceso: {str(ve)}")
+        return False, str(ve)
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(
+            f"Ocurrió un error en procesar_actualizar_proceso: {e}", exc_info=True)
+        return False, "Error interno al actualizar el proceso."
+
+
+def eliminar_proceso(id_proceso):
+    try:
+        proceso = Procesos.query.get(id_proceso)
+        if proceso:
+            if Actividades.query.filter_by(id_proceso=id_proceso, fecha_borrado=None).first() or \
+               OrdenPiezasProcesos.query.filter_by(id_proceso=id_proceso).first():
+                proceso.fecha_borrado = datetime.now()
+                db.session.commit()
+                return True, "Proceso marcado como eliminado (está en uso)."
+
+            proceso.fecha_borrado = datetime.now()
+            db.session.commit()
+            return True, "Proceso eliminado (o marcado como eliminado) correctamente."
+        return False, "Proceso no encontrado."
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_proceso: {e}", exc_info=True)
+        return False, "Error interno al eliminar el proceso."
+
+# --- Funciones de Clientes ---
+
+
+def procesar_form_cliente(dataForm, foto_perfil_cliente):
+    try:
+        documento_str = dataForm.get('documento', '')
+        documento_sin_puntos = re.sub('[^0-9]+', '', documento_str)
+        if not documento_sin_puntos:
+            raise ValueError("Documento es requerido.")
+        documento = int(documento_sin_puntos)
+
+        nombre_cliente = dataForm.get('nombre_cliente')
+        id_tipo_documento_str = dataForm.get('id_tipo_documento')
+        if not nombre_cliente:
+            raise ValueError("Nombre del cliente es requerido.")
+        if not id_tipo_documento_str or not id_tipo_documento_str.isdigit():
+            raise ValueError(
+                "Tipo de documento es requerido y debe ser válido.")
+
         proceso = db.session.query(Procesos).filter_by(id_proceso=id).first()
         print(proceso)
         if proceso:
@@ -655,7 +735,12 @@ def procesar_imagen_cliente(foto):
 def buscar_cliente_bd(search='', start=0, length=10):
     try:
         # Consulta base
-        query = db.session.query(Clientes)
+        query = db.session.query(Clientes).join(
+            Clientes.tipo_documento_rel, isouter=True)  # Unir con TipoDocumento
+
+        # Aplicar filtro de borrado lógico si existe en el modelo Clientes
+        if hasattr(Clientes, 'fecha_borrado'):
+            query = query.filter(Clientes.fecha_borrado.is_(None))
 
         # Filtros
         if search:
@@ -686,7 +771,7 @@ def buscar_cliente_bd(search='', start=0, length=10):
         # Formatear los datos
         data = [{
             'id_cliente': c.id_cliente,
-            'tipo_documento': c.tipo_documento,
+            'tipo_documento': c.tipo_documento_rel.td_abreviacion if c.tipo_documento_rel else 'N/A',
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
             'email_cliente': c.email_cliente,
@@ -722,7 +807,11 @@ def sql_detalles_clientes_bd(id_cliente):
         if cliente:
             return {
                 'id_cliente': cliente.id_cliente,
-                'tipo_documento': cliente.tipo_documento,
+                'id_tipo_documento': cliente.id_tipo_documento,  # Para el form de update
+                # Nombre completo para detalles
+                'tipo_documento': cliente.tipo_documento_rel.tipo_documento if cliente.tipo_documento_rel else 'N/A',
+                # Abreviación si se necesita
+                'td_abreviacion': cliente.tipo_documento_rel.td_abreviacion if cliente.tipo_documento_rel else 'N/A',
                 'documento': cliente.documento,
                 'nombre_cliente': cliente.nombre_cliente,
                 'telefono_cliente': cliente.telefono_cliente,
@@ -758,7 +847,7 @@ def buscar_cliente_bd(search='', search_date='', start=0, length=10, order=[{'co
         # Mapear columnas de DataTables a campos de la tabla
         column_map = {
             0: Clientes.id_cliente,          # #
-            1: Clientes.tipo_documento,      # Tipo Documento
+            1: Clientes.id_tipo_documento,      # Tipo Documento
             2: Clientes.documento,           # Documento
             3: Clientes.nombre_cliente,      # Nombre
             4: Clientes.email_cliente,       # Correo
@@ -1533,9 +1622,11 @@ def eliminar_operacion(id_operacion):
 
 # Orden de Producción
 
+
 # Constantes de configuración
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx'}
+ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg',
+                          'pdf', 'doc', 'docx', 'xls', 'xlsx'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_MIME_TYPES = {
     'image/png', 'image/jpeg',
@@ -1547,6 +1638,7 @@ ALLOWED_MIME_TYPES = {
     'application/zip'  # Solo permitido para .xlsx mediante la lógica especial
 }
 
+
 def validate_file(file, allowed_extensions):
     """Valida archivo considerando casos especiales como .xlsx"""
     try:
@@ -1556,7 +1648,7 @@ def validate_file(file, allowed_extensions):
 
         # Obtener extensión
         extension = os.path.splitext(filename)[1][1:].lower()
-        
+
         # Validar extensión permitida
         if not extension or extension not in allowed_extensions:
             return False, f"Extensión .{extension} no permitida"
@@ -1564,7 +1656,8 @@ def validate_file(file, allowed_extensions):
         # Leer MIME type real
         file.seek(0)
         mime = magic.Magic(mime=True)
-        detected_mime = mime.from_buffer(file.read(2048))  # Lee más bytes para mejor detección
+        # Lee más bytes para mejor detección
+        detected_mime = mime.from_buffer(file.read(2048))
         file.seek(0)
 
         # Caso especial para .xlsx
@@ -1580,202 +1673,416 @@ def validate_file(file, allowed_extensions):
     except Exception as e:
         return False, f"Error validando archivo: {str(e)}"
 
+
 def procesar_form_op(dataForm, files):
     """Procesa el formulario de orden de producción con transacciones atómicas"""
     errores = []
-    orden = None
     id_usuario_registro = session.get('user_id')
 
+    if not id_usuario_registro:
+        app.logger.warning("Intento de procesar OP sin usuario autenticado.")
+        # Devolver un error claro que el frontend pueda interpretar
+        # Unauthorized
+        return jsonify({'status': 'error', 'message': "Usuario no autenticado. Por favor, inicie sesión."}), 401
+
+    # --- 1. Obtener y Validar Campos Principales de la OP ---
+    codigo_op_str = dataForm.get('cod_op')
+    id_cliente_str = dataForm.get('id_cliente')
+    cantidad_op_str = dataForm.get('cantidad')
+    id_empleado_str = dataForm.get('id_empleado')
+    id_supervisor_str = dataForm.get('id_supervisor')  # Opcional
+    fecha_str = dataForm.get('fecha')
+    fecha_entrega_str = dataForm.get('fecha_entrega')
+
+    # Campos de texto directos
+    producto_val = dataForm.get('producto')
+    version_val = dataForm.get('version', "1")
+    cotizacion_val = dataForm.get('cotizacion')
+    estado_val = dataForm.get('estado')
+    medida_val = dataForm.get('medida')
+    referencia_val = dataForm.get('referencia')
+    odi_val = dataForm.get('odi')
+    descripcion_general_op_val = dataForm.get('descripcion_general_op')
+    empaque_val = dataForm.get('empaque')
+    materiales_op_val = dataForm.get('materiales_op')
+
+    # Validaciones y Conversiones para campos principales
+    if not codigo_op_str or not codigo_op_str.strip():
+        errores.append("El Código OP es requerido.")
+        codigo_op_val = None
+    else:
+        try:
+            codigo_op_val = int(codigo_op_str)
+            # Opcional: Verificar unicidad aquí si prefieres un error temprano
+            # if OrdenProduccion.query.filter_by(codigo_op=codigo_op_val, fecha_borrado=None).first():
+            #     errores.append(f"El Código OP '{codigo_op_val}' ya existe.")
+        except ValueError:
+            errores.append("Código OP debe ser un número entero válido.")
+            codigo_op_val = None
+
+    if not id_cliente_str or not id_cliente_str.strip():
+        # Asumiendo que es requerido aunque el modelo dice nullable=True
+        errores.append("El Cliente es requerido.")
+        id_cliente_val = None
+    else:
+        try:
+            id_cliente_val = int(id_cliente_str)
+            if not Clientes.query.filter_by(id_cliente=id_cliente_val, fecha_borrado=None).first():
+                errores.append(
+                    f"Cliente con ID '{id_cliente_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            errores.append("ID Cliente debe ser un número entero válido.")
+            id_cliente_val = None
+
+    if not cantidad_op_str or not cantidad_op_str.strip():
+        # Modelo: nullable=True, pero funcionalmente podría ser req.
+        errores.append("La Cantidad para la OP es requerida.")
+        cantidad_op_val = None
+    else:
+        try:
+            cantidad_op_val = int(cantidad_op_str)
+            if cantidad_op_val <= 0:
+                errores.append(
+                    "La Cantidad para la OP debe ser un número positivo.")
+        except ValueError:
+            errores.append(
+                "Cantidad para la OP debe ser un número entero válido.")
+            cantidad_op_val = None
+
+    if not id_empleado_str or not id_empleado_str.strip():
+        # Modelo: nullable=True
+        errores.append("El Empleado (vendedor/responsable) es requerido.")
+        id_empleado_val = None
+    else:
+        try:
+            id_empleado_val = int(id_empleado_str)
+            if not Empleados.query.filter_by(id_empleado=id_empleado_val, fecha_borrado=None).first():
+                errores.append(
+                    f"Empleado con ID '{id_empleado_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            errores.append("ID Empleado debe ser un número entero válido.")
+            id_empleado_val = None
+
+    id_supervisor_val = None  # Es nullable en el modelo
+    if id_supervisor_str and id_supervisor_str.strip():
+        try:
+            id_supervisor_val = int(id_supervisor_str)
+            if not Empleados.query.filter_by(id_empleado=id_supervisor_val, fecha_borrado=None).first():
+                errores.append(
+                    f"Supervisor con ID '{id_supervisor_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            # No añadir a errores si está vacío y es opcional
+            errores.append("ID Supervisor debe ser un número entero válido.")
+
+    fecha_val = None
+    if not fecha_str or not fecha_str.strip():
+        # Modelo: nullable=True
+        errores.append("La Fecha de la OP es requerida.")
+    else:
+        try:
+            fecha_val = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            errores.append("Formato de Fecha inválido (Use YYYY-MM-DD).")
+
+    fecha_entrega_val = None
+    if not fecha_entrega_str or not fecha_entrega_str.strip():
+        # Modelo: nullable=True
+        errores.append("La Fecha de Entrega es requerida.")
+    else:
+        try:
+            fecha_entrega_val = datetime.strptime(
+                fecha_entrega_str, '%Y-%m-%d').date()
+        except ValueError:
+            errores.append(
+                "Formato de Fecha de Entrega inválido (Use YYYY-MM-DD).")
+
+    if fecha_val and fecha_entrega_val and fecha_entrega_val < fecha_val:
+        errores.append(
+            "La fecha de entrega no puede ser anterior a la fecha de la OP.")
+
+    # Validar campos de texto que consideres obligatorios funcionalmente
+    # (Aunque el modelo los permita nulos, tu lógica de negocio podría requerirlos)
+    if not estado_val or not estado_val.strip():
+        errores.append("El Estado de la OP es requerido.")
+    if not odi_val or not odi_val.strip():
+        errores.append("El ODI es requerido.")
+    if not descripcion_general_op_val or not descripcion_general_op_val.strip():
+        errores.append("La Descripción General de la OP es requerida.")
+    if not materiales_op_val or not materiales_op_val.strip():
+        errores.append("Los Materiales de la OP son requeridos.")
+
+    # --- 2. Validación de Archivos ---
+    # (Tu código de validación de 'render' y 'documentos' usando validate_file)
+    # Definir las rutas base para los archivos
+    basepath = os.path.abspath(os.path.dirname(__file__))  # form_op.py
+    # Asume que static está un nivel arriba
+    static_base_path = os.path.normpath(os.path.join(basepath, '../static'))
+
+    render_dir_relative = 'render_op'
+    documentos_dir_relative = 'documentos_op'
+
+    render_dir_abs = os.path.join(static_base_path, render_dir_relative)
+    documentos_dir_abs = os.path.join(
+        static_base_path, documentos_dir_relative)
+
+    os.makedirs(render_dir_abs, exist_ok=True)
+    os.makedirs(documentos_dir_abs, exist_ok=True)
+
+    render_file_storage = files.get('render')
+    path_render_a_guardar = None
+    if render_file_storage and render_file_storage.filename:
+        # Asumo que procesar_imagen_perfil está adaptado o es adecuado para esto
+        valido, nombre_archivo_o_msg = procesar_imagen_perfil(
+            render_file_storage, render_dir_relative, ALLOWED_RENDER_EXTENSIONS)
+        if not valido:
+            errores.append(f"Render: {nombre_archivo_o_msg}")
+        elif nombre_archivo_o_msg:  # Si es valido y hay un nombre de archivo
+            path_render_a_guardar = os.path.join(
+                'static', render_dir_relative, nombre_archivo_o_msg).replace("\\", "/")
+
+    documentos_a_guardar = []
+    documentos_adjuntos_files = files.getlist('documentos')
+    for doc_file_storage in documentos_adjuntos_files:
+        if doc_file_storage and doc_file_storage.filename:
+            valido, nombre_archivo_o_msg = procesar_imagen_perfil(
+                doc_file_storage, documentos_dir_relative, ALLOWED_DOC_EXTENSIONS)
+            if not valido:
+                errores.append(
+                    f"Documento '{secure_filename(doc_file_storage.filename)}': {nombre_archivo_o_msg}")
+            elif nombre_archivo_o_msg:
+                documentos_a_guardar.append({
+                    "path": os.path.join('static', documentos_dir_relative, nombre_archivo_o_msg).replace("\\", "/"),
+                    "nombre_original": secure_filename(doc_file_storage.filename)
+                })
+
+    # --- 3. Validación de Piezas Dinámicas ---
+    piezas_lista_form = []
+    piezas_json_str = dataForm.get('piezasData') 
+    app.logger.debug(f"Contenido del campo 'piezas' (datos de piezas) recibido del formulario: '{piezas_json_str}'")
+
+    if piezas_json_str and piezas_json_str.strip() and piezas_json_str.lower() != 'undefined' and piezas_json_str.lower() != 'null':
+        try:
+            parsed_data = json.loads(piezas_json_str)
+            if isinstance(parsed_data, list):
+                piezas_lista_form = parsed_data
+                if not piezas_lista_form:
+                    # Si las piezas son opcionales, esto es solo informativo.
+                    app.logger.info(
+                        "piezasData se parseó a una lista vacía. OP se creará sin piezas si otras validaciones pasan.")
+                    # Si las piezas son OBLIGATORIAS, entonces:
+                    # errores.append("Debe agregar al menos una pieza a la Orden de Producción.")
+            else:
+                errores.append(
+                    "El formato de los datos de piezas no es una lista como se esperaba.")
+                app.logger.warning(
+                    f"piezasData ('{piezas_json_str}') se parseó a un tipo no esperado: {type(parsed_data)}")
+        except json.JSONDecodeError:
+            errores.append(
+                "Error al decodificar los datos de las piezas (formato JSON inválido).")
+            app.logger.warning(
+                f"JSONDecodeError al parsear piezasData: '{piezas_json_str}'")
+    else:
+        # Si las piezas son opcionales:
+        app.logger.info(
+            "No se proporcionaron datos en piezasData o estaba vacío/nulo/undefined. OP se creará sin piezas si otras validaciones pasan.")
+        # Si las piezas son OBLIGATORIAS:
+        # errores.append("Debe agregar al menos una pieza a la Orden de Producción.")
+
+    # Validación detallada de cada pieza si la lista no está vacía y no hay errores previos de parseo
+    if not errores and piezas_lista_form:
+        for idx, pieza_data_form in enumerate(piezas_lista_form, 1):
+            id_pieza = pieza_data_form.get('id_pieza')
+            cantidad_pieza_str = str(pieza_data_form.get('cantidad', ''))
+            ids_procesos_seleccionados = pieza_data_form.get('ids_procesos', [])
+            otro_proceso_nombre = pieza_data_form.get('otro_proceso')  # Nombre del nuevo proceso
+
+            if not id_pieza or not str(id_pieza).strip():
+                errores.append(f"Pieza #{idx}: El ID de la pieza es requerido.")
+            else:
+                try:
+                    id_pieza = int(id_pieza)
+                    pieza_db = Piezas.query.filter_by(id_pieza=id_pieza, fecha_borrado=None).first()
+                    if not pieza_db:
+                        errores.append(f"Pieza #{idx}: ID de pieza '{id_pieza}' no encontrado.")
+                    else:
+                        nombre_pieza_val = pieza_db.nombre_pieza  # Obtener el nombre desde la base de datos
+                except ValueError:
+                    errores.append(f"Pieza #{idx}: ID de pieza inválido.")
+                    nombre_pieza_val = None
+
+            if not cantidad_pieza_str.isdigit() or int(cantidad_pieza_str) <= 0:
+                errores.append(f"Pieza #{idx} ('{nombre_pieza_val or 'N/A'}'): Cantidad es requerida y debe ser un número positivo.")
+
+            if not ids_procesos_seleccionados and not (otro_proceso_nombre and otro_proceso_nombre.strip()):
+                errores.append(f"Pieza #{idx} ('{nombre_pieza_val or 'N/A'}'): Debe seleccionar al menos un proceso existente o especificar un 'Otro Proceso' con nombre.")
+
+            if 'otro_proceso_custom' in ids_procesos_seleccionados and not (otro_proceso_nombre and otro_proceso_nombre.strip()):
+                errores.append(f"Pieza #{idx} ('{nombre_pieza_val or 'N/A'}'): Si selecciona la opción 'Otro Proceso', debe especificar su nombre.")
+
+    # --- 4. Manejo de Errores Tempranos ---
+    if errores:
+        app.logger.warning(
+            f"Errores de validación en procesar_form_op: {', '.join(errores)}")
+        return jsonify({'status': 'error', 'message': ". ".join(errores) + "."}), 400
+
+    # --- 5. Iniciar Transacción y Crear Registros ---
     try:
-        # ========== VALIDACIONES INICIALES ==========
-        if not id_usuario_registro:
-            raise ValueError("Usuario no autenticado")
+        app.logger.debug(
+            f"Valores para OrdenProduccion: codigo_op={codigo_op_val}, id_cliente={id_cliente_val}, cantidad={cantidad_op_val}, id_empleado={id_empleado_val}, fecha={fecha_val}, estado={estado_val}")  # DEBUG
+        orden = OrdenProduccion(
+            codigo_op=codigo_op_val,
+            id_cliente=id_cliente_val,
+            producto=producto_val,
+            version=version_val,
+            cotizacion=cotizacion_val,
+            estado=estado_val,
+            cantidad=cantidad_op_val,
+            medida=medida_val,
+            referencia=referencia_val,
+            odi=odi_val,
+            id_empleado=id_empleado_val,
+            id_supervisor=id_supervisor_val,
+            fecha=fecha_val,
+            fecha_entrega=fecha_entrega_val,
+            descripcion_general=descripcion_general_op_val,
+            empaque=empaque_val,
+            materiales=materiales_op_val,
+            id_usuario_registro=id_usuario_registro
+        )
+        db.session.add(orden)
+        db.session.flush()  # Para obtener orden.id_op
 
-        # Validar campos requeridos básicos
-        required_fields = {
-            'cod_op': dataForm.get('cod_op'),
-            'id_cliente': dataForm.get('id_cliente'),
-            'cantidad': dataForm.get('cantidad'),
-            'id_empleado': dataForm.get('id_empleado'),
-            'fecha': dataForm.get('fecha'),
-            'fecha_entrega': dataForm.get('fecha_entrega'),
-            'odi': dataForm.get('odi'),
-            'estado': dataForm.get('estado'),
-            'descripcion_general': dataForm.get('descripcion_general'),
-            'materiales': dataForm.get('materiales')
-        }
-        
-        for field, value in required_fields.items():
-            if not value:
-                errores.append(f"Campo requerido faltante: {field.replace('_', ' ').title()}")
+        # Guardar Render si existe
+        if path_render_a_guardar:
+            nuevo_render = RendersOP(
+                id_op=orden.id_op, render_path=path_render_a_guardar)
+            db.session.add(nuevo_render)
 
-        # ========== CONVERSIONES Y VALIDACIONES DE TIPOS ==========
-        conversions = []
-        try:
-            conversions.append(('codigo_op', int(dataForm['cod_op'])))
-        except (ValueError, KeyError):
-            errores.append("Código OP debe ser un número entero válido")            
-        try:
-            conversions.append(('id_cliente', int(dataForm['id_cliente'])))
-        except (ValueError, KeyError):
-            errores.append("ID Cliente debe ser un número entero")
-        try:
-            conversions.append(('cantidad', int(dataForm['cantidad'])))
-        except (ValueError, KeyError):
-            errores.append("Cantidad debe ser un número entero")   
-        try:
-            conversions.append(('id_empleado', int(dataForm['id_empleado'])))
-        except (ValueError, KeyError):
-            errores.append("ID Empleado debe ser un número entero") 
-            
-        try:
-            conversions.append(('id_supervisor', int(dataForm['id_supervisor'])))
-        except (ValueError, KeyError):
-            errores.append("ID supervisor debe ser un número entero")    
-
-        id_usuario_registro = session.get('user_id')
-
-        # Convertir fechas
-        try:
-            fecha = datetime.strptime(dataForm['fecha'], '%Y-%m-%d').date()
-            fecha_entrega = datetime.strptime(dataForm['fecha_entrega'], '%Y-%m-%d').date()
-            if fecha_entrega < fecha:
-                errores.append("La fecha de entrega no puede ser anterior a la fecha de registro")
-        except (ValueError, KeyError):
-            errores.append("Formato de fecha inválido (Use YYYY-MM-DD)")
-            
-        # Definir las rutas base para los archivos
-        basepath = os.path.abspath(os.path.dirname(__file__))
-        render_dir = os.path.normpath(os.path.join(basepath, '../static/render_op'))
-        documentos_dir = os.path.normpath(os.path.join(basepath, '../static/documentos_op'))
-
-        # Crear las carpetas si no existen
-        for upload_dir in [render_dir, documentos_dir]:
-            os.makedirs(upload_dir, exist_ok=True)
-
-        # ========== VALIDACIÓN DE ARCHIVOS ==========
-        # Validar Render
-        if 'render' in files and files['render'].filename:
-            render_file = files['render']
-            is_valid, msg = validate_file(render_file, ALLOWED_RENDER_EXTENSIONS)
-            if not is_valid:
-                errores.append(f"Render: {msg}")
-
-        # Validar Documentos
-        if 'documentos' in files:
-            for doc in files.getlist('documentos'):
-                if doc and doc.filename:
-                    is_valid, msg = validate_file(doc, ALLOWED_DOC_EXTENSIONS)
-                    if not is_valid:
-                        errores.append(f"Documento: {msg}")
-
-        # ========== VALIDACIÓN DE PIEZAS DINÁMICAS ==========
-        piezas_data = []
-        if 'piezas' in dataForm:
-            try:
-                piezas = json.loads(dataForm['piezas'])
-                for idx, pieza in enumerate(piezas, 1):
-                    if 'id_pieza' not in pieza:
-                        errores.append(f"Pieza {idx}: Falta ID de pieza")
-                        continue
-                    
-                    try:
-                        pieza_id = int(pieza['id_pieza'])
-                        if not Piezas.query.get(pieza_id):
-                            errores.append(f"Pieza {idx}: ID {pieza_id} no existe")
-                    except ValueError:
-                        errores.append(f"Pieza {idx}: ID inválido")
-                    
-                    # Validar campos numéricos
-                    if not str(pieza.get('cabezoteCantidad', '')).isdigit():
-                        errores.append(f"Pieza {idx}: Cantidad inválida")
-                    
-                    piezas_data.append(pieza)
-            except json.JSONDecodeError:
-                errores.append("Formato inválido en datos de piezas")
-
-        # ========== MANEJO DE ERRORES TEMPRANOS ==========
-        if errores:
-            for error in errores:
-                flash(error, 'error')
-            return None
-
-        # ========== INICIAR TRANSACCIÓN ATÓMICA ==========
-        with db.session.begin_nested():
-            # ========== CREAR ORDEN ==========
-            orden = OrdenProduccion(
-                codigo_op=conversions['codigo_op'],
-                id_cliente=conversions['id_cliente'],
-                version="1",  # Establecer la versión inicial a "1"
-                # ... otros campos ...
-                id_usuario_registro=id_usuario_registro
+        # Guardar Documentos
+        for doc_info in documentos_a_guardar:
+            nuevo_documento = DocumentosOP(
+                id_op=orden.id_op,
+                documento_path=doc_info["path"],
+                documento_nombre_original=doc_info["nombre_original"]
             )
-            db.session.add(orden)
+            db.session.add(nuevo_documento)
+
+        # Procesar Piezas y sus Procesos
+        for pieza_data_form in piezas_lista_form:
+            id_pieza = int(pieza_data_form.get('id_pieza'))
+            pieza_db = Piezas.query.filter_by(id_pieza=id_pieza, fecha_borrado=None).first()
+            nombre_pieza_val = pieza_db.nombre_pieza if pieza_db else None
+            cantidad_pieza_val = int(pieza_data_form.get('cantidad'))
+            ids_procesos_seleccionados_val = pieza_data_form.get('ids_procesos', [])
+            _otro_proceso_temp = pieza_data_form.get('otro_proceso')
+            otro_proceso_nombre_val = _otro_proceso_temp.strip() if isinstance(_otro_proceso_temp, str) else ''
+
+            ids_procesos_finales_para_pieza = []
+            if isinstance(ids_procesos_seleccionados_val, list):
+                for proc_id_str in ids_procesos_seleccionados_val:
+                    if proc_id_str == 'otro_proceso_custom':
+                        continue
+                    try:
+                        proc_id_int = int(proc_id_str)
+                        proceso_db = Procesos.query.filter_by(id_proceso=proc_id_int, fecha_borrado=None).first()
+                        if proceso_db:
+                            ids_procesos_finales_para_pieza.append(proc_id_int)
+                        else:
+                            app.logger.warning(f"ID de proceso existente '{proc_id_str}' no encontrado o borrado, ignorado para pieza ID '{id_pieza}'.")
+                    except ValueError:
+                        app.logger.warning(f"ID de proceso no numérico '{proc_id_str}' ignorado para pieza ID '{id_pieza}'.")
+
+            if otro_proceso_nombre_val:
+                proceso_existente = Procesos.query.filter(func.lower(Procesos.nombre_proceso) == func.lower(otro_proceso_nombre_val), Procesos.fecha_borrado.is_(None)).first()
+                if proceso_existente:
+                    if proceso_existente.id_proceso not in ids_procesos_finales_para_pieza:
+                        ids_procesos_finales_para_pieza.append(proceso_existente.id_proceso)
+                else:
+                    ultimo_proceso_cod_obj = Procesos.query.with_entities(Procesos.codigo_proceso).order_by(Procesos.id_proceso.desc()).first()
+                    nuevo_codigo_num = 1
+                    if ultimo_proceso_cod_obj and ultimo_proceso_cod_obj[0] and re.match(r"P\d+", ultimo_proceso_cod_obj[0]):
+                        try:
+                            nuevo_codigo_num = int(re.sub(r'\D', '', ultimo_proceso_cod_obj[0])) + 1
+                        except:
+                            max_id = db.session.query(func.max(Procesos.id_proceso)).scalar() or 0
+                            nuevo_codigo_num = max_id + 1001
+                    else:
+                        max_id = db.session.query(func.max(Procesos.id_proceso)).scalar() or 0
+                        nuevo_codigo_num = max_id + 1001
+
+                    nuevo_codigo_proceso_str = f"P{nuevo_codigo_num:03d}"
+                    while Procesos.query.filter_by(codigo_proceso=nuevo_codigo_proceso_str, fecha_borrado=None).first():
+                        nuevo_codigo_num += 1
+                        nuevo_codigo_proceso_str = f"P{nuevo_codigo_num:03d}"
+
+                    nuevo_proceso_obj = Procesos(
+                        codigo_proceso=nuevo_codigo_proceso_str,
+                        nombre_proceso=otro_proceso_nombre_val,
+                        descripcion_proceso=f"Proceso '{otro_proceso_nombre_val}' creado desde OP {orden.codigo_op}"
+                    )
+                    db.session.add(nuevo_proceso_obj)
+                    db.session.flush()
+                    if nuevo_proceso_obj.id_proceso not in ids_procesos_finales_para_pieza:
+                        ids_procesos_finales_para_pieza.append(nuevo_proceso_obj.id_proceso)
+
+            orden_pieza_obj = OrdenPiezas(
+                id_op=orden.id_op,
+                id_pieza=id_pieza,
+                nombre_pieza_op=nombre_pieza_val,
+                cantidad=cantidad_pieza_val,
+                tamano=pieza_data_form.get('tamano'),
+                montaje=pieza_data_form.get('montaje'),
+                montaje_tamano=pieza_data_form.get('tamano_montaje'),
+                material=pieza_data_form.get('material'),
+                cantidad_material=pieza_data_form.get('cantidad_material'),
+                descripcion_pieza=pieza_data_form.get('descripcion_pieza')
+            )
+            db.session.add(orden_pieza_obj)
             db.session.flush()
 
-            # ========== PROCESAR ARCHIVOS ==========
-            # Guardar Render
-            if 'render' in files and files['render'].filename:
-                render_file = files['render']
-                filename = secure_filename(render_file.filename)
-                unique_name = f"render_{uuid.uuid4().hex}.{filename.split('.')[-1]}"
-                render_path = os.path.join(render_dir, unique_name)
-                render_file.save(render_path)
-                
-                orden.render.append(RendersOP(
-                    render_path=os.path.join('static/render_op', unique_name)
-                ))
+            for id_proc_final in set(ids_procesos_finales_para_pieza):
+                db.session.add(OrdenPiezasProcesos(
+                    id_orden_pieza=orden_pieza_obj.id_orden_pieza, id_proceso=id_proc_final))
 
-            # Guardar Documentos
-            if 'documentos' in files:
-                for doc in files.getlist('documentos'):
-                    if doc and doc.filename:
-                        filename = secure_filename(doc.filename)
-                        unique_name = f"doc_{uuid.uuid4().hex}.{filename.split('.')[-1]}"
-                        doc_path = os.path.join(documentos_dir, unique_name)
-                        doc.save(doc_path)
-                        
-                        orden.documentos.append(DocumentosOP(
-                            documento_path=os.path.join('static/documentos_op', unique_name),
-                            documento_nombre_original=filename
-                        ))
-
-            # ========== PROCESAR PIEZAS ==========
-            for pieza in piezas_data:
-                nueva_pieza = OrdenPiezas(
-                    id_pieza=pieza['id_pieza'],
-                    cantidad=pieza.get('cabezoteCantidad'),
-                    # ... otros campos ...
-                )
-                db.session.add(nueva_pieza)
-                db.session.flush()
-
-                # Procesos asociados
-                if 'id_proceso' in pieza:
-                    for proceso_id in pieza['id_proceso']:
-                        db.session.add(OrdenPiezasProcesos(
-                            id_orden_pieza=nueva_pieza.id_orden_pieza,
-                            id_proceso=proceso_id
-                        ))
-
-        # ========== CONFIRMAR TRANSACCIÓN PRINCIPAL ==========
         db.session.commit()
-        flash("Orden registrada exitosamente", 'success')
-        return orden.id_op
+        app.logger.info(
+            f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente.")
+        return jsonify({'status': 'success', 'message': 'Orden de Producción registrada exitosamente.', 'id_op': orden.id_op, 'redirect_url': url_for('lista_op', id_op=orden.id_op)}), 200
 
-    except SQLAlchemyError as e:
+    except IntegrityError as ie:
         db.session.rollback()
-        app.logger.error(f"Error de base de datos: {str(e)}")
-        flash("Error al guardar en la base de datos", 'error')
-    except Exception as e:
+        app.logger.error(
+            f"Error de Integridad de BD en procesar_form_op: {str(ie)}", exc_info=True)
+        # Revisar ie.orig.args o similar para mensajes específicos del motor de BD
+        # Ejemplo: Comprobar si es por 'codigo_op' duplicado
+        error_message = "Error de base de datos. Es posible que un valor único (como Código OP) ya exista."
+        # if "Duplicate entry" in str(ie.orig) and "codigo_op" in str(ie.orig): # MySQL example
+        #     error_message = f"El Código OP '{codigo_op_val}' ya está registrado."
+        # 409 Conflict
+        return jsonify({'status': 'error', 'message': error_message}), 409
+
+    except SQLAlchemyError as e_sql:
         db.session.rollback()
-        app.logger.error(f"Error inesperado: {str(e)}")
-        flash("Ocurrió un error inesperado al procesar la orden", 'error')
-    finally:
-        if 'render_file' in locals():
-            render_file.close()
-    
-    return None
+        app.logger.error(
+            f"Error de SQLAlchemy en procesar_form_op: {str(e_sql)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Error al interactuar con la base de datos.'}), 500
+
+    except ValueError as ve:  # Errores de conversión o validación que no se atraparon antes
+        db.session.rollback()
+        app.logger.warning(
+            f"Error de Valor en procesar_form_op (etapa final): {str(ve)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(ve)}), 400
+
+    except Exception as e_inesperado:
+        db.session.rollback()
+        app.logger.error(
+            f"Error inesperado en procesar_form_op: {str(e_inesperado)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Ocurrió un error inesperado al procesar la orden.'}), 500
+    # El finally no es estrictamente necesario aquí si no hay recursos externos que cerrar siempre
+    # y si la respuesta JSON ya se ha enviado.
+    # Si se llega aquí sin un return explícito, es un error de lógica en los try/except.
+    # No debería ser necesario un return None al final si todos los caminos están cubiertos.
+
 
 def validar_cod_op(codigo_op):
     try:
@@ -1788,6 +2095,7 @@ def validar_cod_op(codigo_op):
     except Exception as e:
         app.logger.error(f"Error en validar_cod_op: {e}")
         return False
+
 
 def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None):
     try:
@@ -1865,7 +2173,7 @@ def sql_detalles_op_bd(id_op):
             Clientes.nombre_cliente.label('nombre_cliente'),
             empleado_vendedor.nombre_empleado.label('nombre_empleado_vendedor'),
             db.func.concat(empleado_supervisor.nombre_empleado, ' ',
-                            empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
+                           empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
             Users.name_surname.label('nombre_usuario_registro')
         ).outerjoin(
             Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
@@ -1881,19 +2189,24 @@ def sql_detalles_op_bd(id_op):
         ).first()
 
         if not result:
+            app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
             return None
 
         orden, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
 
-        # Obtener las piezas asociadas y sus procesos
-        piezas = []
-        for pieza in orden.orden_piezas:
-            # Obtener el nombre de la pieza
-            pieza_info = db.session.query(Piezas.nombre_pieza.label('nombre_pieza')).filter(
-                Piezas.id_pieza == pieza.id_pieza,
-                Piezas.fecha_borrado.is_(None)
-            ).first()
+        # Obtener las piezas asociadas con un solo JOIN
+        piezas = db.session.query(
+            OrdenPiezas,
+            Piezas.nombre_pieza.label('nombre_pieza')
+        ).outerjoin(
+            Piezas, OrdenPiezas.id_pieza == Piezas.id_pieza
+        ).filter(
+            OrdenPiezas.id_op == orden.id_op,
+            OrdenPiezas.fecha_borrado.is_(None)
+        ).all()
 
+        piezas_list = []
+        for pieza, nombre_pieza in piezas:
             # Obtener los procesos asociados a la pieza
             procesos = db.session.query(
                 Procesos.nombre_proceso.label('nombre_proceso')
@@ -1906,17 +2219,19 @@ def sql_detalles_op_bd(id_op):
 
             procesos_nombres = [proceso.nombre_proceso for proceso in procesos]
 
-            piezas.append({
+            if not nombre_pieza:
+                app.logger.warning(f"Pieza con id_pieza={pieza.id_pieza} no encontrada en tbl_piezas para id_op={id_op}")
+
+            piezas_list.append({
                 'id_orden_pieza': pieza.id_orden_pieza,
-                'nombre_pieza': pieza_info.nombre_pieza if pieza_info else 'Desconocido',
+                'nombre_pieza': nombre_pieza if nombre_pieza else 'Desconocido',
                 'cantidad': pieza.cantidad if pieza.cantidad else 'No especificado',
                 'tamano': pieza.tamano if pieza.tamano else 'No especificado',
                 'montaje': pieza.montaje if pieza.montaje else 'No especificado',
                 'montaje_tamano': pieza.montaje_tamano if pieza.montaje_tamano else 'No especificado',
                 'material': pieza.material if pieza.material else 'No especificado',
                 'cantidad_material': pieza.cantidad_material if pieza.cantidad_material else 'No especificado',
-                'otros_procesos': pieza.otros_procesos if pieza.otros_procesos else 'No especificado',
-                'descripcion_general': pieza.descripcion_general if pieza.descripcion_general else 'No especificado',
+                'descripcion_general': pieza.descripcion_pieza if pieza.descripcion_pieza else 'No especificado',  # Cambiado a descripcion_pieza
                 'procesos': procesos_nombres if procesos_nombres else ['No especificado']
             })
 
@@ -1962,10 +2277,9 @@ def sql_detalles_op_bd(id_op):
             'id_usuario_registro': orden.id_usuario_registro,
             'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
             'fecha_borrado': orden.fecha_borrado,
-            # Renders y documentos asociados
             'renders': renders,
             'documentos': documentos,
-            'piezas': piezas
+            'piezas': piezas_list
         }
         app.logger.debug(f"Detalles de la orden: {detalle}")
         return detalle
@@ -2118,21 +2432,29 @@ def procesar_actualizar_form_op(data, files):
             app.logger.error("ID de la orden no proporcionado")
             return jsonify({'success': False, 'message': 'ID de la orden no proporcionado'})
 
-        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
+        orden = db.session.query(
+            OrdenProduccion).filter_by(id_op=id_op).first()
         if not orden:
             app.logger.error(f"Orden con id_op {id_op} no encontrada")
             return jsonify({'success': False, 'message': 'Orden no encontrada'})
 
         # Convertir campos numéricos y validar
-        codigo_op = int(data.form['cod_op']) if data.form['cod_op'] else orden.codigo_op
-        id_cliente = int(data.form['id_cliente']) if data.form['id_cliente'] else orden.id_cliente
-        cantidad = int(data.form['cantidad']) if data.form['cantidad'] else orden.cantidad
-        id_empleado = int(data.form['id_empleado']) if data.form['id_empleado'] else orden.id_empleado
-        id_supervisor = int(data.form['id_supervisor']) if data.form.get('id_supervisor') and data.form['id_supervisor'].strip() else orden.id_supervisor
+        codigo_op = int(data.form['cod_op']
+                        ) if data.form['cod_op'] else orden.codigo_op
+        id_cliente = int(
+            data.form['id_cliente']) if data.form['id_cliente'] else orden.id_cliente
+        cantidad = int(data.form['cantidad']
+                       ) if data.form['cantidad'] else orden.cantidad
+        id_empleado = int(
+            data.form['id_empleado']) if data.form['id_empleado'] else orden.id_empleado
+        id_supervisor = int(data.form['id_supervisor']) if data.form.get(
+            'id_supervisor') and data.form['id_supervisor'].strip() else orden.id_supervisor
 
         # Convertir fechas
-        fecha = datetime.strptime(data.form['fecha'], '%Y-%m-%d').date() if data.form['fecha'] else orden.fecha
-        fecha_entrega = datetime.strptime(data.form['fecha_entrega'], '%Y-%m-%d').date() if data.form['fecha_entrega'] else orden.fecha_entrega
+        fecha = datetime.strptime(
+            data.form['fecha'], '%Y-%m-%d').date() if data.form['fecha'] else orden.fecha
+        fecha_entrega = datetime.strptime(data.form['fecha_entrega'], '%Y-%m-%d').date(
+        ) if data.form['fecha_entrega'] else orden.fecha_entrega
 
         # Validar campos requeridos
         required_fields = {
@@ -2157,14 +2479,16 @@ def procesar_actualizar_form_op(data, files):
         orden.id_cliente = id_cliente
         orden.producto = data.form.get('producto') or orden.producto
         # Incrementar la versión
-        current_version = orden.version or "0"  # Obtener la versión actual, por defecto "0" si es None o vacío
+        # Obtener la versión actual, por defecto "0" si es None o vacío
+        current_version = orden.version or "0"
         try:
             next_version = int(current_version) + 1
             orden.version = str(next_version)
         except ValueError:
             # Si la versión actual no es un número, establecer la próxima versión a "1"
             orden.version = "1"
-            app.logger.warning(f"La versión actual de la OP {orden.id_op} no es un número válido: {current_version}. Estableciendo la próxima versión a 1.")
+            app.logger.warning(
+                f"La versión actual de la OP {orden.id_op} no es un número válido: {current_version}. Estableciendo la próxima versión a 1.")
 
         orden.cotizacion = data.form.get('cotizacion') or orden.cotizacion
         orden.estado = data.form['estado']
@@ -2182,7 +2506,8 @@ def procesar_actualizar_form_op(data, files):
 
         # Procesar eliminación de renders
         if 'delete_renders[]' in data.form and data.form.getlist('delete_renders[]'):
-            old_renders = db.session.query(RendersOP).filter_by(id_op=id_op).all()
+            old_renders = db.session.query(
+                RendersOP).filter_by(id_op=id_op).all()
             for render in old_renders:
                 file_path = os.path.join('static', render.render_path)
                 if os.path.exists(file_path):
@@ -2197,20 +2522,26 @@ def procesar_actualizar_form_op(data, files):
             extension = os.path.splitext(filename)[1]
             nuevo_name = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
             render_filename = f"render_{nuevo_name}{extension}"
-            render_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '../static/render_op'))
+            render_dir = os.path.normpath(os.path.join(
+                os.path.dirname(__file__), '../static/render_op'))
             os.makedirs(render_dir, exist_ok=True)
-            render_path = os.path.normpath(os.path.join(render_dir, render_filename))
+            render_path = os.path.normpath(
+                os.path.join(render_dir, render_filename))
             render_file.save(render_path)
-            render_path_relative = os.path.join('static/render_op', render_filename).replace('\\', '/')
-            nuevo_render = RendersOP(id_op=id_op, render_path=render_path_relative)
+            render_path_relative = os.path.join(
+                'static/render_op', render_filename).replace('\\', '/')
+            nuevo_render = RendersOP(
+                id_op=id_op, render_path=render_path_relative)
             db.session.add(nuevo_render)
-            app.logger.debug(f"Archivo render guardado en: {render_path} (ruta relativa: {render_path_relative})")
+            app.logger.debug(
+                f"Archivo render guardado en: {render_path} (ruta relativa: {render_path_relative})")
 
         # Procesar eliminación de documentos
         if 'delete_docs[]' in data.form:
             docs_to_delete = data.form.getlist('delete_docs[]')
             for doc_id in docs_to_delete:
-                doc = db.session.query(DocumentosOP).filter_by(id_documento=doc_id).first()
+                doc = db.session.query(DocumentosOP).filter_by(
+                    id_documento=doc_id).first()
                 if doc:
                     file_path = os.path.join('static', doc.documento_path)
                     if os.path.exists(file_path):
@@ -2220,7 +2551,8 @@ def procesar_actualizar_form_op(data, files):
 
         # Procesar nuevos documentos
         if 'documentos' in files:
-            documentos_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '../static/documentos_op'))
+            documentos_dir = os.path.normpath(os.path.join(
+                os.path.dirname(__file__), '../static/documentos_op'))
             os.makedirs(documentos_dir, exist_ok=True)
             for doc in files.getlist('documentos'):
                 if doc and doc.filename:
@@ -2228,16 +2560,19 @@ def procesar_actualizar_form_op(data, files):
                     extension = os.path.splitext(filename)[1]
                     nuevo_name = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
                     doc_filename = f"doc_{nuevo_name}{extension}"
-                    doc_path = os.path.normpath(os.path.join(documentos_dir, doc_filename))
+                    doc_path = os.path.normpath(
+                        os.path.join(documentos_dir, doc_filename))
                     doc.save(doc_path)
-                    doc_path_relative = os.path.join('static/documentos_op', doc_filename).replace('\\', '/')
+                    doc_path_relative = os.path.join(
+                        'static/documentos_op', doc_filename).replace('\\', '/')
                     nuevo_doc = DocumentosOP(
                         id_op=id_op,
                         documento_path=doc_path_relative,
                         documento_nombre_original=filename
                     )
                     db.session.add(nuevo_doc)
-                    app.logger.debug(f"Documento guardado en: {doc_path} (ruta relativa: {doc_path_relative})")
+                    app.logger.debug(
+                        f"Documento guardado en: {doc_path} (ruta relativa: {doc_path_relative})")
 
         # Procesar piezas
         piezas_json = data.form.get('piezas')
@@ -2247,18 +2582,21 @@ def procesar_actualizar_form_op(data, files):
             db.session.query(OrdenPiezas).filter_by(id_op=id_op).delete()
             for pieza_data in piezas:
                 if not pieza_data.get('id_pieza'):
-                    app.logger.error(f"Pieza inválida, falta id_pieza: {pieza_data}")
+                    app.logger.error(
+                        f"Pieza inválida, falta id_pieza: {pieza_data}")
                     continue
                 id_pieza = int(pieza_data['id_pieza'])
                 orden_pieza = OrdenPiezas(
                     id_op=id_op,
                     id_pieza=id_pieza,
-                    cantidad=int(pieza_data['cabezoteCantidad']) if pieza_data.get('cabezoteCantidad') and pieza_data['cabezoteCantidad'].isdigit() else None,
+                    cantidad=int(pieza_data['cabezoteCantidad']) if pieza_data.get(
+                        'cabezoteCantidad') and pieza_data['cabezoteCantidad'].isdigit() else None,
                     tamano=pieza_data.get('cabezoteTamaño'),
                     montaje=pieza_data.get('cabezoteMontaje'),
                     montaje_tamano=pieza_data.get('cabezoteMontajeTamaño'),
                     material=pieza_data.get('cabezoteMaterial'),
-                    cantidad_material=pieza_data.get('cabezoteCantidadMaterial'),
+                    cantidad_material=pieza_data.get(
+                        'cabezoteCantidadMaterial'),
                     otros_procesos=pieza_data.get('cabezoteOtrosProcesos'),
                     descripcion_general=pieza_data.get('cabezoteDescGeneral')
                 )
@@ -2280,11 +2618,13 @@ def procesar_actualizar_form_op(data, files):
 
     except ValueError as ve:
         db.session.rollback()
-        app.logger.error(f"Error de conversión en procesar_actualizar_form_op: {str(ve)}")
+        app.logger.error(
+            f"Error de conversión en procesar_actualizar_form_op: {str(ve)}")
         return jsonify({'success': False, 'message': str(ve)})
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Se produjo un error en procesar_actualizar_form_op: {str(e)}")
+        app.logger.error(
+            f"Se produjo un error en procesar_actualizar_form_op: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
 # Eliminar Orden de Producción
@@ -2293,7 +2633,8 @@ def procesar_actualizar_form_op(data, files):
 def eliminar_op(id_op):
     try:
         # Buscar la orden
-        orden = db.session.query(OrdenProduccion).filter_by(id_op=id_op).first()
+        orden = db.session.query(
+            OrdenProduccion).filter_by(id_op=id_op).first()
         if not orden:
             app.logger.warning(f"No se encontró la orden con id_op: {id_op}")
             return 0
@@ -2303,26 +2644,32 @@ def eliminar_op(id_op):
 
         # Eliminar archivos de renders asociados
         for render in orden.renders:
-            render_full_path = os.path.normpath(os.path.join(basepath, '../', render.render_path))
+            render_full_path = os.path.normpath(
+                os.path.join(basepath, '../', render.render_path))
             if os.path.exists(render_full_path):
                 os.remove(render_full_path)
-                app.logger.debug(f"Archivo render eliminado: {render_full_path}")
+                app.logger.debug(
+                    f"Archivo render eliminado: {render_full_path}")
             else:
-                app.logger.warning(f"Archivo render no encontrado en: {render_full_path}")
+                app.logger.warning(
+                    f"Archivo render no encontrado en: {render_full_path}")
 
         # Eliminar documentos asociados
         for doc in orden.documentos:
-            doc_full_path = os.path.normpath(os.path.join(basepath, '../', doc.documento_path))
+            doc_full_path = os.path.normpath(
+                os.path.join(basepath, '../', doc.documento_path))
             if os.path.exists(doc_full_path):
                 os.remove(doc_full_path)
                 app.logger.debug(f"Documento eliminado: {doc_full_path}")
             else:
-                app.logger.warning(f"Documento no encontrado en: {doc_full_path}")
+                app.logger.warning(
+                    f"Documento no encontrado en: {doc_full_path}")
 
         # Eliminar la orden (esto también elimina registros relacionados por CASCADE)
         db.session.delete(orden)
         db.session.commit()
-        app.logger.debug(f"Orden de producción con id_op {id_op} eliminada correctamente.")
+        app.logger.debug(
+            f"Orden de producción con id_op {id_op} eliminada correctamente.")
         return 1  # Indica éxito (rowcount)
 
     except Exception as e:
@@ -2514,7 +2861,8 @@ def sql_detalles_jornadas_bd(id_jornada):
             empleado = Empleados.query.get(jornada.id_empleado)
             usuario = Users.query.get(jornada.id_usuario_registro)
             if not empleado:
-                raise ValueError(f"No se encontró el empleado con ID: {jornada.id_empleado}")
+                raise ValueError(
+                    f"No se encontró el empleado con ID: {jornada.id_empleado}")
 
             return {
                 'id_jornada': jornada.id_jornada,
@@ -2541,19 +2889,26 @@ def buscar_jornada_unico(id):
         jornada = db.session.query(Jornadas).filter_by(id_jornada=id).first()
         app.logger.debug(f"Jornada encontrada: {jornada}")
         if jornada:
-            app.logger.debug(f"ID Empleado de la jornada: {jornada.id_empleado}")
+            app.logger.debug(
+                f"ID Empleado de la jornada: {jornada.id_empleado}")
             empleado = Empleados.query.get(jornada.id_empleado)
             app.logger.debug(f"Empleado encontrado: {empleado}")
             nombre_completo_empleado = "Desconocido"
             if empleado:
-                nombre_completo_empleado = f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip()
-            
+                nombre_completo_empleado = f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip(
+                )
+
             # Convertir datetimes a string si no son None, de lo contrario None o string vacío
-            fecha_hora_llegada_programada_str = jornada.fecha_hora_llegada_programada.strftime('%Y-%m-%dT%H:%M') if jornada.fecha_hora_llegada_programada else None
-            fecha_hora_salida_programada_str = jornada.fecha_hora_salida_programada.strftime('%Y-%m-%dT%H:%M') if jornada.fecha_hora_salida_programada else None
-            fecha_hora_llegada_str = jornada.fecha_hora_llegada.strftime('%Y-%m-%dT%H:%M') if jornada.fecha_hora_llegada else None
-            fecha_hora_salida_str = jornada.fecha_hora_salida.strftime('%Y-%m-%dT%H:%M') if jornada.fecha_hora_salida else None
-            fecha_registro_str = jornada.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if jornada.fecha_registro else None
+            fecha_hora_llegada_programada_str = jornada.fecha_hora_llegada_programada.strftime(
+                '%Y-%m-%dT%H:%M') if jornada.fecha_hora_llegada_programada else None
+            fecha_hora_salida_programada_str = jornada.fecha_hora_salida_programada.strftime(
+                '%Y-%m-%dT%H:%M') if jornada.fecha_hora_salida_programada else None
+            fecha_hora_llegada_str = jornada.fecha_hora_llegada.strftime(
+                '%Y-%m-%dT%H:%M') if jornada.fecha_hora_llegada else None
+            fecha_hora_salida_str = jornada.fecha_hora_salida.strftime(
+                '%Y-%m-%dT%H:%M') if jornada.fecha_hora_salida else None
+            fecha_registro_str = jornada.fecha_registro.strftime(
+                '%Y-%m-%d %I:%M %p') if jornada.fecha_registro else None
 
             return {
                 'id_jornada': jornada.id_jornada,
@@ -2575,37 +2930,43 @@ def buscar_jornada_unico(id):
 
 def procesar_actualizacion_jornada(id_jornada, dataForm):
     try:
-        jornada = db.session.query(Jornadas).filter_by(id_jornada=id_jornada).first()
+        jornada = db.session.query(Jornadas).filter_by(
+            id_jornada=id_jornada).first()
         if jornada:
             jornada.id_empleado = dataForm.get('id_empleado')
-            
+
             fh_llegada_prog_str = dataForm.get('fecha_hora_llegada_programada')
             if fh_llegada_prog_str:
-                jornada.fecha_hora_llegada_programada = datetime.strptime(fh_llegada_prog_str, '%Y-%m-%dT%H:%M')
+                jornada.fecha_hora_llegada_programada = datetime.strptime(
+                    fh_llegada_prog_str, '%Y-%m-%dT%H:%M')
             else:
                 jornada.fecha_hora_llegada_programada = None
 
             fh_salida_prog_str = dataForm.get('fecha_hora_salida_programada')
             if fh_salida_prog_str:
-                jornada.fecha_hora_salida_programada = datetime.strptime(fh_salida_prog_str, '%Y-%m-%dT%H:%M')
+                jornada.fecha_hora_salida_programada = datetime.strptime(
+                    fh_salida_prog_str, '%Y-%m-%dT%H:%M')
             else:
                 jornada.fecha_hora_salida_programada = None
 
             fh_llegada_real_str = dataForm.get('fecha_hora_llegada')
             if fh_llegada_real_str:
-                jornada.fecha_hora_llegada = datetime.strptime(fh_llegada_real_str, '%Y-%m-%dT%H:%M')
+                jornada.fecha_hora_llegada = datetime.strptime(
+                    fh_llegada_real_str, '%Y-%m-%dT%H:%M')
             else:
                 jornada.fecha_hora_llegada = None
 
             fh_salida_real_str = dataForm.get('fecha_hora_salida')
             if fh_salida_real_str:
-                jornada.fecha_hora_salida = datetime.strptime(fh_salida_real_str, '%Y-%m-%dT%H:%M')
+                jornada.fecha_hora_salida = datetime.strptime(
+                    fh_salida_real_str, '%Y-%m-%dT%H:%M')
             else:
                 jornada.fecha_hora_salida = None
-                
-            jornada.novedad_jornada_programada = dataForm.get('novedad_jornada_programada')
+
+            jornada.novedad_jornada_programada = dataForm.get(
+                'novedad_jornada_programada')
             jornada.novedad_jornada = dataForm.get('novedad_jornada')
-            
+
             # Considera si necesitas actualizar el usuario que modifica el registro
             # jornada.id_usuario_modificacion = session.get('user_id')
             # jornada.fecha_modificacion = datetime.now()
@@ -2635,6 +2996,7 @@ def eliminar_jornada(id_jornada):
         app.logger.error(f"Error en eliminar_jornada: {e}")
         return 0
 
+
 def get_jornadas_serverside(draw, start, length, search_empleado, search_fecha, order_info):
     """
     Obtiene las jornadas para DataTables con procesamiento del lado del servidor.
@@ -2651,20 +3013,23 @@ def get_jornadas_serverside(draw, start, length, search_empleado, search_fecha, 
         # if un filtro general existe: query_total = query_total.filter(...)
         # total_records = query_total.scalar()
         # Por ahora, un conteo simple, ajustar si es necesario.
-        total_records = db.session.query(func.count(Jornadas.id_jornada)).scalar()
-
+        total_records = db.session.query(
+            func.count(Jornadas.id_jornada)).scalar()
 
         # Aplicar filtros de búsqueda
         if search_empleado:
             search_term_empleado = f"%{search_empleado}%"
-            query = query.filter(or_(Empleados.nombre_empleado.ilike(search_term_empleado), Empleados.apellido_empleado.ilike(search_term_empleado)))
+            query = query.filter(or_(Empleados.nombre_empleado.ilike(
+                search_term_empleado), Empleados.apellido_empleado.ilike(search_term_empleado)))
 
         if search_fecha:
             try:
                 fecha_obj = datetime.strptime(search_fecha, '%Y-%m-%d').date()
-                query = query.filter(func.date(Jornadas.fecha_registro) == fecha_obj)
+                query = query.filter(
+                    func.date(Jornadas.fecha_registro) == fecha_obj)
             except ValueError:
-                app.logger.warning(f"Formato de fecha inválido para búsqueda: {search_fecha}")
+                app.logger.warning(
+                    f"Formato de fecha inválido para búsqueda: {search_fecha}")
                 # Considerar no aplicar el filtro de fecha o devolver un error/lista vacía
 
         # Conteo de registros DESPUÉS de aplicar los filtros de búsqueda
@@ -2673,8 +3038,9 @@ def get_jornadas_serverside(draw, start, length, search_empleado, search_fecha, 
 
         # Mapeo de columnas para ordenamiento (el índice debe coincidir con el orden en el frontend)
         column_map = {
-            0: Jornadas.id_jornada, # O un campo no visible si la primera col es contador
-            1: Empleados.nombre_empleado, # Asumiendo que esta es la columna por la que se ordena
+            0: Jornadas.id_jornada,  # O un campo no visible si la primera col es contador
+            # Asumiendo que esta es la columna por la que se ordena
+            1: Empleados.nombre_empleado,
             2: Jornadas.fecha_hora_llegada,
             3: Jornadas.fecha_hora_salida,
             4: Jornadas.novedad_jornada,
@@ -2688,9 +3054,11 @@ def get_jornadas_serverside(draw, start, length, search_empleado, search_fecha, 
             # Si se ordena por nombre_empleado, también considerar apellido para un orden más completo
             if order_column_name == Empleados.nombre_empleado:
                 if order_direction == 'desc':
-                    query = query.order_by(desc(Empleados.nombre_empleado), desc(Empleados.apellido_empleado))
+                    query = query.order_by(
+                        desc(Empleados.nombre_empleado), desc(Empleados.apellido_empleado))
                 else:
-                    query = query.order_by(asc(Empleados.nombre_empleado), asc(Empleados.apellido_empleado))
+                    query = query.order_by(
+                        asc(Empleados.nombre_empleado), asc(Empleados.apellido_empleado))
             else:
                 if order_direction == 'desc':
                     query = query.order_by(desc(order_column_name))
@@ -2712,12 +3080,12 @@ def get_jornadas_serverside(draw, start, length, search_empleado, search_fecha, 
                 'fecha_hora_salida': jornada_obj.fecha_hora_salida.strftime('%Y-%m-%d %I:%M %p') if jornada_obj.fecha_hora_salida else '-',
                 'novedad_jornada': jornada_obj.novedad_jornada if jornada_obj.novedad_jornada else '-'
             })
-        
+
         return data_list, total_records, filtered_records
 
     except Exception as e:
         app.logger.error(f"Error en get_jornadas_serverside: {str(e)}")
-        return [], 0, 0 # Devuelve valores por defecto en caso de error
+        return [], 0, 0  # Devuelve valores por defecto en caso de error
 
 
 # Funciones paginados filtros
@@ -2728,44 +3096,47 @@ def get_empleados_paginados(page, per_page, search):
     """
     try:
         offset = (page - 1) * per_page
-        
+
         # Query base, incluyendo las cargas anticipadas (joinedload)
         # y el filtro para no mostrar empleados con fecha_borrado
         query = db.session.query(Empleados).options(
             db.joinedload(Empleados.empresa),
-            # Asegúrate que 'tipo_empleado_ref' esté correctamente definido como una relación 
+            # Asegúrate que 'tipo_empleado_ref' esté correctamente definido como una relación
             # en tu modelo Empleados si quieres usar joinedload con él.
             # Si no, puedes remover la siguiente línea o ajustarla.
-            db.joinedload(Empleados.tipo_empleado_ref) 
+            db.joinedload(Empleados.tipo_empleado_ref)
         ).filter(Empleados.fecha_borrado.is_(None))
 
         # Aplicar filtro de búsqueda si 'search' no está vacío
-        if search and search.strip(): # También verifica que search no sea solo espacios
-            search_term = f"%{search.strip()}%" # Preparar el término para LIKE (quita espacios al inicio/fin)
+        if search and search.strip():  # También verifica que search no sea solo espacios
+            # Preparar el término para LIKE (quita espacios al inicio/fin)
+            search_term = f"%{search.strip()}%"
             query = query.filter(
                 or_(
                     Empleados.nombre_empleado.ilike(search_term),
                     Empleados.apellido_empleado.ilike(search_term)
                     # Opcional: buscar también por documento si es relevante
-                    # Empleados.documento.ilike(search_term) 
+                    # Empleados.documento.ilike(search_term)
                 )
             )
-        
+
         # Aplicar orden (más natural para resultados de búsqueda) y paginación
         empleados_bd = query.order_by(
-            Empleados.nombre_empleado, 
+            Empleados.nombre_empleado,
             Empleados.apellido_empleado
         ).limit(per_page).offset(offset).all()
-        
+
         return empleados_bd
-        
+
     except Exception as e:
         # Usar app.logger si está configurado, sino un print o logging estándar
         # Asegúrate que 'app' esté disponible en este contexto si usas app.logger
         if hasattr(app, 'logger'):
-            app.logger.error(f"Error en la función get_empleados_paginados: {e}")
+            app.logger.error(
+                f"Error en la función get_empleados_paginados: {e}")
         else:
-            print(f"Error en la función get_empleados_paginados: {e}") # Fallback si app.logger no existe
+            # Fallback si app.logger no existe
+            print(f"Error en la función get_empleados_paginados: {e}")
         return None
 
 
@@ -2787,7 +3158,8 @@ def get_supervisores_paginados(page, per_page, search=None):
                         search=search)
                 )
             )
-        empleados = query.paginate(page=page, per_page=per_page, error_out=False).items
+        empleados = query.paginate(
+            page=page, per_page=per_page, error_out=False).items
         return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
     except Exception as e:
         app.logger.error(f"Error en get_supervisores_paginados: {e}")
