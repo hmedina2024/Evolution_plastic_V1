@@ -12,10 +12,9 @@
   .piece-form-group {
     transition: all 0.3s ease-in-out;
   }
-  /* Estilo para resaltar el contenedor de Select2 cuando es inválido */
-    .select2-container.is-invalid-select2 .select2-selection {
-        border-color: #dc3545; /* Color de borde de Bootstrap para inválido */
-    }
+  .select2-container.is-invalid-select2 .select2-selection {
+    border-color: #dc3545;
+  }
 </style>
 {% endblock %}
 
@@ -25,7 +24,7 @@
     <h3 class="fw-bold">REGISTRAR NUEVA ORDEN DE PRODUCCIÓN</h3>
   </div>
   <div class="card-body p-4">
-    <form class="form-horizontal mx-auto needs-validation" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm" novalidate>
+    <form class="form-horizontal mx-auto needs-validation" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm" novalidate> {# Actualiza action a tu ruta correcta #}
       <div class="row g-4">
         <div class="col-md-2 position-relative">
           <label for="fecha" class="form-label fw-bold text-primary">Fecha: <span class="text-danger">*</span></label>
@@ -35,12 +34,11 @@
         <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
           <input class="form-control" type="text" name="cod_op" id="cod_op" value="{{ codigo_op }}" readonly required>
-          <div id="cod_op-error" class="text-danger small mt-1"></div>
-          <div class="invalid-feedback">Por favor, ingrese el código OP.</div>
+          <div class="invalid-feedback">Código OP es requerido y generado.</div>
         </div>
-        <div class="col-md-4" style="display: none;">
+        <div class="col-md-4" style="display: none;"> {/* Campo versión oculto por defecto */}
           <label for="version" class="form-label fw-bold text-primary">VERSIÓN OP</label>
-          <input type="text" name="version" id="version" class="form-control">
+          <input type="text" name="version" id="version" class="form-control" value="1">
         </div>
         <div class="col-md-2">
           <label for="cotizacion" class="form-label fw-bold text-primary">COTIZACIÓN: <span class="text-danger">*</span></label>
@@ -63,8 +61,8 @@
         </div>
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-          <div class="invalid-feedback">Por favor, ingrese la cantidad.</div>
+          <input class="form-control" type="number" name="cantidad" id="cantidad" required min="1">
+          <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
         <div class="col-md-2">
           <label for="medida" class="form-label fw-bold text-primary">UNIDAD DE MEDIDA</label>
@@ -89,19 +87,15 @@
         <div class="col-md-4">
           <label for="descripcion_general_op" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN) <span class="text-danger">*</span></label>
           <textarea class="form-control" id="descripcion_general_op" name="descripcion_general_op" rows="10" required></textarea>
-          <div class="invalid-feedback">Por favor, ingrese la descripción general de la orden.</div>
+          <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
         <div class="col-md-4">
           <label for="render" class="form-label fw-bold text-primary">RENDER APROBADO</label>
           {% set url_render = url_for('static', filename='assets/img/Prototipo.png') %}
           <div class="render-upload-container" id="imagePreview" style="background-image: url('{{ url_render }}');">
             <input type="file" id="imageUpload" name="render" accept=".png, .jpg, .jpeg" class="render-upload-input">
-            <label for="imageUpload" class="render-upload-label">
-              <i class="bi bi-upload"></i> Cambiar
-            </label>
-            <button type="button" class="render-delete-btn" id="deleteImageBtn" style="display: none;">
-              <i class="bi bi-x-circle"></i> Quitar
-            </button>
+            <label for="imageUpload" class="render-upload-label"><i class="bi bi-upload"></i> Cambiar</label>
+            <button type="button" class="render-delete-btn" id="deleteImageBtn" style="display: none;"><i class="bi bi-x-circle"></i> Quitar</button>
           </div>
         </div>
         <div class="col-md-4">
@@ -110,12 +104,26 @@
           <ul class="list-group mt-2" id="fileList"></ul>
         </div>
       </div>
+
+      <hr class="my-4">
+      <h4 class="text-primary mb-3">Procesos Generales de la Orden de Producción</h4>
+      <div class="row g-3">
+        <div class="col-md-6">
+            <label for="op_ids_procesos" class="form-label fw-bold text-primary">Proceso(s) de la OP <span class="text-danger">*</span></label>
+            <select name="op_ids_procesos" id="op_ids_procesos" class="form-control select2" multiple="multiple" required style="width:100%;"></select>
+            <div class="invalid-feedback">Seleccione al menos un proceso para la OP.</div>
+        </div>
+        <div class="col-md-6" id="op_otro_proceso_container" style="display:none;">
+            <label for="op_otro_proceso" class="form-label fw-bold text-primary">Otro Proceso (especificar) <span class="text-danger">*</span></label>
+            <input type="text" name="op_otro_proceso" id="op_otro_proceso" class="form-control">
+            <div class="invalid-feedback">Especifique el nombre del nuevo proceso.</div>
+        </div>
+      </div>
       
       <hr class="my-4">
-      <h4 class="text-primary mb-3">Piezas de la Orden de Producción</h4>
+      <h4 class="text-primary mb-3">Piezas de la Orden de Producción (Opcional)</h4>
       <div id="dynamicFormsContainer">
-        <!-- Las piezas se agregarán aquí -->
-      </div>
+        </div>
       <button type="button" id="addPieceBtn" class="btn btn-primary mt-2 mb-3">
         <i class="bi bi-plus-circle me-1"></i> Agregar Pieza
       </button>
@@ -134,15 +142,9 @@
           <label for="estado" class="form-label fw-bold text-primary">ESTADO <span class="text-danger">*</span></label>
           <select name="estado" id="estado" class="form-control select2" required>
             <option value="" disabled selected>Seleccionar Estado</option>
-            <option value="ANULA">ANULA</option>
-            <option value="FACTU">FACTU</option>
-            <option value="CRUCE">CRUCE</option>
-            <option value="INV">INV</option>
-            <option value="LP">LP</option>
-            <option value="NC">NC</option>
-            <option value="PR">PR</option>
-            <option value="PR CR">PR CR</option>
-            <option value="TER">TER</option>
+            <option value="ANULA">ANULA</option><option value="FACTU">FACTU</option><option value="CRUCE">CRUCE</option>
+            <option value="INV">INV</option><option value="LP">LP</option><option value="NC">NC</option>
+            <option value="PR">PR</option><option value="PR CR">PR CR</option><option value="TER">TER</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
@@ -151,10 +153,10 @@
         <div class="col-md-12">
           <label for="materiales_op" class="form-label fw-bold text-primary">MATERIALES (ORDEN GENERAL) <span class="text-danger">*</span></label>
           <textarea class="form-control" id="materiales_op" name="materiales_op" rows="3" required></textarea>
-          <div class="invalid-feedback">Por favor, ingrese los materiales generales de la orden.</div>
+          <div class="invalid-feedback">Ingrese los materiales generales.</div>
         </div>
       </div>
-      <input type="hidden" name="piezasData" id="piezasData">
+      <input type="hidden" id="piezas" name="piezas">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4">
           Guardar Registro <i class="bi bi-save ms-2"></i>
@@ -172,38 +174,7 @@
 
 <script>
 $(document).ready(function () {
-  console.log("Document ready y script de form_op.html INICIADO."); // DEBUG INICIAL
-
-  // --- INICIO: Lógica para "Render Aprobado" ---
-  const imageUpload = document.getElementById('imageUpload');
-  const imagePreview = document.getElementById('imagePreview');
-  const deleteImageBtn = document.getElementById('deleteImageBtn');
-  let defaultImage = '';
-
-  if (imagePreview) {
-    defaultImage = imagePreview.style.backgroundImage;
-  }
-
-  if (imageUpload && imagePreview && deleteImageBtn) {
-    imageUpload.addEventListener('change', function () {
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          imagePreview.style.backgroundImage = `url('${e.target.result}')`;
-          deleteImageBtn.style.display = 'block';
-        }
-        reader.readAsDataURL(file);
-      }
-    });
-
-    deleteImageBtn.addEventListener('click', function () {
-      imagePreview.style.backgroundImage = defaultImage;
-      imageUpload.value = '';
-      deleteImageBtn.style.display = 'none';
-    });
-  }
-  // --- FIN: Lógica para "Render Aprobado" ---
+  console.log("Document ready y script de form_op.html (con procesos globales) INICIADO.");
 
   // --- INICIO: Lógica para "Cargar Documentos" ---
   let selectedFiles = []; 
@@ -256,11 +227,47 @@ $(document).ready(function () {
   renderFileList();
   // --- FIN: Lógica para "Cargar Documentos" ---
 
-  function setupSelect2(selector, url, placeholder, dataKey, keyId, keyText, isMultiple = false, tags = false, allowClearOverride = true) {
+  // --- INICIO: Lógica para "Render Aprobado" ---
+const imageUpload = document.getElementById('imageUpload');
+const imagePreview = document.getElementById('imagePreview');
+const deleteImageBtn = document.getElementById('deleteImageBtn');
+
+function updateRenderPreview() {
+    if (imageUpload.files && imageUpload.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.style.backgroundImage = `url(${e.target.result})`;
+            deleteImageBtn.style.display = 'block';
+        };
+        reader.readAsDataURL(imageUpload.files[0]);
+    } else {
+        const defaultUrl = "{{ url_for('static', filename='assets/img/Prototipo.png') }}";
+        imagePreview.style.backgroundImage = `url(${defaultUrl})`;
+        deleteImageBtn.style.display = 'none';
+    }
+}
+
+if (imageUpload && imagePreview && deleteImageBtn) {
+    imageUpload.addEventListener('change', function() {
+        updateRenderPreview();
+    });
+
+    deleteImageBtn.addEventListener('click', function() {
+        imageUpload.value = ''; // Limpia el input
+        updateRenderPreview();
+    });
+}
+
+updateRenderPreview(); // Inicializar con la imagen por defecto
+// --- FIN: Lógica para "Render Aprobado" ---
+
+  function setupSelect2(selector, url, placeholder, dataKey, keyId, keyText, isMultiple = false, tags = false, allowClearOverride = true, createTagCallback = null, extraParams = {}) {
     const $select = $(selector);
-    $select.select2({
+    if (!$select.length) return;
+
+    let select2Options = {
         placeholder: placeholder,
-        allowClear: allowClearOverride, // Usar el override
+        allowClear: allowClearOverride,
         minimumInputLength: 0,
         dropdownAutoWidth: true,
         width: '100%',
@@ -270,45 +277,148 @@ $(document).ready(function () {
             url: url,
             dataType: 'json',
             delay: 250,
-            data: function (params) {
-                return { search: params.term || '', page: params.page || 1, per_page: 10 };
+            data: params => {
+                const queryParams = { search: params.term || '', page: params.page || 1, per_page: 10 };
+                return { ...queryParams, ...extraParams };
             },
-            processResults: function (data, params) {
+            processResults: (data, params) => {
                 params.page = params.page || 1;
                 let items = [];
-                if (data && data[dataKey] && Array.isArray(data[dataKey])) {
-                    items = data[dataKey];
-                } else if (data && Array.isArray(data)) {
+                if (data && data.results && Array.isArray(data.results)) {
+                    items = data.results;
+                } else if (data && data[dataKey] && Array.isArray(data[dataKey])) {
+                    items = data[dataKey].map(item => ({
+                        id: item[keyId],
+                        text: item[keyText] || item[keyId]
+                    }));
+                } else if (data && Array.isArray(data.items)) {
+                    items = data.items;
+                } else if (Array.isArray(data)) {
                     items = data;
                 }
                 return {
-                    results: items.map(item => ({ id: item[keyId], text: item[keyText] })),
-                    pagination: { more: items.length === 10 }
+                    results: items,
+                    pagination: { more: data.pagination && data.pagination.more }
                 };
             },
             cache: true
         },
-        templateResult: function (data) { return data.text; },
-        templateSelection: function (data) { return data.text || data.id; }
-    }).on('select2:open', function () {
-        setTimeout(() => {
-            const searchField = document.querySelector('.select2-container--open .select2-search__field');
-            if (searchField) { searchField.focus(); }
-        }, 50);
+        templateResult: data => data.text,
+        templateSelection: data => data.text || data.id
+    };
+    if (createTagCallback && typeof createTagCallback === 'function') {
+        select2Options.createTag = createTagCallback;
+    }
+    $select.select2(select2Options).on('select2:open', () => {
+        setTimeout(() => { const sf = document.querySelector('.select2-container--open .select2-search__field'); if (sf) sf.focus(); }, 50);
     });
-}
+  }
 
-  setupSelect2('#id_cliente', '/api/clientes', 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
-  setupSelect2('#id_empleado', '/api/empleados', 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
-  setupSelect2('#id_supervisor', '/api/supervisores', 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
-  setupSelect2('#estado', '', 'Seleccionar Estado', '', '', '', false, false, true); // Estado no usa AJAX
-  //setupSelect2('id_pieza', '/api/piezas', 'Seleccionar Pieza', 'piezas', 'id_pieza', 'nombre_pieza'); // Movido a lógica de piezas dinámicas
-
+  // Select2 principales
+  setupSelect2('#id_cliente', "{{ url_for('api_clientes') }}", 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
+  setupSelect2('#id_empleado', "{{ url_for('api_empleados') }}", 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
+  setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+
+  // --- INICIO: Selector Global de Procesos para la OP ---
+  const $opProcesosSelect = $('#op_ids_procesos');
+  const $opOtroProcesoContainer = $('#op_otro_proceso_container');
+  const $opOtroProcesoInput = $('#op_otro_proceso');
+
+  setupSelect2('#op_ids_procesos', "{{ url_for('api_procesos') }}", 'Seleccionar Proceso(s) o escribir "Otro"', 'procesos', 'id_proceso', 'nombre_proceso', true, true, true,
+    function(params) {
+        var term = $.trim(params.term);
+        if (term === '') { return null; }
+        if (term.toLowerCase() === 'otro') {
+            return { id: 'otro_proceso_custom_op', text: 'Otro (especificar globalmente)' };
+        }
+        return null;
+    }
+  );
+
+  $opProcesosSelect.on('change', function(e) {
+    const selectedValues = $(this).val() || [];
+    const addedValue = e.added ? e.added.id : null;
+    const removedValue = e.removed ? e.removed.id : null;
+
+    // Actualizar actividades en todas las piezas
+    $('.piece-form-group').each(function() {
+        const pieceSuffix = $(this).attr('id').split('-').pop();
+        updateActivitiesForPiece(pieceSuffix, selectedValues);
+    });
+
+    // Verificar y limpiar actividades asociadas al proceso eliminado
+    if (removedValue && removedValue !== 'otro_proceso_custom_op') {
+        $('.piece-form-group').each(function() {
+            const $actividadSelect = $(`#pieza_id_actividad_${$(this).data('piece-suffix')}`);
+            const currentActivities = $actividadSelect.val() || [];
+            if (currentActivities.length > 0) {
+                $.ajax({
+                    url: "{{ url_for('api_actividades') }}",
+                    data: { id_proceso: removedValue, page: 1, per_page: 100 }, // Obtener todas las actividades asociadas
+                    async: false,
+                    dataType: 'json',
+                    success: function(data) {
+                        const activitiesToRemove = data.results.map(act => act.id);
+                        const remainingActivities = currentActivities.filter(actId => !activitiesToRemove.includes(parseInt(actId)));
+                        $actividadSelect.val(remainingActivities).trigger('change');
+                    }
+                });
+            }
+        });
+    }
+
+    if (Array.isArray(selectedValues) && selectedValues.includes('otro_proceso_custom_op')) {
+        $opOtroProcesoContainer.show();
+        $opOtroProcesoInput.prop('required', true);
+    } else {
+        $opOtroProcesoContainer.hide();
+        $opOtroProcesoInput.val('').prop('required', false).removeClass('is-invalid');
+    }
+  });
+  // --- FIN: Selector Global de Procesos ---
 
   // --- INICIO: Lógica para Piezas Dinámicas ---
   let pieceCounter = 0;
   const MAX_PIECES = 15; 
+
+  function updateActivitiesForPiece(pieceIdSuffix, globalProcessIds) {
+    const $actividadSelect = $(`#pieza_id_actividad_${pieceIdSuffix}`);
+    if (!$actividadSelect.length) return;
+
+    // Verificar si Select2 ya está inicializado antes de destruir
+    if ($actividadSelect.hasClass('select2-hidden-accessible')) {
+        $actividadSelect.select2('destroy');
+    }
+
+    $actividadSelect.val(null).trigger('change');
+
+    const validProcessIds = Array.isArray(globalProcessIds) ? globalProcessIds.filter(id => id !== 'otro_proceso_custom_op') : [];
+    if (validProcessIds.length > 0) {
+        console.log("Procesos seleccionados para actividades:", validProcessIds);
+        setupSelect2(
+            `#pieza_id_actividad_${pieceIdSuffix}`,
+            "{{ url_for('api_actividades') }}",
+            'Seleccionar Actividades',
+            'actividades',
+            'id_actividad',
+            'nombre_actividad',
+            true, // Cambiado a true para permitir múltiples selecciones
+            false,
+            true,
+            null,
+            { id_proceso: validProcessIds.join(',') } // Enviar todos los id_procesos como cadena separada por comas
+        );
+    } else {
+        console.log("No hay procesos seleccionados para cargar actividades.");
+        $actividadSelect.select2({
+            placeholder: 'Seleccione procesos globales primero',
+            allowClear: true,
+            width: '100%',
+            data: []
+        });
+    }
+  }
 
   $('#addPieceBtn').click(function() {
     if ($('.piece-form-group').length >= MAX_PIECES) {
@@ -319,154 +429,70 @@ $(document).ready(function () {
     const pieceIdSuffix = `p${pieceCounter}`;
 
     const newPieceFormHtml = `
-        <div class="piece-form-group border rounded p-3 mt-3 bg-light shadow-sm" id="piece-group-${pieceIdSuffix}">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold text-success mb-0">Pieza #${pieceCounter}</h5>
-                <button type="button" class="btn btn-danger btn-sm removePieceBtn" title="Quitar esta pieza">
-                    <i class="bi bi-x-lg"></i> Quitar
-                </button>
-            </div>
-            <hr class="mt-1 mb-3">
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-3">
-                    <label for="pieza_nombre_${pieceIdSuffix}" class="form-label">Nombre Pieza <span class="text-danger">*</span></label>
-                    <select name="pieza_id_pieza_${pieceIdSuffix}" id="pieza_id_pieza_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-nombre" required></select>
-                    <div class="invalid-feedback">Por favor, seleccione una pieza.</div>
-                </div>
-                <div class="col-md-6 col-lg-2">
-                    <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-                    <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" required min="1" value="1">
-                    <div class="invalid-feedback">Cantidad > 0 requerida.</div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label for="pieza_tamano_${pieceIdSuffix}" class="form-label">Tamaño</label>
-                    <input type="text" name="pieza_tamano_${pieceIdSuffix}" id="pieza_tamano_${pieceIdSuffix}" class="form-control pieza-tamano">
-                </div>
-                 <div class="col-md-6 col-lg-4">
-                    <label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label>
-                    <input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material">
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-6 col-lg-3">
-                    <label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label>
-                    <input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje">
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label for="pieza_tamano_montaje_${pieceIdSuffix}" class="form-label">Tamaño del Montaje</label>
-                    <input type="text" name="pieza_tamano_montaje_${pieceIdSuffix}" id="pieza_tamano_montaje_${pieceIdSuffix}" class="form-control pieza-tamano-montaje">
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cantidad Material</label>
-                    <input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material">
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-12 col-lg-6">
-                    <label for="pieza_id_proceso_${pieceIdSuffix}" class="form-label">Proceso(s) <span class="text-danger">*</span></label>
-                    <select name="pieza_id_proceso_${pieceIdSuffix}" id="pieza_id_proceso_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-proceso" required multiple="multiple" style="width:100%;"></select>
-                    <div class="invalid-feedback">Proceso requerido.</div>
-                </div>
-                <div class="col-md-12 col-lg-6" id="otro_proceso_container_${pieceIdSuffix}" style="display:none;">
-                    <label for="pieza_otro_proceso_${pieceIdSuffix}" class="form-label">Otro Proceso (especificar) <span class="text-danger">*</span></label>
-                    <input type="text" name="pieza_otro_proceso_${pieceIdSuffix}" id="pieza_otro_proceso_${pieceIdSuffix}" class="form-control pieza-otro-proceso">
-                    <div class="invalid-feedback">Especifique el otro proceso.</div>
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-12">
-                    <label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Descripción Pieza</label>
-                    <textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="2"></textarea>
-                </div>
-            </div>
-        </div>`;
+      <div class="piece-form-group border rounded p-3 mt-3 bg-light shadow-sm" id="piece-group-${pieceIdSuffix}" data-piece-suffix="${pieceIdSuffix}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="fw-bold text-success mb-0">Pieza #${pieceCounter}</h5>
+          <button type="button" class="btn btn-danger btn-sm removePieceBtn" title="Quitar esta pieza"><i class="bi bi-x-lg"></i> Quitar</button>
+        </div>
+        <hr class="mt-1 mb-3">
+        <div class="row g-3">
+          <div class="col-md-6 col-lg-3">
+            <label for="pieza_id_pieza_maestra_${pieceIdSuffix}" class="form-label">Nombre Pieza (Maestra) <span class="text-danger">*</span></label>
+            <select name="pieza_id_pieza_maestra_${pieceIdSuffix}" id="pieza_id_pieza_maestra_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-nombre-maestra" required></select>
+            <div class="invalid-feedback">Seleccione una pieza maestra.</div>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <label for="pieza_nombre_especifico_${pieceIdSuffix}" class="form-label">Nombre Específico Pieza (OP) <span class="text-danger">*</span></label>
+            <input type="text" name="pieza_nombre_especifico_${pieceIdSuffix}" id="pieza_nombre_especifico_${pieceIdSuffix}" class="form-control pieza-campo pieza-nombre-especifico" required>
+            <div class="invalid-feedback">Nombre específico requerido.</div>
+          </div>
+          <div class="col-md-6 col-lg-2">
+            <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
+            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" required min="1" value="1">
+            <div class="invalid-feedback">Cantidad > 0 requerida.</div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <label for="pieza_id_actividad_${pieceIdSuffix}" class="form-label">Actividades <span class="text-danger">*</span></label>
+            <select name="pieza_id_actividad_${pieceIdSuffix}" id="pieza_id_actividad_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-actividad" multiple required></select>
+            <div class="invalid-feedback">Seleccione al menos una actividad.</div>
+          </div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6 col-lg-3"><label for="pieza_tamano_${pieceIdSuffix}" class="form-label">Tamaño</label><input type="text" name="pieza_tamano_${pieceIdSuffix}" id="pieza_tamano_${pieceIdSuffix}" class="form-control pieza-tamano"></div>
+          <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
+          <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
+          <div class="col-md-6 col-lg-3"><label for="pieza_tamano_montaje_${pieceIdSuffix}" class="form-label">Tamaño Montaje</label><input type="text" name="pieza_tamano_montaje_${pieceIdSuffix}" id="pieza_tamano_montaje_${pieceIdSuffix}" class="form-control pieza-tamano-montaje"></div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
+          <div class="col-md-6"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
+        </div>
+      </div>`;
     $('#dynamicFormsContainer').append(newPieceFormHtml);
 
-    // Inicializar Select2 para el campo "Nombre Pieza"
-    setupSelect2(`#pieza_id_pieza_${pieceIdSuffix}`, '/api/piezas', 'Seleccionar Pieza', 'piezas', 'id_pieza', 'nombre_pieza', false, false, true);
-    
-    const $procesoSelect = $(`#pieza_id_proceso_${pieceIdSuffix}`);
-    $procesoSelect.select2({
-        placeholder: 'Seleccionar Proceso(s) o escribir "Otro"',
-        allowClear: true,
-        tags: true, 
-        tokenSeparators: [',', ' '],
-        width: '100%',
-        ajax: {
-            url: '/api/procesos', 
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { search: params.term || '', page: params.page || 1, per_page: 10 };
-            },
-            processResults: function (data, params) {
-                let items = [];
-                if (data && data.procesos && Array.isArray(data.procesos)) {
-                    items = data.procesos;
-                }
-                // Agregar la opción "Otro" si no está presente y el término de búsqueda coincide
-                if (params.term && params.term.toLowerCase().startsWith('otro') && !items.some(item => item.id_proceso === 'otro_proceso_custom')) {
-                     // No agregarla aquí directamente, dejar que createTag la maneje si es necesario
-                }
-                return {
-                    results: items.map(item => ({ id: item.id_proceso, text: item.nombre_proceso })),
-                    pagination: { more: items.length === 10 }
-                };
-            },
-            cache: true
-        },
-        createTag: function (params) {
-            var term = $.trim(params.term);
-            if (term === '') { return null; }
-            if (term.toLowerCase() === 'otro') {
-                return { id: 'otro_proceso_custom', text: 'Otro (especificar)' };
-            }
-            // Para evitar crear tags no deseados si el usuario solo está escribiendo parte de un proceso existente
-            // Podríamos deshabilitar la creación de tags si no es "Otro"
-            // return null; 
-            return { id: term, text: term + ' (nuevo proceso)' }; // O permitir crear nuevos procesos directamente
-        }
-    }).on('change', function(e) {
-        const $select = $(this);
-        const $pieceGroup = $select.closest('.piece-form-group');
-        const $otroContainer = $pieceGroup.find(`[id^="otro_proceso_container_"]`);
-        const $otroInput = $pieceGroup.find(`[id^="pieza_otro_proceso_"]`);
-        
-        const selectedValues = $select.val();
-        if (Array.isArray(selectedValues) && selectedValues.includes('otro_proceso_custom')) {
-            $otroContainer.show();
-            $otroInput.prop('required', true);
-        } else {
-            $otroContainer.hide();
-            $otroInput.val('').prop('required', false).removeClass('is-invalid');
+    // Inicializar Select2 para "Nombre Pieza (Maestra)"
+    setupSelect2(`#pieza_id_pieza_maestra_${pieceIdSuffix}`, "{{ url_for('api_piezas') }}", 'Seleccionar Pieza Maestra', 'piezas', 'id_pieza', 'nombre_pieza', false, false, true);
+    $(`#pieza_id_pieza_maestra_${pieceIdSuffix}`).on('select2:select', function(e) {
+        const data = e.params.data;
+        const $nombreEspecifico = $(`#pieza_nombre_especifico_${pieceIdSuffix}`);
+        if ($nombreEspecifico.val() === '' && data && data.text) {
+            $nombreEspecifico.val(data.text);
         }
     });
+
+    // Inicializar Select2 para "Actividades" de esta nueva pieza
+    updateActivitiesForPiece(pieceIdSuffix, $opProcesosSelect.val());
   });
 
   $('#dynamicFormsContainer').on('click', '.removePieceBtn', function() {
     $(this).closest('.piece-form-group').remove();
+    $('.piece-form-group').each(function(index) {
+        $(this).find('h5').text(`Pieza #${index + 1}`);
+    });
   });
   // --- FIN: Lógica para Piezas Dinámicas ---
 
-  $('#fecha, #fecha_entrega').on('change', function () {
-    const fechaRegistroStr = $('#fecha').val();
-    const fechaEntregaStr = $('#fecha_entrega').val();
-    if (fechaRegistroStr && fechaEntregaStr) {
-        const fechaRegistro = new Date(fechaRegistroStr + "T00:00:00"); // Asegurar que se tome como inicio del día
-        const fechaEntrega = new Date(fechaEntregaStr + "T00:00:00");
-        if (fechaEntrega < fechaRegistro) {
-            alert('La fecha de entrega no puede ser anterior a la fecha de registro.');
-            $('#fecha_entrega').val('').addClass('is-invalid').focus();
-            $('#fecha_entrega')[0].setCustomValidity('La fecha de entrega no puede ser anterior a la fecha de registro.');
-        } else {
-            $('#fecha_entrega').removeClass('is-invalid');
-            $('#fecha_entrega')[0].setCustomValidity(''); 
-        }
-    } else {
-         $('#fecha_entrega')[0].setCustomValidity(''); 
-    }
-  });
-
+  // --- Lógica de Validación y Envío del Formulario Principal ---
   let isSubmitting = false;
   const submitBtn = $('#registroForm button[type="submit"]');
 
@@ -475,131 +501,107 @@ $(document).ready(function () {
     const form = this;
     let formValido = form.checkValidity(); 
 
-    const fechaRegistroStr = $('#fecha').val();
-    const fechaEntregaStr = $('#fecha_entrega').val();
-    if (fechaRegistroStr && fechaEntregaStr) {
-        const fechaRegistro = new Date(fechaRegistroStr + "T00:00:00");
-        const fechaEntrega = new Date(fechaEntregaStr + "T00:00:00");
-        if (fechaEntrega < fechaRegistro) {
-            $('#fecha_entrega').addClass('is-invalid').focus();
-            $('#fecha_entrega')[0].setCustomValidity('La fecha de entrega no puede ser anterior a la fecha de registro.');
+    $('.select2[required]').each(function() {
+        const $select = $(this);
+        if (!$select.val() || ($select.prop('multiple') && $select.val().length === 0)) {
+            $select.next('.select2-container').addClass('is-invalid-select2');
             formValido = false;
         } else {
-             $('#fecha_entrega')[0].setCustomValidity('');
+            $select.next('.select2-container').removeClass('is-invalid-select2');
+        }
+    });
+
+    const opProcesosVal = $opProcesosSelect.val();
+    if (!opProcesosVal || opProcesosVal.length === 0) {
+        $opProcesosSelect.next('.select2-container').addClass('is-invalid-select2');
+        formValido = false;
+    } else {
+        $opProcesosSelect.next('.select2-container').removeClass('is-invalid-select2');
+        if (opProcesosVal.includes('otro_proceso_custom_op') && !$opOtroProcesoInput.val().trim()) {
+            $opOtroProcesoInput.addClass('is-invalid');
+            $('#op_otro_proceso_container .invalid-feedback').show();
+            formValido = false;
+        } else {
+            $opOtroProcesoInput.removeClass('is-invalid');
+            $('#op_otro_proceso_container .invalid-feedback').hide();
         }
     }
-    
+
     let piezasValidas = true;
     const piezasArray = [];
     $('.piece-form-group').each(function(index) {
         const $pieceGroup = $(this);
+        const suffix = $pieceGroup.data('piece-suffix');
         let piezaActualValida = true;
         
-        const nombreInput = $pieceGroup.find('.pieza-nombre');
-        const cantidadInput = $pieceGroup.find('.pieza-cantidad');
-        const procesoSelect = $pieceGroup.find('.pieza-proceso');
-        const otroProcesoInput = $pieceGroup.find('.pieza-otro-proceso');
+        const idPiezaMaestraSelect = $(`#pieza_id_pieza_maestra_${suffix}`);
+        const nombreEspecificoInput = $(`#pieza_nombre_especifico_${suffix}`);
+        const cantidadInput = $(`#pieza_cantidad_${suffix}`);
+        const actividadSelect = $(`#pieza_id_actividad_${suffix}`);
 
-        if (!nombreInput.val()) { nombreInput.addClass('is-invalid'); piezaActualValida = false; } else { nombreInput.removeClass('is-invalid'); }
-        if (!cantidadInput.val() || parseInt(cantidadInput.val()) < 1) { cantidadInput.addClass('is-invalid'); piezaActualValida = false; } else { cantidadInput.removeClass('is-invalid'); }
+        if (!idPiezaMaestraSelect.val()) { idPiezaMaestraSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false; } 
+        else { idPiezaMaestraSelect.next('.select2-container').removeClass('is-invalid-select2'); }
+
+        if (!nombreEspecificoInput.val().trim()) { nombreEspecificoInput.addClass('is-invalid'); piezaActualValida = false; }
+        else { nombreEspecificoInput.removeClass('is-invalid'); }
         
-        const procesosSeleccionados = procesoSelect.val();
-        if (!procesosSeleccionados || procesosSeleccionados.length === 0) {
-            procesoSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false;
-        } else {
-            procesoSelect.next('.select2-container').removeClass('is-invalid-select2');
-            if (procesosSeleccionados.includes('otro_proceso_custom') && !otroProcesoInput.val().trim()) {
-                otroProcesoInput.addClass('is-invalid'); // No enfocar aquí, se hará globalmente
-                piezaActualValida = false;
-            } else {
-                otroProcesoInput.removeClass('is-invalid');
-            }
-        }
-        
+        if (!cantidadInput.val() || parseInt(cantidadInput.val()) < 1) { cantidadInput.addClass('is-invalid'); piezaActualValida = false; } 
+        else { cantidadInput.removeClass('is-invalid'); }
+
+        if (!actividadSelect.val() || actividadSelect.val().length === 0) { actividadSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false; } 
+        else { actividadSelect.next('.select2-container').removeClass('is-invalid-select2'); }
+
         if (!piezaActualValida) { piezasValidas = false; }
 
-        if (nombreInput.val() && cantidadInput.val() && procesosSeleccionados && procesosSeleccionados.length > 0) {
-            let idsProcesosParseados = [];
-            let otroProcesoTexto = null;
-            if (Array.isArray(procesosSeleccionados)) {
-                procesosSeleccionados.forEach(procId => {
-                    if (procId === 'otro_proceso_custom') {
-                        if (otroProcesoInput.val().trim()) {
-                            otroProcesoTexto = otroProcesoInput.val().trim(); 
-                        }
-                    } else if (!isNaN(parseInt(procId))) { // Asegurarse que es un ID numérico
-                        idsProcesosParseados.push(parseInt(procId));
-                    }
-                    // Ignorar tags que no sean 'otro_proceso_custom' y no sean numéricos
-                });
-            }
-             // Si solo se seleccionó "Otro" y se especificó, ids_procesos puede quedar vacío.
-            if (otroProcesoTexto && idsProcesosParseados.length === 0 && !piezaActualValida && !otroProcesoInput.hasClass('is-invalid')) {
-                // Esto es un caso especial, si "Otro" es la única opción y es válida.
-            } else if (idsProcesosParseados.length === 0 && !otroProcesoTexto) {
-                // Si no hay IDs numéricos Y no hay texto de "otro proceso", la pieza no es válida en cuanto a procesos.
-                // La validación de arriba ya debería haberlo capturado.
-            }
-
-
+        if (piezaActualValida) { 
             piezasArray.push({
-                id_pieza: parseInt(nombreInput.val()), // Enviar id_pieza en lugar de nombre_pieza
+                id_pieza_maestra: idPiezaMaestraSelect.val() ? parseInt(idPiezaMaestraSelect.val()) : null,
+                nombre_pieza: nombreEspecificoInput.val().trim(),
                 cantidad: parseInt(cantidadInput.val()),
-                tamano: $pieceGroup.find('.pieza-tamano').val() || null,
-                montaje: $pieceGroup.find('.pieza-montaje').val() || null,
-                tamano_montaje: $pieceGroup.find('.pieza-tamano-montaje').val() || null,
-                material: $pieceGroup.find('.pieza-material').val() || null,
-                cantidad_material: $pieceGroup.find('.pieza-cantidad-material').val() || null,
-                ids_procesos: idsProcesosParseados,
-                otro_proceso: otroProcesoTexto,
-                descripcion_pieza: $pieceGroup.find('.pieza-descripcion').val() || null
+                tamano: $(`#pieza_tamano_${suffix}`).val() || null,
+                material: $(`#pieza_material_${suffix}`).val() || null,
+                montaje: $(`#pieza_montaje_${suffix}`).val() || null,
+                tamano_montaje: $(`#pieza_tamano_montaje_${suffix}`).val() || null,
+                cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
+                descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
+                id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null // Guardar como array si es múltiple
             });
         }
     });
 
     if (!formValido || !piezasValidas) {
       $(form).addClass('was-validated');
-      if (!formValido) {
-        $(form).find(':invalid').first().focus();
-      } else if (!piezasValidas) {
-           alert("Por favor, complete todos los campos requeridos para cada pieza (Nombre, Cantidad y Proceso(s)). Si seleccionó 'Otro' proceso, especifíquelo.");
-           $('.piece-form-group').find('.pieza-campo.is-invalid, .select2-dynamic-piece + .select2-container.is-invalid-select2, .pieza-otro-proceso.is-invalid').first().each(function(){
-               if ($(this).is('select')) {
-                   $(this).next('.select2-container').find('.select2-search__field').focus();
-               } else {
-                   $(this).focus();
-               }
-           });
+      if (!formValido) $(form).find(':invalid, .is-invalid, .is-invalid-select2 .select2-selection').first().focus();
+      else if (!piezasValidas) {
+          alert("Por favor, complete todos los campos requeridos para cada pieza.");
+          $('.piece-form-group').find('.is-invalid, .is-invalid-select2 .select2-selection').first().focus();
       }
       return false; 
     }
     
-    $('#piezasData').val(JSON.stringify(piezasArray));
+    $('#piezas').val(JSON.stringify(piezasArray));
     
     if (isSubmitting) { return false; }
     isSubmitting = true;
-    submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...');
-    const formData = new FormData(form);
-    console.log("FormData preparado. Listo para enviar AJAX a:", form.action); // DEBUG
+    submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
     
-    // Para depurar qué contiene formData:
-    // for (var pair of formData.entries()) {
-    //    console.log(pair[0]+ ': ' + pair[1]);
-    // }
-
+    const formData = new FormData(form);
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
       success: function(response) {
         if (response.status === 'success') {
-            alert(response.message || 'Orden de Producción guardada con éxito.');
-            window.location.href = response.redirect_url || "{{ url_for('lista_op') }}";
+          alert(response.message || 'Orden de Producción guardada con éxito.');
+          window.location.href = response.redirect_url || "{{ url_for('lista_op') }}";
         } else {
-            alert('Error al guardar la OP: ' + (response.message || 'Error desconocido. Revise los datos e inténtelo de nuevo.'));
+          alert('Error al guardar la OP: ' + (response.message || 'Error desconocido.'));
         }
       },
       error: function(xhr) {
-        let errorMsg = 'Error en la comunicación con el servidor.';
-        try { const errResponse = JSON.parse(xhr.responseText); if (errResponse && errResponse.message) errorMsg = errResponse.message; else if (errResponse && errResponse.error) errorMsg = errResponse.error; } catch (e) {}
+        let errorMsg = 'Error en la comunicación.';
+        try { 
+            const errResponse = JSON.parse(xhr.responseText); 
+            if (errResponse && errResponse.message) errorMsg = errResponse.message; 
+        } catch (e) { if (xhr.responseText) errorMsg = xhr.responseText; }
         alert(errorMsg);
       },
       complete: function() {

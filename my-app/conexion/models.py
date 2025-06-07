@@ -277,3 +277,9 @@ class OrdenPiezasProcesos(db.Model):
     id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=False)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
+    
+class OrdenPiezasActividades(db.Model):
+    __tablename__ = 'tbl_orden_piezas_actividades'
+    id_orden_pieza_actividad = db.Column(db.Integer, primary_key=True)
+    id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza'), nullable=False)
+    id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad'), nullable=False)

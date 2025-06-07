@@ -637,6 +637,8 @@ def form_operacion():
         return render_template('public/operaciones/form_operaciones.html')
 
 
+
+
 @app.route('/lista-de-operaciones', methods=['GET'])
 def lista_operaciones():
     if 'conectado' in session:
@@ -1132,18 +1134,12 @@ def api_actividades():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
+    id_procesos = request.args.get('id_proceso', None)  # Puede ser None o una cadena como "1,2,3"
     app.logger.debug(
-        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id_procesos={id_procesos}")
 
-    actividades = get_actividades_paginados(page, per_page, search)
-    actividades_data = [
-        {
-            'id_actividad': act.id_actividad,
-            'nombre_actividad': act.nombre_actividad
-        }
-        for act in actividades
-    ]
-    return jsonify({'actividades': actividades_data})
+    actividades_data = get_actividades_paginados(page, per_page, search, id_procesos)
+    return jsonify(actividades_data)
 
 
 @app.route('/api/ordenes-produccion', methods=['GET'])
