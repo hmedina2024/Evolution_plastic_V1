@@ -585,7 +585,22 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     isSubmitting = true;
     submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
     
-    const formData = new FormData(form);
+    const formData = new FormData(form); // Recoge campos normales, pero el input 'documentos' podría estar vacío debido al .value = null
+
+    // Eliminar el campo 'documentos' que FormData(form) podría haber tomado (probablemente vacío)
+    // para asegurar que solo usemos los de selectedFiles.
+    formData.delete('documentos');
+
+    // Añadir los archivos de selectedFiles al FormData
+    // 'selectedFiles' es el array que hemos estado manteniendo en el cliente
+    if (selectedFiles && selectedFiles.length > 0) {
+      selectedFiles.forEach(file => {
+        formData.append('documentos', file, file.name); // El tercer argumento (filename) es importante
+      });
+    }
+    // Si no hay archivos en selectedFiles, no se añadirá el campo 'documentos' al FormData,
+    // lo cual es correcto si no se seleccionó ninguno. El backend maneja esto.
+
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
       success: function(response) {

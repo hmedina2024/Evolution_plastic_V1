@@ -229,6 +229,10 @@ class OrdenProduccion(db.Model):
     documentos = db.relationship('DocumentosOP', backref='orden', lazy=True, cascade="all, delete-orphan")
     renders = db.relationship('RendersOP', backref='orden', lazy=True, cascade="all, delete-orphan")
     orden_piezas = db.relationship('OrdenPiezas', backref='orden', lazy=True, cascade="all, delete-orphan")
+    # Relación con Procesos a través de la tabla intermedia OrdenProduccionProcesos
+    procesos_globales = db.relationship('Procesos', secondary='tbl_orden_produccion_procesos',
+                                      backref=db.backref('ordenes_produccion_asociadas', lazy='dynamic'),
+                                      lazy='dynamic')
 
 class DocumentosOP(db.Model):
     __tablename__ = 'tbl_documentos_op'
@@ -283,3 +287,19 @@ class OrdenPiezasActividades(db.Model):
     id_orden_pieza_actividad = db.Column(db.Integer, primary_key=True)
     id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza'), nullable=False)
     id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad'), nullable=False)
+
+# --- Tabla Intermedia OrdenProduccionProcesos ---
+# Para la relación muchos-a-muchos entre OrdenProduccion y Procesos (procesos globales de la OP)
+class OrdenProduccionProcesos(db.Model):
+    __tablename__ = 'tbl_orden_produccion_procesos'
+    id_orden_produccion_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False) # Cambiado a datetime.utcnow por consistencia
+
+    # Relaciones (opcional, pero útil para acceder desde la tabla intermedia)
+    # orden_produccion = db.relationship('OrdenProduccion', backref=db.backref('procesos_asignados_link', lazy='dynamic'))
+    # proceso = db.relationship('Procesos', backref=db.backref('ordenes_asignadas_link', lazy='dynamic'))
+
+    # Constraints para asegurar que la pareja (id_op, id_proceso) sea única
+    __table_args__ = (db.UniqueConstraint('id_op', 'id_proceso', name='uq_orden_produccion_proceso'),)

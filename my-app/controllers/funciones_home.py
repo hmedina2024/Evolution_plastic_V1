@@ -7,7 +7,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa
+from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -1871,6 +1871,91 @@ def procesar_form_op(dataForm, files):
         app.logger.warning(f"Errores de validación en procesar_form_op: {', '.join(errores)}")
         return jsonify({'status': 'error', 'message': ". ".join(errores) + "."}), 400
 
+    # --- 4.5 Validación de Procesos Globales de la OP ---
+    op_ids_procesos_form = dataForm.getlist('op_ids_procesos') # Usar getlist para campos multiple
+    op_otro_proceso_val = dataForm.get('op_otro_proceso', '').strip()
+    ids_procesos_a_asociar = []
+
+    if not op_ids_procesos_form and not op_otro_proceso_val:
+        errores.append("Debe seleccionar al menos un proceso global para la OP o especificar uno nuevo.")
+    else:
+        for id_proc_str in op_ids_procesos_form:
+            if id_proc_str == 'otro_proceso_custom_op':
+                if not op_otro_proceso_val:
+                    errores.append("Seleccionó 'Otro Proceso' pero no especificó el nombre del nuevo proceso global.")
+                else:
+                    # Intentar encontrar o crear el "otro proceso"
+                    proceso_existente = Procesos.query.filter(func.lower(Procesos.nombre_proceso) == func.lower(op_otro_proceso_val), Procesos.fecha_borrado.is_(None)).first()
+                    if proceso_existente:
+                        ids_procesos_a_asociar.append(proceso_existente.id_proceso)
+                    else:
+                        # Crear nuevo proceso si no existe
+                        try:
+                            # Generar un código único si es necesario, o pedirlo en el form
+                            # Aquí asumimos que el nombre es suficiente para buscar/crear y el código se puede autogenerar o manejar de otra forma
+                            # Para este ejemplo, si no hay un sistema de codificación claro para "otros", lo dejamos simple.
+                            # Considerar una lógica más robusta para códigos de procesos creados dinámicamente.
+                            # Por ahora, si el nombre es único, el código podría ser similar o requerir un manejo especial.
+                            # Para simplificar, vamos a asumir que el nombre del proceso es lo principal aquí.
+                            # Y que el código podría ser algo como "OTRO_" + nombre normalizado.
+                            # Esta parte puede necesitar ajustes según las reglas de negocio para códigos de proceso.
+                            
+                            # Verificamos si ya existe un proceso con ese nombre (insensible a mayúsculas/minúsculas)
+                            proceso_check_nombre = Procesos.query.filter(func.lower(Procesos.nombre_proceso) == func.lower(op_otro_proceso_val)).first()
+                            if proceso_check_nombre:
+                                ids_procesos_a_asociar.append(proceso_check_nombre.id_proceso)
+                            else:
+                                # Crear un código simple para el nuevo proceso "otro"
+                                # Esto es una simplificación, idealmente el sistema de códigos debería ser más robusto
+                                codigo_nuevo_proceso_otro = f"OTRO_{uuid.uuid4().hex[:8].upper()}"
+                                nuevo_proceso_otro = Procesos(
+                                    codigo_proceso=codigo_nuevo_proceso_otro, # Asegurar que sea único
+                                    nombre_proceso=op_otro_proceso_val,
+                                    descripcion_proceso=f"Proceso '{op_otro_proceso_val}' creado desde OP."
+                                )
+                                db.session.add(nuevo_proceso_otro)
+                                db.session.flush() # Para obtener el ID del nuevo proceso
+                                ids_procesos_a_asociar.append(nuevo_proceso_otro.id_proceso)
+                                app.logger.info(f"Nuevo proceso global '{op_otro_proceso_val}' (ID: {nuevo_proceso_otro.id_proceso}) creado y añadido a la OP.")
+                        except IntegrityError: # Podría ocurrir si el código generado no es único
+                            db.session.rollback()
+                            errores.append(f"Error al intentar crear el nuevo proceso global '{op_otro_proceso_val}'. Intente con un nombre o código diferente si el problema persiste.")
+                            app.logger.error(f"IntegrityError al crear nuevo proceso global '{op_otro_proceso_val}'.")
+                        except Exception as e_proc_otro:
+                            db.session.rollback()
+                            errores.append(f"Error inesperado al procesar 'Otro Proceso Global': {str(e_proc_otro)}")
+                            app.logger.error(f"Error al procesar 'Otro Proceso Global': {str(e_proc_otro)}")
+            else:
+                try:
+                    id_proc = int(id_proc_str)
+                    proceso_db = Procesos.query.filter_by(id_proceso=id_proc, fecha_borrado=None).first()
+                    if proceso_db:
+                        if id_proc not in ids_procesos_a_asociar: # Evitar duplicados si se seleccionó y también se escribió como "otro"
+                           ids_procesos_a_asociar.append(id_proc)
+                    else:
+                        errores.append(f"Proceso global con ID '{id_proc_str}' no encontrado o fue eliminado.")
+                except ValueError:
+                    errores.append(f"ID de proceso global inválido: '{id_proc_str}'.")
+        
+        if not ids_procesos_a_asociar and not errores: # Si después de procesar 'otro' no hay IDs y no hubo errores antes
+             if 'otro_proceso_custom_op' in op_ids_procesos_form and not op_otro_proceso_val:
+                # Este caso ya está cubierto arriba, pero por si acaso.
+                pass # El error ya fue agregado
+             elif not op_ids_procesos_form or all(p == 'otro_proceso_custom_op' for p in op_ids_procesos_form) and not op_otro_proceso_val:
+                 errores.append("Debe seleccionar procesos válidos o especificar un nuevo proceso global.")
+
+
+    # --- RE-CHEQUEO DE ERRORES DESPUÉS DE PROCESOS GLOBALES ---
+    if errores:
+        app.logger.warning(f"Errores de validación (incluyendo procesos globales) en procesar_form_op: {', '.join(errores)}")
+        # Limpiar archivos subidos si hay errores para no dejarlos huérfanos
+        if path_render_a_guardar and os.path.exists(os.path.join(static_base_path, path_render_a_guardar.replace('static/', ''))):
+            os.remove(os.path.join(static_base_path, path_render_a_guardar.replace('static/', '')))
+        for doc_info_err in documentos_a_guardar:
+            if os.path.exists(os.path.join(static_base_path, doc_info_err["path"].replace('static/', ''))):
+                os.remove(os.path.join(static_base_path, doc_info_err["path"].replace('static/', '')))
+        return jsonify({'status': 'error', 'message': ". ".join(errores) + "."}), 400
+
     # --- 5. Iniciar Transacción y Crear Registros ---
     try:
         orden = OrdenProduccion(
@@ -1939,8 +2024,19 @@ def procesar_form_op(dataForm, files):
                 except ValueError:
                     app.logger.warning(f"ID de actividad no válido '{id_actividad}' ignorado para pieza ID '{id_pieza_maestra}'.")
 
+        # Asociar Procesos Globales a la Orden de Producción
+        for id_proc_asoc in ids_procesos_a_asociar:
+            # Verificar si la asociación ya existe para evitar duplicados por si acaso
+            # (aunque la lógica anterior debería prevenirlo, es una salvaguarda)
+            existe_asociacion = db.session.query(OrdenProduccionProcesos).filter_by(id_op=orden.id_op, id_proceso=id_proc_asoc).first()
+            if not existe_asociacion:
+                nueva_asociacion_op_proceso = OrdenProduccionProcesos(id_op=orden.id_op, id_proceso=id_proc_asoc)
+                db.session.add(nueva_asociacion_op_proceso)
+            else:
+                app.logger.info(f"Asociación OP-Proceso (ID_OP: {orden.id_op}, ID_Proceso: {id_proc_asoc}) ya existía. No se duplicó.")
+        
         db.session.commit()
-        app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente.")
+        app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente, incluyendo procesos globales y piezas.")
         return jsonify({'status': 'success', 'message': 'Orden de Producción registrada exitosamente.', 'id_op': orden.id_op, 'redirect_url': url_for('lista_op', id_op=orden.id_op)}), 200
 
     except IntegrityError as ie:

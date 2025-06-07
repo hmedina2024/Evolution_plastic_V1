@@ -28,7 +28,7 @@ CREATE TABLE `tbl_tipo_documento` (
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_tipo_documento`),
   UNIQUE KEY `unique_td_abreviacion` (`td_abreviacion`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_tipo_empleado
 CREATE TABLE `tbl_tipo_empleado` (
@@ -37,7 +37,7 @@ CREATE TABLE `tbl_tipo_empleado` (
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_tipo_empleado`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_empleados
 CREATE TABLE `tbl_empleados` (
@@ -60,7 +60,26 @@ CREATE TABLE `tbl_empleados` (
   KEY `fk_empleado_tipo` (`id_tipo_empleado`),
   CONSTRAINT `fk_empleado_empresa` FOREIGN KEY (`id_empresa`) REFERENCES `tbl_empresas` (`id_empresa`),
   CONSTRAINT `fk_empleado_tipo` FOREIGN KEY (`id_tipo_empleado`) REFERENCES `tbl_tipo_empleado` (`id_tipo_empleado`)
-) ENGINE=InnoDB AUTO_INCREMENT=313 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `tbl_empresas` (
+  `id_empresa` int NOT NULL AUTO_INCREMENT,
+  `nombre_empresa` varchar(100) NOT NULL,
+  `tipo_empresa` enum('Directo','Temporal') NOT NULL,
+  `nit` varchar(20) NOT NULL,
+  `direccion` varchar(200) DEFAULT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `fecha_registro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id_usuario_registro` int NOT NULL,
+  `fecha_borrado` datetime DEFAULT NULL,
+  PRIMARY KEY (`id_empresa`),
+  UNIQUE KEY `nit` (`nit`),
+  KEY `idx_nit` (`nit`),
+  KEY `fk_empresas_users` (`id_usuario_registro`),
+  CONSTRAINT `fk_empresas_users` FOREIGN KEY (`id_usuario_registro`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.users
 CREATE TABLE `users` (
@@ -73,7 +92,7 @@ CREATE TABLE `users` (
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_email_user` (`email_user`)
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_actividades
 CREATE TABLE `tbl_actividades` (
@@ -107,7 +126,7 @@ CREATE TABLE `tbl_clientes` (
   KEY `idx_fecha_registro` (`fecha_registro`),
   KEY `fk_cliente_tipodoc` (`id_tipo_documento`),
   CONSTRAINT `fk_cliente_tipodoc` FOREIGN KEY (`id_tipo_documento`) REFERENCES `tbl_tipo_documento` (`id_tipo_documento`)
-) ENGINE=InnoDB AUTO_INCREMENT=187 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_jornadas
 CREATE TABLE `tbl_jornadas` (
@@ -128,7 +147,7 @@ CREATE TABLE `tbl_jornadas` (
   KEY `fk_jornada_users` (`id_usuario_registro`),
   CONSTRAINT `fk_jornada_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `tbl_empleados` (`id_empleado`),
   CONSTRAINT `fk_jornada_users` FOREIGN KEY (`id_usuario_registro`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_operaciones
 CREATE TABLE `tbl_operaciones` (
@@ -160,7 +179,7 @@ CREATE TABLE `tbl_operaciones` (
   CONSTRAINT `fk_operacion_orden` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`),
   CONSTRAINT `fk_operacion_proceso` FOREIGN KEY (`id_proceso`) REFERENCES `tbl_procesos` (`id_proceso`),
   CONSTRAINT `fk_operacion_users` FOREIGN KEY (`id_usuario_registro`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=129758 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_ordenproduccion
 CREATE TABLE `tbl_ordenproduccion` (
@@ -196,7 +215,7 @@ CREATE TABLE `tbl_ordenproduccion` (
   CONSTRAINT `fk_orden_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `tbl_clientes` (`id_cliente`),
   CONSTRAINT `fk_orden_empleado_reg` FOREIGN KEY (`id_empleado`) REFERENCES `tbl_empleados` (`id_empleado`),
   CONSTRAINT `fk_orden_supervisor` FOREIGN KEY (`id_supervisor`) REFERENCES `tbl_empleados` (`id_empleado`)
-) ENGINE=InnoDB AUTO_INCREMENT=10298 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_procesos
 CREATE TABLE `tbl_procesos` (
@@ -208,7 +227,7 @@ CREATE TABLE `tbl_procesos` (
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_proceso`),
   UNIQUE KEY `codigo_proceso_UNIQUE` (`codigo_proceso`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_documentos_op
 CREATE TABLE `tbl_documentos_op` (
@@ -221,21 +240,21 @@ CREATE TABLE `tbl_documentos_op` (
   PRIMARY KEY (`id_documento`),
   KEY `fk_documento_op` (`id_op`),
   CONSTRAINT `fk_documento_op` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_orden_piezas
 CREATE TABLE `tbl_orden_piezas` (
   `id_orden_pieza` int NOT NULL AUTO_INCREMENT,
   `id_op` int NOT NULL,
-  `id_pieza` int NOT NULL,
-  `cantidad` int DEFAULT NULL,
+  `id_pieza` int DEFAULT NULL,
+  `nombre_pieza_op` varchar(100) NOT NULL,
+  `cantidad` int NOT NULL,
   `tamano` varchar(100) DEFAULT NULL,
   `montaje` varchar(100) DEFAULT NULL,
   `montaje_tamano` varchar(100) DEFAULT NULL,
   `material` varchar(100) DEFAULT NULL,
   `cantidad_material` text,
-  `otros_procesos` varchar(100) DEFAULT NULL,
-  `descripcion_general` text,
+  `descripcion_pieza` text,
   `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_orden_pieza`),
@@ -243,7 +262,7 @@ CREATE TABLE `tbl_orden_piezas` (
   KEY `fk_orden_pieza_pieza` (`id_pieza`),
   CONSTRAINT `fk_orden_pieza_op` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`) ON DELETE CASCADE,
   CONSTRAINT `fk_orden_pieza_pieza` FOREIGN KEY (`id_pieza`) REFERENCES `tbl_piezas` (`id_pieza`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_orden_piezas_procesos
 CREATE TABLE `tbl_orden_piezas_procesos` (
@@ -257,7 +276,35 @@ CREATE TABLE `tbl_orden_piezas_procesos` (
   KEY `fk_orden_pieza_proceso_proceso` (`id_proceso`),
   CONSTRAINT `fk_orden_pieza_proceso_op` FOREIGN KEY (`id_orden_pieza`) REFERENCES `tbl_orden_piezas` (`id_orden_pieza`) ON DELETE CASCADE,
   CONSTRAINT `fk_orden_pieza_proceso_proceso` FOREIGN KEY (`id_proceso`) REFERENCES `tbl_procesos` (`id_proceso`)
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `tbl_orden_produccion_procesos` (
+  `id_orden_produccion_proceso` int NOT NULL AUTO_INCREMENT,
+  `id_op` int NOT NULL,
+  `id_proceso` int NOT NULL,
+  `fecha_registro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_orden_produccion_proceso`),
+  UNIQUE KEY `uq_orden_produccion_proceso` (`id_op`,`id_proceso`),
+  KEY `id_proceso` (`id_proceso`),
+  CONSTRAINT `tbl_orden_produccion_procesos_ibfk_1` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`) ON DELETE CASCADE,
+  CONSTRAINT `tbl_orden_produccion_procesos_ibfk_2` FOREIGN KEY (`id_proceso`) REFERENCES `tbl_procesos` (`id_proceso`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+CREATE TABLE `tbl_orden_piezas_actividades` (
+  `id_orden_pieza_actividad` int NOT NULL AUTO_INCREMENT,
+  `id_orden_pieza` int NOT NULL,
+  `id_actividad` int NOT NULL,
+  PRIMARY KEY (`id_orden_pieza_actividad`),
+  KEY `id_orden_pieza` (`id_orden_pieza`),
+  KEY `id_actividad` (`id_actividad`),
+  CONSTRAINT `tbl_orden_piezas_actividades_ibfk_1` FOREIGN KEY (`id_orden_pieza`) REFERENCES `tbl_orden_piezas` (`id_orden_pieza`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tbl_orden_piezas_actividades_ibfk_2` FOREIGN KEY (`id_actividad`) REFERENCES `tbl_actividades` (`id_actividad`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 
 -- Volcando estructura para tabla crud_python.tbl_piezas
 CREATE TABLE `tbl_piezas` (
@@ -267,7 +314,7 @@ CREATE TABLE `tbl_piezas` (
   `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_borrado` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_pieza`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcando estructura para tabla crud_python.tbl_renders_op
 CREATE TABLE `tbl_renders_op` (
@@ -279,4 +326,4 @@ CREATE TABLE `tbl_renders_op` (
   PRIMARY KEY (`id_render`),
   KEY `fk_render_op` (`id_op`),
   CONSTRAINT `fk_render_op` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
