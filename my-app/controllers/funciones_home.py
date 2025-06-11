@@ -7,7 +7,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos
+from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -1463,68 +1463,39 @@ def get_total_operaciones():
 
 def sql_detalles_operaciones_bd(id_operacion):
     try:
-        operacion = db.session.query(Operaciones).filter_by(
-            id_operacion=id_operacion).first(),
-        Users.name_surname.label('nombre_usuario_registro')
-        if operacion:
-            # Obtener datos relacionados
-            empleado = operacion.empleado
-            proceso = operacion.proceso_rel
-            actividad = operacion.actividad_rel
-            orden = operacion.orden_produccion
-            usuario = Users.name_surname
+        # Corregido: operacion_obj ahora es el objeto Operaciones, no una tupla.
+        operacion_obj = db.session.query(Operaciones).filter_by(id_operacion=id_operacion).first()
+
+        if operacion_obj:
+            # Obtener datos relacionados directamente del objeto operacion_obj
+            empleado = operacion_obj.empleado
+            proceso = operacion_obj.proceso_rel
+            actividad = operacion_obj.actividad_rel
+            orden = operacion_obj.orden_produccion
+            
+            # Obtener el usuario que registró la operación a través de la relación 'usuario_reg'
+            usuario_que_registro = operacion_obj.usuario_reg
+            nombre_usuario_registro = usuario_que_registro.name_surname if usuario_que_registro else 'Desconocido'
 
             return {
-                'id_operacion': operacion.id_operacion,
-                'id_empleado': operacion.id_empleado,
+                'id_operacion': operacion_obj.id_operacion,
+                'id_empleado': operacion_obj.id_empleado,
                 'nombre_empleado': f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip() if empleado else 'Desconocido',
                 'proceso': proceso.nombre_proceso if proceso else 'Desconocido',
                 'actividad': actividad.nombre_actividad if actividad else 'Desconocido',
                 'codigo_op': orden.codigo_op if orden else 'Desconocido',
-                'cantidad': operacion.cantidad,
-                'pieza_realizada': operacion.pieza_realizada,
-                'novedad': operacion.novedad,
-                'fecha_hora_inicio': operacion.fecha_hora_inicio.strftime('%Y-%m-%d %H:%M') if operacion.fecha_hora_inicio else 'Sin registro',
-                'fecha_hora_fin': operacion.fecha_hora_fin.strftime('%Y-%m-%d %H:%M') if operacion.fecha_hora_fin else 'Sin registro',
-                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if operacion.fecha_registro else 'Sin registro',
-                'usuario_registro': usuario.name_surname if usuario else 'Desconocido'
+                'cantidad': operacion_obj.cantidad,
+                'pieza_realizada': operacion_obj.pieza_realizada,
+                'novedad': operacion_obj.novedad,
+                'fecha_hora_inicio': operacion_obj.fecha_hora_inicio.strftime('%Y-%m-%d %H:%M') if operacion_obj.fecha_hora_inicio else 'Sin registro',
+                'fecha_hora_fin': operacion_obj.fecha_hora_fin.strftime('%Y-%m-%d %H:%M') if operacion_obj.fecha_hora_fin else 'Sin registro',
+                'fecha_registro': operacion_obj.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if operacion_obj.fecha_registro else 'Sin registro',
+                'usuario_registro': nombre_usuario_registro
             }
         return None
     except Exception as e:
         app.logger.error(
             f"Error en la función sql_detalles_operaciones_bd: {e}")
-        return None
-
-
-def buscar_operacion_unico(id):
-    try:
-        operacion = db.session.query(
-            Operaciones).filter_by(id_operacion=id).first()
-        if operacion:
-            # Obtener datos relacionados
-            empleado = operacion.empleado
-            proceso = operacion.proceso_rel
-            actividad = operacion.actividad_rel
-            orden = operacion.orden_produccion
-
-            return {
-                'id_operacion': operacion.id_operacion,
-                'id_empleado': operacion.id_empleado,
-                'nombre_empleado': f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip() if empleado else 'Desconocido',
-                'proceso': proceso.nombre_proceso if proceso else 'Desconocido',
-                'actividad': actividad.nombre_actividad if actividad else 'Desconocido',
-                'codigo_op': orden.codigo_op if orden else 'Desconocido',
-                'cantidad': operacion.cantidad,
-                'pieza': operacion.pieza_realizada,
-                'novedad': operacion.novedad,
-                'fecha_hora_inicio': operacion.fecha_hora_inicio.strftime('%Y-%m-%d %H:%M') if operacion.fecha_hora_inicio else 'Sin registro',
-                'fecha_hora_fin': operacion.fecha_hora_fin.strftime('%Y-%m-%d %H:%M') if operacion.fecha_hora_fin else 'Sin registro',
-                'fecha_registro': operacion.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if operacion.fecha_registro else 'Sin registro',
-            }
-        return None
-    except Exception as e:
-        app.logger.error(
-            f"Ocurrió un error en def buscar_operacion_unico: {e}")
         return None
 
 
@@ -1682,7 +1653,7 @@ def procesar_form_op(dataForm, files):
         return jsonify({'status': 'error', 'message': "Usuario no autenticado. Por favor, inicie sesión."}), 401
 
     # --- 1. Obtener y Validar Campos Principales de la OP ---
-    codigo_op_str = dataForm.get('cod_op')
+    # codigo_op_str = dataForm.get('cod_op') # Se generará automáticamente
     id_cliente_str = dataForm.get('id_cliente')
     cantidad_op_str = dataForm.get('cantidad')
     id_empleado_str = dataForm.get('id_empleado')
@@ -1698,18 +1669,19 @@ def procesar_form_op(dataForm, files):
     odi_val = dataForm.get('odi')
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
-    materiales_op_val = dataForm.get('materiales_op')
+    # materiales_op_val = dataForm.get('materiales_op') # Eliminado
 
     # Validaciones y Conversiones
-    if not codigo_op_str or not codigo_op_str.strip():
-        errores.append("El Código OP es requerido.")
-        codigo_op_val = None
-    else:
-        try:
-            codigo_op_val = int(codigo_op_str)
-        except ValueError:
-            errores.append("Código OP debe ser un número entero válido.")
-            codigo_op_val = None
+    # La validación de codigo_op_str ya no es necesaria aquí
+    # if not codigo_op_str or not codigo_op_str.strip():
+    #     errores.append("El Código OP es requerido.")
+    #     codigo_op_val = None
+    # else:
+    #     try:
+    #         codigo_op_val = int(codigo_op_str)
+    #     except ValueError:
+    #         errores.append("Código OP debe ser un número entero válido.")
+    #         codigo_op_val = None
 
     if not id_cliente_str or not id_cliente_str.strip():
         errores.append("El Cliente es requerido.")
@@ -1783,8 +1755,12 @@ def procesar_form_op(dataForm, files):
         errores.append("El ODI es requerido.")
     if not descripcion_general_op_val or not descripcion_general_op_val.strip():
         errores.append("La Descripción General de la OP es requerida.")
-    if not materiales_op_val or not materiales_op_val.strip():
-        errores.append("Los Materiales de la OP son requeridos.")
+    
+    if not producto_val or not producto_val.strip(): # Nueva validación para producto
+        errores.append("El Producto es requerido.")
+
+    # if not materiales_op_val or not materiales_op_val.strip(): # Eliminado
+    #     errores.append("Los Materiales de la OP son requeridos.") # Eliminado
 
     # --- 2. Validación de Archivos ---
     basepath = os.path.abspath(os.path.dirname(__file__))
@@ -1958,8 +1934,11 @@ def procesar_form_op(dataForm, files):
 
     # --- 5. Iniciar Transacción y Crear Registros ---
     try:
+        nuevo_codigo_op_generado = generar_codigo_op() # Generar el nuevo código OP
+        app.logger.info(f"Nuevo Código OP generado: {nuevo_codigo_op_generado}")
+
         orden = OrdenProduccion(
-            codigo_op=codigo_op_val,
+            codigo_op=nuevo_codigo_op_generado, # Usar el código generado
             id_cliente=id_cliente_val,
             producto=producto_val,
             version=version_val,
@@ -1975,7 +1954,7 @@ def procesar_form_op(dataForm, files):
             fecha_entrega=fecha_entrega_val,
             descripcion_general=descripcion_general_op_val,
             empaque=empaque_val,
-            materiales=materiales_op_val,
+            # materiales=materiales_op_val, # Eliminado
             id_usuario_registro=id_usuario_registro
         )
         db.session.add(orden)
@@ -1998,31 +1977,49 @@ def procesar_form_op(dataForm, files):
             nombre_pieza_val = pieza_data_form.get('nombre_pieza', 'N/A')
             cantidad_pieza_val = int(pieza_data_form.get('cantidad'))
             id_actividades = pieza_data_form.get('id_actividad', [])
+            valores_configuracion_pieza = pieza_data_form.get('valores_configuracion', []) # Obtener los detalles del modal
 
             orden_pieza_obj = OrdenPiezas(
                 id_op=orden.id_op,
-                id_pieza=id_pieza_maestra,
-                nombre_pieza_op=nombre_pieza_val,
+                id_pieza=id_pieza_maestra, # Este es el ID de la pieza maestra de tbl_piezas
+                nombre_pieza_op=nombre_pieza_val, # Nombre específico para esta OP
                 cantidad=cantidad_pieza_val,
                 tamano=pieza_data_form.get('tamano'),
                 montaje=pieza_data_form.get('montaje'),
-                montaje_tamano=pieza_data_form.get('tamano_montaje'),
+                montaje_tamano=pieza_data_form.get('tamano_montaje'), # Este campo ya existía en OrdenPiezas
                 material=pieza_data_form.get('material'),
                 cantidad_material=pieza_data_form.get('cantidad_material'),
                 descripcion_pieza=pieza_data_form.get('descripcion_pieza')
             )
             db.session.add(orden_pieza_obj)
-            db.session.flush()
+            db.session.flush() # Para obtener el id_orden_pieza para las tablas relacionadas
 
+            # Guardar actividades de la pieza
             for id_actividad in id_actividades:
                 try:
-                    id_actividad = int(id_actividad)
+                    id_actividad_int = int(id_actividad)
                     db.session.add(OrdenPiezasActividades(
                         id_orden_pieza=orden_pieza_obj.id_orden_pieza,
-                        id_actividad=id_actividad
+                        id_actividad=id_actividad_int
                     ))
                 except ValueError:
-                    app.logger.warning(f"ID de actividad no válido '{id_actividad}' ignorado para pieza ID '{id_pieza_maestra}'.")
+                    app.logger.warning(f"ID de actividad no válido '{id_actividad}' ignorado para pieza con nombre '{nombre_pieza_val}'.")
+
+            # Guardar los valores de configuración adicionales del modal para esta pieza
+            if isinstance(valores_configuracion_pieza, list):
+                for config_item in valores_configuracion_pieza:
+                    grupo = config_item.get('grupo_configuracion')
+                    valor = config_item.get('valor_configuracion')
+                    if grupo and valor is not None: # Permitir valores vacíos si es intencional, pero el grupo debe existir
+                        detalle_obj = OrdenPiezaValoresDetalle(
+                            id_orden_pieza=orden_pieza_obj.id_orden_pieza,
+                            grupo_configuracion=grupo,
+                            valor_configuracion=str(valor) # Asegurar que sea string
+                        )
+                        db.session.add(detalle_obj)
+            else:
+                app.logger.warning(f"El formato de 'valores_configuracion' para la pieza '{nombre_pieza_val}' no es una lista. Datos: {valores_configuracion_pieza}")
+
 
         # Asociar Procesos Globales a la Orden de Producción
         for id_proc_asoc in ids_procesos_a_asociar:
@@ -2037,7 +2034,8 @@ def procesar_form_op(dataForm, files):
         
         db.session.commit()
         app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente, incluyendo procesos globales y piezas.")
-        return jsonify({'status': 'success', 'message': 'Orden de Producción registrada exitosamente.', 'id_op': orden.id_op, 'redirect_url': url_for('lista_op', id_op=orden.id_op)}), 200
+        mensaje_exito = f"Se creó el número de OP {orden.codigo_op} exitosamente."
+        return jsonify({'status': 'success', 'message': mensaje_exito, 'id_op': orden.id_op, 'redirect_url': url_for('lista_op', id_op=orden.id_op)}), 200
 
     except IntegrityError as ie:
         db.session.rollback()
@@ -2173,100 +2171,118 @@ def sql_detalles_op_bd(id_op):
             app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
             return None
 
-        orden, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
+        orden_obj, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
 
-        # Obtener las piezas asociadas con un solo JOIN
-        piezas = db.session.query(
+        # 1. Procesos Globales de la Orden
+        procesos_globales_nombres = []
+        if orden_obj.procesos_globales: # Accede a la relación directa
+            procesos_globales_nombres = [p.nombre_proceso for p in orden_obj.procesos_globales]
+        app.logger.debug(f"Procesos globales para OP {orden_obj.id_op}: {procesos_globales_nombres}")
+
+        # 2. Piezas de la Orden
+        # La consulta original para 'piezas' ya obtiene OrdenPiezas y el nombre de la pieza maestra.
+        # Vamos a iterar sobre los objetos OrdenPiezas directamente.
+        piezas_query_result = db.session.query(
             OrdenPiezas,
-            Piezas.nombre_pieza.label('nombre_pieza')
+            Piezas.nombre_pieza.label('nombre_pieza_maestra') # Nombre de la pieza desde tbl_piezas
         ).outerjoin(
-            Piezas, OrdenPiezas.id_pieza == Piezas.id_pieza
+            Piezas, OrdenPiezas.id_pieza == Piezas.id_pieza # id_pieza es la FK a tbl_piezas
         ).filter(
-            OrdenPiezas.id_op == orden.id_op,
+            OrdenPiezas.id_op == orden_obj.id_op,
             OrdenPiezas.fecha_borrado.is_(None)
         ).all()
 
         piezas_list = []
-        for pieza, nombre_pieza in piezas:
-            # Obtener los procesos asociados a la pieza
-            procesos = db.session.query(
-                Procesos.nombre_proceso.label('nombre_proceso')
-            ).join(
-                OrdenPiezasProcesos, Procesos.id_proceso == OrdenPiezasProcesos.id_proceso
-            ).filter(
-                OrdenPiezasProcesos.id_orden_pieza == pieza.id_orden_pieza,
-                OrdenPiezasProcesos.fecha_borrado.is_(None)
-            ).all()
+        for pieza_orden_obj, nombre_pieza_maestra_val in piezas_query_result: # pieza_orden_obj es una instancia de OrdenPiezas
+            # 2a. Actividades de la Pieza
+            actividades_nombres = []
+            # Asumiendo que OrdenPiezas tiene una relación 'actividades_asignadas' que lleva a OrdenPiezasActividades
+            # y esta a su vez a Actividades. O una consulta directa:
+            actividades_data = db.session.query(Actividades.nombre_actividad).\
+                join(OrdenPiezasActividades, Actividades.id_actividad == OrdenPiezasActividades.id_actividad).\
+                filter(OrdenPiezasActividades.id_orden_pieza == pieza_orden_obj.id_orden_pieza).all()
+            if actividades_data:
+                actividades_nombres = [a[0] for a in actividades_data]
+            app.logger.debug(f"Actividades para pieza {pieza_orden_obj.id_orden_pieza}: {actividades_nombres}")
 
-            procesos_nombres = [proceso.nombre_proceso for proceso in procesos]
+            # 2b. Detalles de Configuración Adicional de la Pieza
+            detalles_config_list = []
+            if pieza_orden_obj.valores_config_adicional: # Relación en OrdenPiezas
+                for config_detalle in pieza_orden_obj.valores_config_adicional:
+                    detalles_config_list.append({
+                        'grupo': config_detalle.grupo_configuracion,
+                        'valor': config_detalle.valor_configuracion
+                    })
+            app.logger.debug(f"Detalles config para pieza {pieza_orden_obj.id_orden_pieza}: {detalles_config_list}")
+            
+            # Determinar el nombre de la pieza a mostrar
+            # Priorizar el nombre específico de la OP, luego el de la pieza maestra si existe.
+            nombre_a_mostrar = pieza_orden_obj.nombre_pieza_op # Nombre específico guardado con la pieza de la OP
+            if not nombre_a_mostrar and nombre_pieza_maestra_val:
+                 nombre_a_mostrar = nombre_pieza_maestra_val
+            elif not nombre_a_mostrar:
+                 nombre_a_mostrar = "Pieza sin nombre específico"
 
-            if not nombre_pieza:
-                app.logger.warning(f"Pieza con id_pieza={pieza.id_pieza} no encontrada en tbl_piezas para id_op={id_op}")
 
             piezas_list.append({
-                'id_orden_pieza': pieza.id_orden_pieza,
-                'nombre_pieza': nombre_pieza if nombre_pieza else 'Desconocido',
-                'cantidad': pieza.cantidad if pieza.cantidad else 'No especificado',
-                'tamano': pieza.tamano if pieza.tamano else 'No especificado',
-                'montaje': pieza.montaje if pieza.montaje else 'No especificado',
-                'montaje_tamano': pieza.montaje_tamano if pieza.montaje_tamano else 'No especificado',
-                'material': pieza.material if pieza.material else 'No especificado',
-                'cantidad_material': pieza.cantidad_material if pieza.cantidad_material else 'No especificado',
-                'descripcion_general': pieza.descripcion_pieza if pieza.descripcion_pieza else 'No especificado',  # Cambiado a descripcion_pieza
-                'procesos': procesos_nombres if procesos_nombres else ['No especificado']
+                'id_orden_pieza': pieza_orden_obj.id_orden_pieza,
+                'nombre_pieza': nombre_a_mostrar,
+                'cantidad': pieza_orden_obj.cantidad if pieza_orden_obj.cantidad else 'No especificado',
+                'tamano': pieza_orden_obj.tamano if pieza_orden_obj.tamano else 'No especificado',
+                'montaje': pieza_orden_obj.montaje if pieza_orden_obj.montaje else 'No especificado',
+                'montaje_tamano': pieza_orden_obj.montaje_tamano if pieza_orden_obj.montaje_tamano else 'No especificado',
+                'material': pieza_orden_obj.material if pieza_orden_obj.material else 'No especificado',
+                'cantidad_material': pieza_orden_obj.cantidad_material if pieza_orden_obj.cantidad_material else 'No especificado',
+                'descripcion_general': pieza_orden_obj.descripcion_pieza if pieza_orden_obj.descripcion_pieza else 'No especificado',
+                'actividades': actividades_nombres if actividades_nombres else ['No especificadas'],
+                'detalles_configuracion': detalles_config_list
             })
 
-        # Obtener solo el nombre del archivo para los renders
-        renders = [render.render_path.split('/')[-1] for render in orden.renders if render.fecha_borrado is None]
-        app.logger.debug(f"Nombres de archivo de renders: {renders}")
+        # Renders y Documentos
+        renders = [render.render_path.split('/')[-1] for render in orden_obj.renders if render.fecha_borrado is None]
+        documentos = [{
+            'id_documento': doc.id_documento, # Añadido por si es útil en el template
+            'documento_path': doc.documento_path,
+            'documento_nombre_original': doc.documento_nombre_original
+        } for doc in orden_obj.documentos if doc.fecha_borrado is None]
 
-        # Depurar las rutas y nombres de los documentos
-        documentos = [
-            {
-                'id_documento': doc.id_documento,
-                'documento_path': doc.documento_path,
-                'documento_nombre_original': doc.documento_nombre_original
-            }
-            for doc in orden.documentos if doc.fecha_borrado is None
-        ]
-        app.logger.debug(f"Documentos: {documentos}")
-
-        # Formatear los datos de la orden
-        detalle = {
-            'id_op': orden.id_op,
-            'codigo_op': orden.codigo_op,
-            'id_cliente': orden.id_cliente,
+        # Formatear los datos de la orden para el template
+        detalle_op_data = {
+            'id_op': orden_obj.id_op,
+            'codigo_op': orden_obj.codigo_op,
+            'id_cliente': orden_obj.id_cliente, # Añadido por si es útil
             'nombre_cliente': nombre_cliente if nombre_cliente else 'Desconocido',
-            'producto': orden.producto if orden.producto else 'Sin descripción',
-            'version': orden.version if orden.version else 'No especificado',
-            'cotizacion': orden.cotizacion if orden.cotizacion else 'No especificado',
-            'estado': orden.estado if orden.estado else 'Sin estado',
-            'cantidad': orden.cantidad if orden.cantidad else 0,
-            'medida': orden.medida if orden.medida else 'No especificado',
-            'referencia': orden.referencia if orden.referencia else 'No especificado',
-            'odi': orden.odi if orden.odi else 'Sin ODI',
-            'id_empleado': orden.id_empleado,
-            'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor',
-            'id_supervisor': orden.id_supervisor,
+            'producto': orden_obj.producto if orden_obj.producto else 'Sin descripción',
+            'version': orden_obj.version if orden_obj.version else 'No especificado',
+            'cotizacion': orden_obj.cotizacion if orden_obj.cotizacion else 'No especificado',
+            'estado': orden_obj.estado if orden_obj.estado else 'Sin estado',
+            'cantidad': orden_obj.cantidad if orden_obj.cantidad else 0,
+            'medida': orden_obj.medida if orden_obj.medida else 'No especificado',
+            'referencia': orden_obj.referencia if orden_obj.referencia else 'No especificado',
+            'odi': orden_obj.odi if orden_obj.odi else 'Sin ODI',
+            'id_empleado': orden_obj.id_empleado, # Añadido por si es útil (Vendedor)
+            'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor', # Nombre del Vendedor
+            'id_supervisor': orden_obj.id_supervisor, # Añadido por si es útil
             'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor',
-            'fecha': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else 'No especificado',
-            'fecha_entrega': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else 'No especificado',
-            'descripcion_general': orden.descripcion_general if orden.descripcion_general else 'No especificado',
-            'empaque': orden.empaque if orden.empaque else 'No especificado',
-            'materiales': orden.materiales if orden.materiales else 'No especificado',
-            'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden.fecha_registro else 'Sin registro',
-            'id_usuario_registro': orden.id_usuario_registro,
+            'fecha': orden_obj.fecha.strftime('%Y-%m-%d') if orden_obj.fecha else 'No especificado',
+            'fecha_entrega': orden_obj.fecha_entrega.strftime('%Y-%m-%d') if orden_obj.fecha_entrega else 'No especificado',
+            'descripcion_general': orden_obj.descripcion_general if orden_obj.descripcion_general else 'No especificado',
+            'empaque': orden_obj.empaque if orden_obj.empaque else 'No especificado',
+            'materiales': orden_obj.materiales if orden_obj.materiales else 'No especificado', # Materiales generales de la OP
+            'fecha_registro': orden_obj.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden_obj.fecha_registro else 'Sin registro',
+            'id_usuario_registro': orden_obj.id_usuario_registro, # Añadido por si es útil
             'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
-            'fecha_borrado': orden.fecha_borrado,
+            'fecha_borrado': orden_obj.fecha_borrado.strftime('%Y-%m-%d %I:%M %p') if orden_obj.fecha_borrado else None, # Formatear si existe
             'renders': renders,
             'documentos': documentos,
+            'procesos': procesos_globales_nombres if procesos_globales_nombres else ['No especificados'], # Clave 'procesos' para el template
             'piezas': piezas_list
         }
-        app.logger.debug(f"Detalles de la orden: {detalle}")
-        return detalle
+        app.logger.debug(f"Detalles de la orden a retornar: {detalle_op_data}")
+        return detalle_op_data
 
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_op_bd: {str(e)}")
+        app.logger.error(f"Error en la función sql_detalles_op_bd para id_op={id_op}: {str(e)}", exc_info=True) # exc_info=True para traceback completo
         return None
 
 # Eliminar buscar_op_unico ya que sql_detalles_op_bd lo reemplaza
@@ -3510,3 +3526,29 @@ def get_tipos_empleado_paginados(page, per_page, search, id_empresa):
     except Exception as e:
         app.logger.error(f"Error en get_tipos_empleado_paginados: {str(e)}")
         return []
+
+def get_detalles_pieza_maestra_options(grupo_detalles_pieza_param):
+    """
+    Obtiene las opciones de detalles de pieza para un grupo específico.
+    Estas opciones se usarán para poblar los Select2 en el modal de detalles de pieza.
+    """
+    try:
+        # Consultar la tabla DetallesPiezaMaestra filtrando por el grupo
+        # Se usa func.lower para hacer la comparación insensible a mayúsculas/minúsculas
+        opciones_query = DetallesPiezaMaestra.query.filter(
+            func.lower(DetallesPiezaMaestra.grupo_detalles_pieza) == func.lower(grupo_detalles_pieza_param)
+        ).order_by(DetallesPiezaMaestra.detalles_pieza).all()
+
+        # Formatear para Select2: una lista de diccionarios con 'id' y 'text'
+        # Aquí, tanto 'id' como 'text' serán el valor de 'detalles_pieza',
+        # ya que es el valor que se almacenará y se mostrará.
+        opciones_formateadas = [
+            {"id": opcion.detalles_pieza, "text": opcion.detalles_pieza}
+            for opcion in opciones_query
+        ]
+        
+        app.logger.debug(f"Opciones para grupo '{grupo_detalles_pieza_param}': {opciones_formateadas}")
+        return opciones_formateadas
+    except Exception as e:
+        app.logger.error(f"Error en get_detalles_pieza_maestra_options para el grupo '{grupo_detalles_pieza_param}': {e}", exc_info=True)
+        return [] # Devolver lista vacía en caso de error

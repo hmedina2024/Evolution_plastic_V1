@@ -327,3 +327,25 @@ CREATE TABLE `tbl_renders_op` (
   KEY `fk_render_op` (`id_op`),
   CONSTRAINT `fk_render_op` FOREIGN KEY (`id_op`) REFERENCES `tbl_ordenproduccion` (`id_op`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+-- Volcando estructura para tabla crud_python.tbl_renders_op
+CREATE TABLE evolution_db.tbl_detalles_pieza (
+    id_detalles_pieza INT NOT NULL AUTO_INCREMENT,
+    grupo_detalles_pieza varchar(50) DEFAULT NULL,
+    detalles_pieza varchar(50) DEFAULT NULL,
+    PRIMARY KEY (id_detalles_pieza)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+CREATE TABLE `tbl_orden_pieza_valores_detalle` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `id_orden_pieza` int NOT NULL,
+  `grupo_configuracion` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `valor_configuracion` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_registro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `id_orden_pieza` (`id_orden_pieza`),
+  CONSTRAINT `tbl_orden_pieza_valores_detalle_ibfk_1` FOREIGN KEY (`id_orden_pieza`) REFERENCES `tbl_orden_piezas` (`id_orden_pieza`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

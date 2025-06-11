@@ -1,14 +1,10 @@
 {% extends 'public/base_cpanel.html' %}
-<!-- Cambiando el title -->
 {% block title %}Detalles de Orden de Producción{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet"
-  href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
-<!-- Inicio del block -->
 {% block body %}
 {% if detalle_op %}
 <div class="card shadow-sm" style="border-radius: 10px;">
@@ -25,50 +21,41 @@
     <h4 class="fw-bold text-primary mb-4">Detalles Generales</h4>
     <div class="row g-4">
       <div class="col-md-2">
-        <label for="id_op" class="form-label fw-bold text-primary">Código
-          OP</label>
+        <label for="id_op" class="form-label fw-bold text-primary">Código OP</label>
         <div class="form-control" readonly>{{ detalle_op.codigo_op }}</div>
       </div>
       <div class="col-md-3">
-        <label for="nombre_cliente"
-          class="form-label fw-bold text-primary">Nombre Cliente</label>
+        <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
         <div class="form-control" readonly>{{ detalle_op.nombre_cliente }}</div>
       </div>
       <div class="col-md-7">
-        <label for="producto"
-          class="form-label fw-bold text-primary">Producto</label>
+        <label for="producto" class="form-label fw-bold text-primary">Producto</label>
         <div class="form-control" readonly>{{ detalle_op.producto }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-2">
-        <label for="version"
-          class="form-label fw-bold text-primary">Versión</label>
+        <label for="version" class="form-label fw-bold text-primary">Versión</label>
         <div class="form-control" readonly>{{ detalle_op.version }}</div>
       </div>
       <div class="col-md-2">
-        <label for="cotizacion"
-          class="form-label fw-bold text-primary">Cotización</label>
+        <label for="cotizacion" class="form-label fw-bold text-primary">Cotización</label>
         <div class="form-control" readonly>{{ detalle_op.cotizacion }}</div>
       </div>
       <div class="col-md-2">
-        <label for="estado"
-          class="form-label fw-bold text-primary">Estado</label>
+        <label for="estado" class="form-label fw-bold text-primary">Estado</label>
         <div class="form-control" readonly>{{ detalle_op.estado }}</div>
       </div>
       <div class="col-md-2">
-        <label for="cantidad"
-          class="form-label fw-bold text-primary">Cantidad</label>
+        <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
       </div>
       <div class="col-md-2">
-        <label for="medida"
-          class="form-label fw-bold text-primary">Medida</label>
+        <label for="medida" class="form-label fw-bold text-primary">Medida</label>
         <div class="form-control" readonly>{{ detalle_op.medida }}</div>
       </div>
       <div class="col-md-2">
-        <label for="referencia"
-          class="form-label fw-bold text-primary">Referencia</label>
+        <label for="referencia" class="form-label fw-bold text-primary">Referencia</label>
         <div class="form-control" readonly>{{ detalle_op.referencia }}</div>
       </div>
     </div>
@@ -78,59 +65,55 @@
         <div class="form-control" readonly>{{ detalle_op.odi }}</div>
       </div>
       <div class="col-md-3">
-        <label for="empleado"
-          class="form-label fw-bold text-primary">Vendedor</label>
+        <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
         <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
       </div>
       <div class="col-md-3">
-        <label for="supervisor"
-          class="form-label fw-bold text-primary">Supervisor</label>
-        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor
-          }}</div>
+        <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor }}</div>
       </div>
       <div class="col-md-2">
         <label for="fecha" class="form-label fw-bold text-primary">Fecha</label>
         <div class="form-control" readonly>{{ detalle_op.fecha }}</div>
       </div>
       <div class="col-md-2">
-        <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha
-          de Entrega</label>
+        <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha de Entrega</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_entrega }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-12">
-        <label for="descripcion_general"
-          class="form-label fw-bold text-primary">Descripción General</label>
-        <textarea class="form-control" readonly
-          rows="3">{{ detalle_op.descripcion_general }}</textarea>
+        <label for="descripcion_general" class="form-label fw-bold text-primary">Descripción General</label>
+        <textarea class="form-control" readonly rows="3">{{ detalle_op.descripcion_general }}</textarea>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-4">
-        <label for="empaque"
-          class="form-label fw-bold text-primary">Empaque</label>
+        <label for="empaque" class="form-label fw-bold text-primary">Empaque</label>
         <div class="form-control" readonly>{{ detalle_op.empaque }}</div>
       </div>
       <div class="col-md-8">
-        <label for="materiales"
-          class="form-label fw-bold text-primary">Materiales</label>
-        <textarea class="form-control" readonly
-          rows="3">{{ detalle_op.materiales }}</textarea>
+        <label for="materiales" class="form-label fw-bold text-primary">Materiales</label>
+        <textarea class="form-control" readonly rows="3">{{ detalle_op.materiales }}</textarea>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-3">
-        <label for="fecha_registro"
-          class="form-label fw-bold text-primary">Fecha y Hora de
-          Registro</label>
+        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>
       </div>
       <div class="col-md-3">
-        <label for="usuario_registro"
-          class="form-label fw-bold text-primary">Registrado por</label>
-        <div class="form-control" readonly>{{ detalle_op.usuario_registro
-          }}</div>
+        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_op.usuario_registro }}</div>
+      </div>
+    </div>
+
+    <!-- Procesos globales -->
+    <h4 class="fw-bold text-primary mt-5 mb-4">Procesos de la Orden</h4>
+    <div class="row g-4">
+      <div class="col-md-12">
+        <label class="form-label fw-bold text-primary">Procesos Asociados</label>
+        <div class="form-control" readonly>{{ detalle_op.procesos|join(', ') }}</div>
       </div>
     </div>
 
@@ -142,18 +125,14 @@
       <div class="col-md-4 text-center">
         <label class="form-label fw-bold text-primary">Render</label>
         <br />
-        <img style="width: 200px; border-radius: 10px;"
-          src="/static/render_op/{{ render }}" alt="Render"
-          class="img-thumbnail render-img" />
+        <img style="width: 200px; border-radius: 10px;" src="/static/render_op/{{ render }}" alt="Render" class="img-thumbnail render-img" />
       </div>
       {% endfor %}
       {% else %}
       <div class="col-md-4 text-center">
         <label class="form-label fw-bold text-primary">Render</label>
         <br />
-        <img style="width: 200px; border-radius: 10px;"
-          src="{{ url_for('static', filename='assets/img/default_render.png') }}"
-          alt="Render por defecto" class="img-thumbnail render-img" />
+        <img style="width: 200px; border-radius: 10px;" src="{{ url_for('static', filename='assets/img/default_render.png') }}" alt="Render por defecto" class="img-thumbnail render-img" />
       </div>
       {% endif %}
     </div>
@@ -164,11 +143,8 @@
     <div class="row g-4">
       {% for doc in detalle_op.documentos %}
       <div class="col-md-4">
-        <a href="{{ url_for('static', filename=doc.documento_path) }}"
-          download="{{ doc.documento_nombre_original }}"
-          class="btn btn-outline-primary">
-          <i class="bi bi-download"></i> Descargar {{
-          doc.documento_nombre_original }}
+        <a href="{{ url_for('static', filename=doc.documento_path) }}" download="{{ doc.documento_nombre_original }}" class="btn btn-outline-primary">
+          <i class="bi bi-download"></i> Descargar {{ doc.documento_nombre_original }}
         </a>
       </div>
       {% endfor %}
@@ -210,31 +186,38 @@
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-3">
-          <label class="form-label fw-bold text-primary">Cantidad
-            Material</label>
+          <label class="form-label fw-bold text-primary">Cantidad Material</label>
           <div class="form-control" readonly>{{ pieza.cantidad_material }}</div>
         </div>
-        <div class="col-md-3">
-          <label class="form-label fw-bold text-primary">Otros Procesos</label>
-          <div class="form-control" readonly>{{ pieza.otros_procesos }}</div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-bold text-primary">Procesos
-            Asociados</label>
-          <div class="form-control" readonly>{{ pieza.procesos|join(', ')
-            }}</div>
+        <div class="col-md-9">
+          <label class="form-label fw-bold text-primary">Actividades Asociadas</label>
+          <div class="form-control" readonly>{{ pieza.actividades|join(', ') }}</div>
         </div>
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-12">
-          <label class="form-label fw-bold text-primary">Descripción
-            General</label>
-          <textarea class="form-control" readonly
-            rows="2">{{ pieza.descripcion_general }}</textarea>
+          <label class="form-label fw-bold text-primary">Descripción General</label>
+          <textarea class="form-control" readonly rows="2">{{ pieza.descripcion_general }}</textarea>
+        </div>
+      </div>
+      <!-- Detalles de Configuración Adicional de la Pieza -->
+      <div class="row g-4 mt-3">
+        <div class="col-md-12">
+          <h6 class="fw-bold text-secondary mb-2">Detalles de Configuración Adicional:</h6>
+          {% if pieza.detalles_configuracion and pieza.detalles_configuracion|length > 0 %}
+            <ul class="list-group list-group-flush">
+              {% for config in pieza.detalles_configuracion %}
+                <li class="list-group-item py-1 px-0 border-0">
+                  <span class="fw-semibold">{{ config.grupo }}:</span> {{ config.valor }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted small mb-0">No hay detalles de configuración adicionales para esta pieza.</p>
+          {% endif %}
         </div>
       </div>
     </div>
-    <!-- Añadir línea de separación azul, excepto después del último elemento -->
     {% if not loop.last %}
     <hr class="separator-line" />
     {% endif %}

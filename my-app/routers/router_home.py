@@ -29,7 +29,8 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
                                         sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
-                                        eliminar_jornada, generar_codigo_op, get_jornadas_serverside  # <--- IMPORTACIÓN AGREGADA AQUÍ
+                                        eliminar_jornada, generar_codigo_op, get_jornadas_serverside,  # <--- IMPORTACIÓN AGREGADA AQUÍ
+                                        get_detalles_pieza_maestra_options # Nueva función para el modal
                                         )
 
 PATH_URL = "public/empleados"
@@ -1171,6 +1172,17 @@ def api_clientes():
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     clientes = get_clientes_paginados(page, per_page, search)
     return jsonify({'clientes': clientes})
+
+@app.route('/api/detalles-pieza-maestra-opciones', methods=['GET'])
+def api_detalles_pieza_maestra_opciones():
+    grupo = request.args.get('grupo', type=str)
+    if not grupo:
+        return jsonify({'status': 'error', 'message': 'Parámetro "grupo" es requerido.'}), 400
+    
+    # Esta función necesita ser creada en funciones_home.py
+    options = get_detalles_pieza_maestra_options(grupo)
+    # Se espera que 'options' sea una lista de diccionarios, ej: [{'id': 'valor_detalle', 'text': 'valor_detalle'}]
+    return jsonify(options)
 
 
 # Listas para registrar empleados

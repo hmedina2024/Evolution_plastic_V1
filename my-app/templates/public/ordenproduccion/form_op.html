@@ -27,15 +27,20 @@
     <form class="form-horizontal mx-auto needs-validation" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm" novalidate> {# Actualiza action a tu ruta correcta #}
       <div class="row g-4">
         <div class="col-md-2 position-relative">
-          <label for="fecha" class="form-label fw-bold text-primary">Fecha: <span class="text-danger">*</span></label>
+          <label for="fecha" class="form-label fw-bold text-primary">Fecha Creación: <span class="text-danger">*</span></label>
           <input class="form-control" type="date" name="fecha" id="fecha" required>
           <div class="invalid-feedback">Por favor, ingrese la fecha.</div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 position-relative">
+          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA DE ENTREGA <span class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega" required>
+          <div class="invalid-feedback">Por favor, ingrese la fecha de entrega.</div>
+        </div>
+        <!-- <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
           <input class="form-control" type="text" name="cod_op" id="cod_op" value="{{ codigo_op }}" readonly required>
           <div class="invalid-feedback">Código OP es requerido y generado.</div>
-        </div>
+        </div> -->
         <div class="col-md-4" style="display: none;"> {/* Campo versión oculto por defecto */}
           <label for="version" class="form-label fw-bold text-primary">VERSIÓN OP</label>
           <input type="text" name="version" id="version" class="form-control" value="1">
@@ -56,8 +61,9 @@
           <div class="invalid-feedback">Por favor, seleccione un cliente.</div>
         </div>
         <div class="col-md-4">
-          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO</label>
-          <input type="text" name="producto" id="producto" class="form-control">
+          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO <span class="text-danger">*</span></label>
+          <input type="text" name="producto" id="producto" class="form-control" required>
+          <div class="invalid-feedback">Por favor, ingrese el nombre del producto.</div>
         </div>
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad OP<span class="text-danger">*</span></label>
@@ -76,12 +82,7 @@
           <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
           <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
-        </div>
-        <div class="col-md-3 position-relative">
-          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA DE ENTREGA <span class="text-danger">*</span></label>
-          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega" required>
-          <div class="invalid-feedback">Por favor, ingrese la fecha de entrega.</div>
-        </div>
+        </div>        
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
@@ -149,13 +150,6 @@
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
       </div>
-      <div class="row mt-4">
-        <div class="col-md-12">
-          <label for="materiales_op" class="form-label fw-bold text-primary">MATERIALES (ORDEN GENERAL) <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="materiales_op" name="materiales_op" rows="3" required></textarea>
-          <div class="invalid-feedback">Ingrese los materiales generales.</div>
-        </div>
-      </div>
       <input type="hidden" id="piezas" name="piezas">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4">
@@ -165,6 +159,75 @@
     </form>
   </div>
 </div>
+
+<!-- Modal para Detalles Adicionales de Pieza -->
+<div class="modal fade" id="piezaDetallesModal" tabindex="-1" aria-labelledby="piezaDetallesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="piezaDetallesModalLabel">Detalles Adicionales de Pieza</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formPiezaDetalles">
+          <input type="hidden" id="modalPieceIdSuffix" name="modalPieceIdSuffix">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="modal_acabado" class="form-label">ACABADO</label>
+              <select class="form-control modal-select-dinamico" id="modal_acabado" data-grupo="ACABADO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_cant_impresiones" class="form-label">CANT. IMPRESIONES</label>
+              <select class="form-control modal-select-dinamico" id="modal_cant_impresiones" data-grupo="CANT. IMPRESIONES" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_finalizado" class="form-label">FINALIZADO</label>
+              <select class="form-control modal-select-dinamico" id="modal_finalizado" data-grupo="FINALIZADO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_formato" class="form-label">FORMATO</label>
+              <select class="form-control modal-select-dinamico" id="modal_formato" data-grupo="FORMATO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_maculatura" class="form-label">MACULATURA (15%)</label>
+              <select class="form-control modal-select-dinamico" id="modal_maculatura" data-grupo="MACULATURA (15%)" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_material_adhesivo" class="form-label">MATERIAL ADHESIVO</label>
+              <select class="form-control modal-select-dinamico" id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_material_papel" class="form-label">MATERIAL PAPEL</label>
+              <select class="form-control modal-select-dinamico" id="modal_material_papel" data-grupo="MATERIAL PAPEL" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_material_rigido" class="form-label">MATERIAL RÍGIDO</label>
+              <select class="form-control modal-select-dinamico" id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
+              <select class="form-control modal-select-dinamico" id="modal_piezas_por_montaje" data-grupo="PIEZAS POR MONTAJE" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
+              <select class="form-control modal-select-dinamico" id="modal_tamano_montaje" data-grupo="TAMAÑO DEL MONTAJE" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_tipo_impresion" class="form-label">TIPO IMPRESIÓN</label>
+              <select class="form-control modal-select-dinamico" id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN" multiple="multiple" style="width: 100%;"></select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="guardarDetallesPiezaModal">Guardar Detalles</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Fin Modal -->
+
 {% endblock %}
 
 {% block customJS %}
@@ -467,8 +530,18 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           <div class="col-md-6"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
           <div class="col-md-6"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
         </div>
+        <div class="row g-3 mt-2">
+          <div class="col-12 text-end">
+            <button type="button" class="btn btn-sm btn-outline-success open-detalles-pieza-modal-btn"
+                    data-bs-toggle="modal" data-bs-target="#piezaDetallesModal"
+                    data-piece-suffix="${pieceIdSuffix}"
+                    data-piece-counter="${pieceCounter}">
+              <i class="bi bi-gear-fill me-1"></i> Detalles Adicionales
+            </button>
+          </div>
+        </div>
       </div>`;
-    $('#dynamicFormsContainer').append(newPieceFormHtml);
+  $('#dynamicFormsContainer').append(newPieceFormHtml);
 
     // Inicializar Select2 para "Nombre Pieza (Maestra)"
     setupSelect2(`#pieza_id_pieza_maestra_${pieceIdSuffix}`, "{{ url_for('api_piezas') }}", 'Seleccionar Pieza Maestra', 'piezas', 'id_pieza', 'nombre_pieza', false, false, true);
@@ -491,6 +564,155 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     });
   });
   // --- FIN: Lógica para Piezas Dinámicas ---
+
+  // --- INICIO: Lógica para Modal de Detalles Adicionales de Pieza ---
+  let currentModalPieceSuffix = null;
+
+  function setupModalSelect2(selector, grupo, valoresPreseleccionados = []) {
+    const $select = $(selector);
+    
+    // Destruir Select2 si ya está inicializado para evitar conflictos.
+    if ($select.hasClass('select2-hidden-accessible')) {
+        $select.select2('destroy');
+    }
+    // No limpiar ($select.empty()) aquí si vamos a añadir opciones preseleccionadas manualmente.
+    // Select2 con AJAX usualmente maneja la población de opciones.
+    // Si pasamos 'data' inicial a Select2, él las usa.
+    // Si queremos que AJAX cargue el resto, las opciones preseleccionadas deben existir.
+
+    // Crear las opciones para los valores preseleccionados si no existen.
+    // Esto asegura que Select2 pueda seleccionarlas incluso si no vienen en la primera carga AJAX.
+    if (valoresPreseleccionados.length > 0) {
+        $select.empty(); // Limpiar solo si vamos a añadir nuevas opciones preseleccionadas
+        valoresPreseleccionados.forEach(valor => {
+            // Verificar si la opción ya existe (podría ser redundante si siempre limpiamos)
+            if ($select.find(`option[value="${valor}"]`).length === 0) {
+                var newOption = new Option(valor, valor, false, false); // Crear sin seleccionar por defecto aquí
+                $select.append(newOption);
+            }
+        });
+    } else {
+        $select.empty(); // Si no hay preseleccionados, asegurar que esté vacío antes de AJAX
+    }
+
+    $select.select2({
+        dropdownParent: $('#piezaDetallesModal'),
+        placeholder: `Seleccionar para ${grupo}`,
+        allowClear: true,
+        width: '100%',
+        multiple: true,
+        ajax: {
+            url: "{{ url_for('api_detalles_pieza_maestra_opciones') }}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    grupo: grupo,
+                    search: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                // Asegurarse de que los datos preseleccionados (si los hay)
+                // se fusionen o se manejen correctamente con los resultados del AJAX.
+                // Select2 usualmente hace esto bien si los 'id' de los datos AJAX coinciden con los valores de las <option> existentes.
+                return {
+                    results: data,
+                    pagination: {
+                        more: (data.length === 10)
+                    }
+                };
+            },
+            cache: true
+        }
+    });
+
+    // Establecer los valores después de que Select2 se haya inicializado y cargado datos (potencialmente)
+    // Si valoresPreseleccionados no está vacío, Select2 debería haberlos recogido si las <option> existían.
+    // Forzar el valor aquí puede ser necesario.
+    if (valoresPreseleccionados.length > 0) {
+        $select.val(valoresPreseleccionados).trigger('change.select2');
+    } else {
+         $select.val(null).trigger('change.select2'); // Asegurar que esté vacío si no hay nada
+    }
+  }
+
+  // Variable para mantener el sufijo de la pieza del modal actualmente abierto
+  // let currentModalPieceSuffix = null; // Ya no es necesaria globalmente si el listener de guardar está dentro de show.bs.modal
+
+  $('#piezaDetallesModal').on('show.bs.modal', function (event) {
+    const button = $(event.relatedTarget);
+    const localPieceSuffix = button.data('piece-suffix'); // Usar una variable local para esta instancia del modal
+    const pieceCounter = button.data('piece-counter');
+    
+    console.log('Modal "show.bs.modal" event. Suffix:', localPieceSuffix, "Contador:", pieceCounter);
+    
+    $(this).find('.modal-title').text(`Detalles Adicionales - Pieza #${pieceCounter}`);
+    // No es necesario guardar el suffix en un input oculto del modal si el listener de guardar lo captura en su closure.
+
+    const piezaDiv = $(`#piece-group-${localPieceSuffix}`);
+    const valoresGuardados = piezaDiv.data('valores-configuracion') || [];
+
+    $('.modal-select-dinamico').each(function() {
+        const $select = $(this);
+        const grupo = $select.data('grupo');
+        const valoresParaEsteGrupo = valoresGuardados
+            .filter(item => item.grupo_configuracion === grupo)
+            .map(item => item.valor_configuracion);
+        setupModalSelect2(this, grupo, valoresParaEsteGrupo);
+    });
+
+    // Configurar el listener del botón "Guardar Detalles" CADA VEZ que se muestra el modal.
+    // Desvincular listeners anteriores para evitar múltiples ejecuciones.
+    $('#guardarDetallesPiezaModal').off('click').on('click', function() {
+        console.log('Botón "Guardar Detalles" click. Suffix para esta instancia:', localPieceSuffix);
+        if (!localPieceSuffix) {
+            console.warn('Guardar Detalles click: localPieceSuffix no está definido.');
+            return;
+        }
+
+        let nuevosValoresConfig = [];
+        // Asegurarse de seleccionar los selectores dentro del modal actual
+        $('#piezaDetallesModal .modal-select-dinamico').each(function() {
+            const grupo = $(this).data('grupo');
+            const seleccionados = $(this).val();
+            if (seleccionados && seleccionados.length > 0) {
+                seleccionados.forEach(valor => {
+                    nuevosValoresConfig.push({ grupo_configuracion: grupo, valor_configuracion: valor });
+                });
+            }
+        });
+
+        $(`#piece-group-${localPieceSuffix}`).data('valores-configuracion', nuevosValoresConfig);
+        
+        const tieneValores = nuevosValoresConfig.length > 0;
+        const $btnModalTrigger = $(`.open-detalles-pieza-modal-btn[data-piece-suffix="${localPieceSuffix}"]`);
+        if (tieneValores) {
+            $btnModalTrigger.removeClass('btn-outline-success').addClass('btn-success').html('<i class="bi bi-check-circle-fill me-1"></i> Detalles Guardados');
+        } else {
+            $btnModalTrigger.removeClass('btn-success').addClass('btn-outline-success').html('<i class="bi bi-gear-fill me-1"></i> Detalles Adicionales');
+        }
+
+        const modalEl = document.getElementById('piezaDetallesModal');
+        
+        // Simular clic en el botón "Cerrar" del modal para un ciclo de vida de cierre más limpio
+        // El botón "Cerrar" dentro del modal tiene data-bs-dismiss="modal"
+        $(modalEl).find('button[data-bs-dismiss="modal"]').first().trigger('click');
+        
+        // Ya no necesitamos llamar a modalInstance.hide() ni el setTimeout para el backdrop,
+        // ya que el data-bs-dismiss="modal" debería manejarlo.
+    });
+  });
+
+  $('#piezaDetallesModal').on('hidden.bs.modal', function () {
+    console.log('Modal "hidden.bs.modal" event disparado.');
+    // La variable local 'localPieceSuffix' dentro del 'show.bs.modal' y el click handler de guardar
+    // maneja el contexto de la pieza. No es necesario limpiar una variable global aquí si no se usa.
+    // La limpieza de los Select2 (destroy y empty) se realiza en 'setupModalSelect2'
+    // y al inicio de 'show.bs.modal' antes de repoblar.
+  });
+  // --- FIN: Lógica para Modal de Detalles Adicionales de Pieza ---
 
   // --- Lógica de Validación y Envío del Formulario Principal ---
   let isSubmitting = false;
@@ -564,7 +786,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
                 tamano_montaje: $(`#pieza_tamano_montaje_${suffix}`).val() || null,
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
-                id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null // Guardar como array si es múltiple
+                id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null, // Guardar como array si es múltiple
+                // Añadir detalles adicionales del modal
+                valores_configuracion: $pieceGroup.data('valores-configuracion') || []
             });
         }
     });

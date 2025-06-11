@@ -273,6 +273,8 @@ class OrdenPiezas(db.Model):
 
     # Relaciones
     procesos = db.relationship('OrdenPiezasProcesos', backref='orden_pieza', lazy=True, cascade="all, delete-orphan")
+    # La relación 'detalles_adicionales' ahora apuntará a 'OrdenPiezaValoresDetalle'
+    valores_config_adicional = db.relationship('OrdenPiezaValoresDetalle', backref='orden_pieza_ref', lazy='dynamic', cascade="all, delete-orphan")
 
 class OrdenPiezasProcesos(db.Model):
     __tablename__ = 'tbl_orden_piezas_procesos'
@@ -287,6 +289,19 @@ class OrdenPiezasActividades(db.Model):
     id_orden_pieza_actividad = db.Column(db.Integer, primary_key=True)
     id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza'), nullable=False)
     id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad'), nullable=False)
+
+# --- Modelo DetallesPiezaMaestra (para tbl_detalles_pieza) ---
+# Esta tabla define las opciones disponibles para los detalles de las piezas.
+class DetallesPiezaMaestra(db.Model):
+    __tablename__ = 'tbl_detalles_pieza'
+    id_detalles_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    grupo_detalles_pieza = db.Column(db.String(50), nullable=True)  # Ej: "ACABADO", "MATERIAL PAPEL"
+    detalles_pieza = db.Column(db.String(50), nullable=True)       # Ej: "Brillante", "Propalcote 200g"
+    # Considera añadir fecha_registro si es útil para auditoría de estas opciones maestras
+    # fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<DetallesPiezaMaestra {self.grupo_detalles_pieza} - {self.detalles_pieza}>"
 
 # --- Tabla Intermedia OrdenProduccionProcesos ---
 # Para la relación muchos-a-muchos entre OrdenProduccion y Procesos (procesos globales de la OP)
@@ -303,3 +318,32 @@ class OrdenProduccionProcesos(db.Model):
 
     # Constraints para asegurar que la pareja (id_op, id_proceso) sea única
     __table_args__ = (db.UniqueConstraint('id_op', 'id_proceso', name='uq_orden_produccion_proceso'),)
+
+# --- Modelo OrdenPiezaValoresDetalle ---
+# Almacena los valores seleccionados/ingresados en el modal para cada OrdenPiezas.
+class OrdenPiezaValoresDetalle(db.Model):
+    __tablename__ = 'tbl_orden_pieza_valores_detalle' # Nombre de tabla sugerido
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza', ondelete='CASCADE'), nullable=False)
+    
+    # Nombre del campo/grupo del modal, ej: "ACABADO", "CANT. IMPRESIONES"
+    grupo_configuracion = db.Column(db.String(100), nullable=False)
+    
+    # Valor ingresado o seleccionado.
+    # Si es una selección de DetallesPiezaMaestra, este sería el 'detalles_pieza' de esa tabla.
+    # Si es un input directo, sería el valor ingresado.
+    valor_configuracion = db.Column(db.String(255), nullable=True)
+    
+    # Opcional: Si se quiere referenciar directamente la opción de la tabla maestra
+    # id_detalle_pieza_maestra_fk = db.Column(db.Integer, db.ForeignKey('tbl_detalles_pieza.id_detalles_pieza'), nullable=True)
+    
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Opcional: constraint para evitar duplicados exactos para la misma pieza y grupo
+    # __table_args__ = (db.UniqueConstraint('id_orden_pieza', 'grupo_configuracion', 'valor_configuracion', name='uq_orden_pieza_config_valor'),)
+
+    # Relación opcional si se usa id_detalle_pieza_maestra_fk
+    # detalle_maestro = db.relationship('DetallesPiezaMaestra')
+
+    def __repr__(self):
+        return f"<OrdenPiezaValoresDetalle OP:{self.id_orden_pieza} G:{self.grupo_configuracion} V:{self.valor_configuracion}>"
