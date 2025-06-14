@@ -96,7 +96,7 @@ class Procesos(db.Model):
     # Relaciones
     orden_piezas_procesos = db.relationship('OrdenPiezasProcesos', backref='proceso', lazy=True)
     # Asegúrate de que las relaciones inversas ('operaciones') estén definidas si las necesitas
-    operaciones = db.relationship('Operaciones', lazy=True) # Ejemplo
+    operaciones = db.relationship('Operaciones', back_populates='proceso_rel', lazy=True)
 
 
 # --- Modelo Piezas ---
@@ -170,7 +170,7 @@ class Operaciones(db.Model):
 
     # Relaciones
     empleado = db.relationship('Empleados', backref='operaciones') # foreign_keys no es necesario si solo hay una FK a Empleados
-    proceso_rel = db.relationship('Procesos')
+    proceso_rel = db.relationship('Procesos', back_populates='operaciones')
     actividad_rel = db.relationship('Actividades', backref='operaciones')
     orden_produccion = db.relationship('OrdenProduccion', backref='operaciones')
     usuario_reg = db.relationship('Users', backref='operaciones_registradas')
@@ -221,7 +221,7 @@ class OrdenProduccion(db.Model):
     id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
-    # Relaciones con cascade para eliminación automática
+    # Relaciones existentes
     cliente = db.relationship('Clientes', backref='ordenes', lazy=True)
     empleado = db.relationship('Empleados', foreign_keys=[id_empleado], backref='ordenes_empleado', lazy=True)
     supervisor = db.relationship('Empleados', foreign_keys=[id_supervisor], backref='ordenes_supervisor', lazy=True)
@@ -229,10 +229,10 @@ class OrdenProduccion(db.Model):
     documentos = db.relationship('DocumentosOP', backref='orden', lazy=True, cascade="all, delete-orphan")
     renders = db.relationship('RendersOP', backref='orden', lazy=True, cascade="all, delete-orphan")
     orden_piezas = db.relationship('OrdenPiezas', backref='orden', lazy=True, cascade="all, delete-orphan")
-    # Relación con Procesos a través de la tabla intermedia OrdenProduccionProcesos
+    # Relación corregida para procesos_globales
     procesos_globales = db.relationship('Procesos', secondary='tbl_orden_produccion_procesos',
-                                      backref=db.backref('ordenes_produccion_asociadas', lazy='dynamic'),
-                                      lazy='dynamic')
+                                        backref=db.backref('ordenes_produccion_asociadas', lazy='select'),
+                                        lazy='select')
 
 class DocumentosOP(db.Model):
     __tablename__ = 'tbl_documentos_op'
@@ -255,26 +255,24 @@ class OrdenPiezas(db.Model):
     __tablename__ = 'tbl_orden_piezas'
     id_orden_pieza = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
-    # id_pieza ya no será una FK obligatoria a tbl_piezas si los detalles se guardan aquí.
-    # Considerar hacerlo nullable o eliminarlo si tbl_piezas no se usa como maestro para este flujo.
-    id_pieza = db.Column(db.Integer, db.ForeignKey('tbl_piezas.id_pieza'), nullable=True) # Renombrado para claridad, y nullable
-    nombre_pieza_op = db.Column(db.String(100), nullable=False) # Nuevo campo para el nombre específico de la pieza en esta OP
-    cantidad = db.Column(db.Integer, nullable=False) # Hacerlo no nullable si siempre se requiere
+    id_pieza = db.Column(db.Integer, db.ForeignKey('tbl_piezas.id_pieza'), nullable=True)
+    nombre_pieza_op = db.Column(db.String(100), nullable=False)
+    cantidad = db.Column(db.Integer, nullable=False)
     tamano = db.Column(db.String(100), nullable=True)
     montaje = db.Column(db.String(100), nullable=True)
     montaje_tamano = db.Column(db.String(100), nullable=True)
     material = db.Column(db.String(100), nullable=True)
-    cantidad_material = db.Column(db.String(100), nullable=True) # Ajustado a String si es más apropiado que Text
-    # 'otros_procesos' se manejará creando un registro en tbl_procesos y vinculándolo. Este campo puede eliminarse de OrdenPiezas.
-    # otros_procesos_texto = db.Column(db.String(255), nullable=True) # Si se quiere mantener un campo de texto adicional para notas de proceso
-    descripcion_pieza = db.Column(db.Text, nullable=True) # Renombrado para claridad (era descripcion_general)
+    cantidad_material = db.Column(db.String(100), nullable=True)
+    descripcion_pieza = db.Column(db.Text, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 
-    # Relaciones
+    # Relaciones existentes
     procesos = db.relationship('OrdenPiezasProcesos', backref='orden_pieza', lazy=True, cascade="all, delete-orphan")
-    # La relación 'detalles_adicionales' ahora apuntará a 'OrdenPiezaValoresDetalle'
-    valores_config_adicional = db.relationship('OrdenPiezaValoresDetalle', backref='orden_pieza_ref', lazy='dynamic', cascade="all, delete-orphan")
+    valores_config_adicional = db.relationship('OrdenPiezaValoresDetalle', backref='orden_pieza_ref', lazy='select', cascade="all, delete-orphan")
+    actividades = db.relationship('Actividades', secondary='tbl_orden_piezas_actividades',
+                                    backref=db.backref('orden_piezas_asociadas', lazy='select'),
+                                    lazy='select')
 
 class OrdenPiezasProcesos(db.Model):
     __tablename__ = 'tbl_orden_piezas_procesos'
@@ -337,7 +335,7 @@ class OrdenPiezaValoresDetalle(db.Model):
     # Opcional: Si se quiere referenciar directamente la opción de la tabla maestra
     # id_detalle_pieza_maestra_fk = db.Column(db.Integer, db.ForeignKey('tbl_detalles_pieza.id_detalles_pieza'), nullable=True)
     
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
 
     # Opcional: constraint para evitar duplicados exactos para la misma pieza y grupo
     # __table_args__ = (db.UniqueConstraint('id_orden_pieza', 'grupo_configuracion', 'valor_configuracion', name='uq_orden_pieza_config_valor'),)

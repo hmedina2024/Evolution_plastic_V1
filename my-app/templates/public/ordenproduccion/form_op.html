@@ -417,7 +417,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             const currentActivities = $actividadSelect.val() || [];
             if (currentActivities.length > 0) {
                 $.ajax({
-                    url: "{{ url_for('api_actividades') }}",
+                    url: "{{ url_for('api_actividades_op') }}",
                     data: { id_proceso: removedValue, page: 1, per_page: 100 }, // Obtener todas las actividades asociadas
                     async: false,
                     dataType: 'json',
@@ -461,7 +461,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         console.log("Procesos seleccionados para actividades:", validProcessIds);
         setupSelect2(
             `#pieza_id_actividad_${pieceIdSuffix}`,
-            "{{ url_for('api_actividades') }}",
+            "{{ url_for('api_actividades_op') }}",
             'Seleccionar Actividades',
             'actividades',
             'id_actividad',
@@ -505,13 +505,12 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             <div class="invalid-feedback">Seleccione una pieza maestra.</div>
           </div>
           <div class="col-md-6 col-lg-3">
-            <label for="pieza_nombre_especifico_${pieceIdSuffix}" class="form-label">Nombre Específico Pieza (OP) <span class="text-danger">*</span></label>
-            <input type="text" name="pieza_nombre_especifico_${pieceIdSuffix}" id="pieza_nombre_especifico_${pieceIdSuffix}" class="form-control pieza-campo pieza-nombre-especifico" required>
-            <div class="invalid-feedback">Nombre específico requerido.</div>
+            <label for="pieza_nombre_especifico_${pieceIdSuffix}" class="form-label">NOMBRE PIEZA<span class="text-info" > (OTROS)</span></label>
+            <input type="text" name="pieza_nombre_especifico_${pieceIdSuffix}" id="pieza_nombre_especifico_${pieceIdSuffix}" class="form-control pieza-campo pieza-nombre-especifico" placeholder="Ej: Portada, Interior A" disabled>
           </div>
           <div class="col-md-6 col-lg-2">
             <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" required min="1" value="1">
+            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1">
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
@@ -544,7 +543,32 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   $('#dynamicFormsContainer').append(newPieceFormHtml);
 
     // Inicializar Select2 para "Nombre Pieza (Maestra)"
+    const $piezaMaestraSelect = $(`#pieza_id_pieza_maestra_${pieceIdSuffix}`);
     setupSelect2(`#pieza_id_pieza_maestra_${pieceIdSuffix}`, "{{ url_for('api_piezas') }}", 'Seleccionar Pieza Maestra', 'piezas', 'id_pieza', 'nombre_pieza', false, false, true);
+    
+    const $nombreEspecificoInput = $(`#pieza_nombre_especifico_${pieceIdSuffix}`);
+
+    // Listener para habilitar/deshabilitar el campo de nombre específico
+    $piezaMaestraSelect.on('change', function() {
+        const selectedData = $(this).select2('data');
+        // Asumimos que la opción "OTROS" tendrá el texto 'OTROS'.
+        // Si el ID es diferente (ej. un número específico para "OTROS"), esta condición deberá ajustarse.
+        if (selectedData && selectedData.length > 0 && selectedData[0].text && selectedData[0].text.toUpperCase() === 'OTROS') {
+            $nombreEspecificoInput.prop('disabled', false).prop('required', true).val(''); // Habilitar, requerir y limpiar
+            // Opcional: $nombreEspecificoInput.focus();
+        } else {
+            $nombreEspecificoInput.prop('disabled', true).prop('required', false).val('');
+            $nombreEspecificoInput.removeClass('is-invalid'); // Limpiar validación si estaba
+        }
+    });
+
+    // Listener para convertir a mayúsculas el campo de nombre específico
+    $nombreEspecificoInput.on('input', function() {
+        $(this).val($(this).val().toUpperCase());
+    });
+
+    // Eliminar o comentar la lógica anterior que copiaba el texto, ya que ahora tenemos una lógica más específica.
+    /*
     $(`#pieza_id_pieza_maestra_${pieceIdSuffix}`).on('select2:select', function(e) {
         const data = e.params.data;
         const $nombreEspecifico = $(`#pieza_nombre_especifico_${pieceIdSuffix}`);
@@ -552,6 +576,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             $nombreEspecifico.val(data.text);
         }
     });
+    */
 
     // Inicializar Select2 para "Actividades" de esta nueva pieza
     updateActivitiesForPiece(pieceIdSuffix, $opProcesosSelect.val());
@@ -764,10 +789,15 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         if (!idPiezaMaestraSelect.val()) { idPiezaMaestraSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false; } 
         else { idPiezaMaestraSelect.next('.select2-container').removeClass('is-invalid-select2'); }
 
-        if (!nombreEspecificoInput.val().trim()) { nombreEspecificoInput.addClass('is-invalid'); piezaActualValida = false; }
-        else { nombreEspecificoInput.removeClass('is-invalid'); }
+        // Validar nombreEspecificoInput solo si es requerido (es decir, si se seleccionó "OTROS")
+        if (nombreEspecificoInput.prop('required') && !nombreEspecificoInput.val().trim()) {
+            nombreEspecificoInput.addClass('is-invalid');
+            piezaActualValida = false;
+        } else {
+            nombreEspecificoInput.removeClass('is-invalid');
+        }
         
-        if (!cantidadInput.val() || parseInt(cantidadInput.val()) < 1) { cantidadInput.addClass('is-invalid'); piezaActualValida = false; } 
+        if (!cantidadInput.val() || parseInt(cantidadInput.val()) < 1) { cantidadInput.addClass('is-invalid'); piezaActualValida = false; }
         else { cantidadInput.removeClass('is-invalid'); }
 
         if (!actividadSelect.val() || actividadSelect.val().length === 0) { actividadSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false; } 

@@ -11,7 +11,7 @@ from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
 from conexion.models import db, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
-from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados, get_ordenes_paginadas, get_clientes_paginados
+from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,
@@ -19,7 +19,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
                                         buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
                                         eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas,
-                                        sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form,
+                                        sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, # procesar_actualizar_form estaba duplicado
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
                                         buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
@@ -29,8 +29,9 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
                                         sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
-                                        eliminar_jornada, generar_codigo_op, get_jornadas_serverside,  # <--- IMPORTACIÓN AGREGADA AQUÍ
-                                        get_detalles_pieza_maestra_options # Nueva función para el modal
+                                        eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
+                                        get_detalles_pieza_maestra_options, # Nueva función para el modal
+                                        obtener_datos_op_para_edicion # Importar la nueva función
                                         )
 
 PATH_URL = "public/empleados"
@@ -804,6 +805,21 @@ def detalle_op(id_op=None):
     return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
 
 
+@app.route('/editar-op/<int:id_op>', methods=['GET'])
+def editar_op(id_op):
+    try:
+        op_data, status = obtener_datos_op_para_edicion(id_op)
+        if status != 200:
+            flash(op_data.get('message', 'Error al cargar la orden de producción'), 'error')
+            return redirect(url_for('lista_op'))
+        return render_template('public/ordenproduccion/form_op_update.html', orden=op_data)
+    except Exception as e:
+        app.logger.error(f"Error en ruta /editar-op/{id_op}: {str(e)}", exc_info=True)
+        flash('Error inesperado al cargar el formulario de edición.', 'error')
+        return redirect(url_for('lista_op'))
+
+
+
 @app.route("/editar-op/<int:id_op>", methods=['GET'])
 def viewEditarop(id_op=None):
     if 'conectado' not in session or not session.get('conectado'):
@@ -814,44 +830,21 @@ def viewEditarop(id_op=None):
         flash('ID de orden no proporcionado.', 'error')
         return redirect(url_for('inicio'))
 
-    app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
-    respuestaOp = sql_detalles_op_bd(id_op)
+    app.logger.debug(f"Accediendo a editar OP con id_op: {id_op}")
+    # Asegúrate de que la función obtener_datos_op_para_edicion esté importada correctamente al inicio del archivo.
+    # from controllers.funciones_home import obtener_datos_op_para_edicion
+    datos_op = obtener_datos_op_para_edicion(id_op)
 
-    if not respuestaOp:
-        flash('No se encontraron detalles para la orden.', 'error')
-        return redirect(url_for('inicio'))
+    if not datos_op:
+        flash('Orden de producción no encontrada o error al cargar sus datos para edición.', 'danger')
+        return redirect(url_for('lista_op')) # Corregido el nombre de la ruta
 
-    # Extraer datos de la respuesta
-    orden = respuestaOp  # Usamos el diccionario completo como base para orden
-    clientes = respuestaOp  # Ejemplo; ajusta según tu lógica
-    empleados = respuestaOp  # Ejemplo; ajusta
-    supervisores = respuestaOp  # Ejemplo; ajusta
-
-    # Preparar piezas en el formato esperado
-    piezas = [
-        {
-            'id': p.get('id_orden_pieza'),
-            'id_pieza': p.get('id_pieza', ''),  # Asegúrate de que id_pieza esté presente
-            'pieceName': p.get('nombre_pieza', 'Pieza Desconocida'),
-            'cabezoteCantidad': p.get('cantidad'),
-            'cabezoteTamaño': p.get('tamano'),
-            'cabezoteMontaje': p.get('montaje'),
-            'cabezoteMontajeTamaño': p.get('montaje_tamano'),
-            'cabezoteMaterial': p.get('material'),
-            'cabezoteCantidadMaterial': p.get('cantidad_material'),
-            'id_proceso': p.get('procesos', []),
-            'cabezoteOtrosProcesos': p.get('otros_procesos'),
-            'cabezoteDescGeneral': p.get('descripcion_general')
-        }
-        for p in respuestaOp.get('piezas', [])
-    ]
-    piezas_json = json.dumps(piezas)
-
-    # Asegurarse de que las fechas estén en formato correcto para el input type="date"
-    orden['fecha'] = orden.get('fecha', '2025-05-18')  # Ajusta si el formato no coincide
-    orden['fecha_entrega'] = orden.get('fecha_entrega', '2025-05-26')
-
-    return render_template('public/ordenproduccion/form_op_update.html', id_op=id_op, orden=orden, clientes=clientes, empleados=empleados, supervisores=supervisores, piezas_json=piezas_json)
+    # La variable datos_op ya contiene toda la información estructurada necesaria.
+    page_title = f"Editar Orden de Producción #{datos_op.get('codigo_op', '')}"
+    
+    return render_template('public/ordenproduccion/form_op_update.html',
+                           datos_op=datos_op,
+                           page_title=page_title)
 
 @app.route('/actualizar-op', methods=['POST'])
 def actualizar_op():
@@ -1130,8 +1123,8 @@ def api_piezas():
     return jsonify({'piezas': piezas_data})
 
 
-@app.route('/api/actividades', methods=['GET'])
-def api_actividades():
+@app.route('/api/actividades_op', methods=['GET'])
+def api_actividades_op():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
@@ -1139,8 +1132,27 @@ def api_actividades():
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id_procesos={id_procesos}")
 
-    actividades_data = get_actividades_paginados(page, per_page, search, id_procesos)
+    actividades_data = get_actividades_paginados_op(page, per_page, search, id_procesos)
     return jsonify(actividades_data)
+
+@app.route('/api/actividades', methods=['GET'])
+def api_actividades():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(
+        f"ParÃ¡metros recibidos: page={page}, per_page={per_page}, search={search}")
+
+    actividades = get_actividades_paginados(page, per_page, search)
+    actividades_data = [
+        {
+            'id_actividad': act.id_actividad,
+            'nombre_actividad': act.nombre_actividad
+        }
+        for act in actividades
+    ]
+    return jsonify({'actividades': actividades_data})
+
 
 
 @app.route('/api/ordenes-produccion', methods=['GET'])
