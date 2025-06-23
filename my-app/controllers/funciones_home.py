@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle
+from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -1670,8 +1670,10 @@ def procesar_form_op(dataForm, files):
     odi_val = dataForm.get('odi')
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
+    logistica_val = dataForm.get('logistica') # Obtener logística
+    urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
     # materiales_op_val = dataForm.get('materiales_op') # Eliminado
-
+ 
     # Validaciones y Conversiones
     # La validación de codigo_op_str ya no es necesaria aquí
     # if not codigo_op_str or not codigo_op_str.strip():
@@ -1955,6 +1957,7 @@ def procesar_form_op(dataForm, files):
             fecha_entrega=fecha_entrega_val,
             descripcion_general=descripcion_general_op_val,
             empaque=empaque_val,
+            logistica=logistica_val, # Añadir logística
             # materiales=materiales_op_val, # Eliminado
             id_usuario_registro=id_usuario_registro
         )
@@ -1973,12 +1976,19 @@ def procesar_form_op(dataForm, files):
             )
             db.session.add(nuevo_documento)
 
+        # Guardar URLs asociadas a la OP
+        for url_item in urls_list:
+            if url_item and url_item.strip(): # Solo guardar URLs no vacías
+                nueva_url_op = OrdenProduccionURLs(id_op=orden.id_op, url=url_item.strip())
+                db.session.add(nueva_url_op)
+ 
         for pieza_data_form in piezas_lista_form:
             id_pieza_maestra = int(pieza_data_form.get('id_pieza_maestra'))
             nombre_pieza_val = pieza_data_form.get('nombre_pieza', 'N/A')
             cantidad_pieza_val = int(pieza_data_form.get('cantidad'))
             id_actividades = pieza_data_form.get('id_actividad', [])
             valores_configuracion_pieza = pieza_data_form.get('valores_configuracion', []) # Obtener los detalles del modal
+            especificaciones_pieza_data = pieza_data_form.get('especificaciones_pieza', []) # Obtener los datos de especificaciones
 
             orden_pieza_obj = OrdenPiezas(
                 id_op=orden.id_op,
@@ -1990,6 +2000,10 @@ def procesar_form_op(dataForm, files):
                 montaje_tamano=pieza_data_form.get('tamano_montaje'), # Este campo ya existía en OrdenPiezas
                 material=pieza_data_form.get('material'),
                 cantidad_material=pieza_data_form.get('cantidad_material'),
+                ancho=float(pieza_data_form.get('ancho')) if pieza_data_form.get('ancho') else None,
+                alto=float(pieza_data_form.get('alto')) if pieza_data_form.get('alto') else None,
+                fondo=float(pieza_data_form.get('fondo')) if pieza_data_form.get('fondo') else None,
+                proveedor_externo=pieza_data_form.get('proveedor_externo'),
                 descripcion_pieza=pieza_data_form.get('descripcion_pieza')
             )
             db.session.add(orden_pieza_obj)
@@ -2021,6 +2035,31 @@ def procesar_form_op(dataForm, files):
             else:
                 app.logger.warning(f"El formato de 'valores_configuracion' para la pieza '{nombre_pieza_val}' no es una lista. Datos: {valores_configuracion_pieza}")
 
+            # Guardar las especificaciones de la pieza
+            if isinstance(especificaciones_pieza_data, list):
+                for esp_item in especificaciones_pieza_data:
+                    # Convertir valores numéricos, manejando None o strings vacíos
+                    largo_val = float(esp_item.get('largo')) if esp_item.get('largo') else None
+                    ancho_val = float(esp_item.get('ancho')) if esp_item.get('ancho') else None
+                    cantidad_esp_val = int(esp_item.get('cantidad')) if esp_item.get('cantidad') else None
+                    kg_val = float(esp_item.get('kg')) if esp_item.get('kg') else None
+                    perdida_val = float(esp_item.get('perdida')) if esp_item.get('perdida') else None
+                    
+                    especificacion_obj = OrdenPiezaEspecificaciones(
+                        id_orden_pieza=orden_pieza_obj.id_orden_pieza,
+                        item=esp_item.get('item'),
+                        calibre=esp_item.get('calibre'),
+                        largo=largo_val,
+                        largo_unidad=esp_item.get('largo_unidad'),
+                        ancho=ancho_val,
+                        ancho_unidad=esp_item.get('ancho_unidad'),
+                        cantidad_especificacion=cantidad_esp_val,
+                        kg=kg_val,
+                        perdida=perdida_val
+                    )
+                    db.session.add(especificacion_obj)
+            else:
+                app.logger.warning(f"El formato de 'especificaciones_pieza' para la pieza '{nombre_pieza_val}' no es una lista. Datos: {especificaciones_pieza_data}")
 
         # Asociar Procesos Globales a la Orden de Producción
         for id_proc_asoc in ids_procesos_a_asociar:

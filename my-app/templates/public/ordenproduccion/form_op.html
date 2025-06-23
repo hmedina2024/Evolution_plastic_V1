@@ -70,26 +70,25 @@
           <input class="form-control" type="number" name="cantidad" id="cantidad" required min="1">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
-        <div class="col-md-2">
-          <label for="medida" class="form-label fw-bold text-primary">UNIDAD DE MEDIDA</label>
-          <input type="text" name="medida" id="medida" class="form-control">
-        </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label for="referencia" class="form-label fw-bold text-primary">REFERENCIA</label>
           <input type="text" name="referencia" id="referencia" class="form-control">
-        </div>
-        <div class="col-md-5">
+        </div>        
+        <div class="col-md-6">
           <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
           <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
-        </div>        
-      </div>
-      <div class="row g-4 mt-3">
-        <div class="col-md-4">
-          <label for="descripcion_general_op" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN) <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="descripcion_general_op" name="descripcion_general_op" rows="10" required></textarea>
-          <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
+        <div class="col-md-6">
+          <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
+          <select name="logistica" id="logistica" class="form-control select2" required>
+            <option value="" disabled selected>Seleccionar Logística</option>
+            <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
+          </select>
+          <div class="invalid-feedback">Por favor, seleccione un estado.</div>
+        </div>       
+      </div>
+      <div class="row g-4 mt-3">        
         <div class="col-md-4">
           <label for="render" class="form-label fw-bold text-primary">RENDER APROBADO</label>
           {% set url_render = url_for('static', filename='assets/img/Prototipo.png') %}
@@ -103,6 +102,21 @@
           <label for="documentos" class="form-label fw-bold text-primary">Cargar Documentos</label>
           <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple>
           <ul class="list-group mt-2" id="fileList"></ul>
+        </div>
+         <div class="col-md-4">
+            <label class="form-label">CARGAR URL</label>
+            <div id="url_container">
+                <div class="dynamic-url-container d-flex align-items-center">
+                    <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
+                    <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary mt-2" id="add_url_btn">Agregar otra URL</button>
+        </div>
+        <div class="col-md-12">
+          <label for="descripcion_general_op" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN) <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="descripcion_general_op" name="descripcion_general_op" rows="3" required></textarea>
+          <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
       </div>
 
@@ -171,51 +185,133 @@
       <div class="modal-body">
         <form id="formPiezaDetalles">
           <input type="hidden" id="modalPieceIdSuffix" name="modalPieceIdSuffix">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label for="modal_acabado" class="form-label">ACABADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_acabado" data-grupo="ACABADO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
+          <div class="row g-3">           
+            <div class="col-md-5">
               <label for="modal_cant_impresiones" class="form-label">CANT. IMPRESIONES</label>
-              <select class="form-control modal-select-dinamico" id="modal_cant_impresiones" data-grupo="CANT. IMPRESIONES" multiple="multiple" style="width: 100%;"></select>
+              <input class="form-control" id="modal_cant_impresiones" data-grupo="CANT. IMPRESIONES">
             </div>
-            <div class="col-md-6">
-              <label for="modal_finalizado" class="form-label">FINALIZADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_finalizado" data-grupo="FINALIZADO" multiple="multiple" style="width: 100%;"></select>
+            <div class="col-md-5">
+              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
+              <input class="form-control" id="modal_piezas_por_montaje">
             </div>
-            <div class="col-md-6">
+            <div class="col-md-2">
+              <label for="modal_maculatura" class="form-label">MACULATURA</label>
+              <input type="number" class="form-control" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0">
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+            <div class="col-md-8">
+              <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
+              <input type="number"  class="form-control" id="modal_tamano_montaje">
+            </div>
+            <div class="col-md-4">
+                <label for="modal_unidad_medida_otro" class="form-label">unidad medida</label> 
+                <input type="text" class="form-control" id="modal_unidad_medida_otro" name="modal_unidad_medida_otro">
+              </div>
+            </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+              <div class="col-md-6">
               <label for="modal_formato" class="form-label">FORMATO</label>
               <select class="form-control modal-select-dinamico" id="modal_formato" data-grupo="FORMATO" multiple="multiple" style="width: 100%;"></select>
             </div>
             <div class="col-md-6">
-              <label for="modal_maculatura" class="form-label">MACULATURA (15%)</label>
-              <select class="form-control modal-select-dinamico" id="modal_maculatura" data-grupo="MACULATURA (15%)" multiple="multiple" style="width: 100%;"></select>
+                <label for="modal_formato_otro" class="form-label">Otro (Formato)</label>
+                <input type="text" class="form-control" id="modal_formato_otro" name="modal_formato_otro">
+              </div>
+              </div>
             </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
             <div class="col-md-6">
               <label for="modal_material_adhesivo" class="form-label">MATERIAL ADHESIVO</label>
               <select class="form-control modal-select-dinamico" id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO" multiple="multiple" style="width: 100%;"></select>
             </div>
             <div class="col-md-6">
+                <label for="otro_material_adhesivo" class="form-label">Otro (Mate. Adhesivo)</label>
+                <input type="text" class="form-control" id="otro_material_adhesivo" name="otro_material_adhesivo">
+            </div>
+            </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+            <div class="col-md-6">
               <label for="modal_material_papel" class="form-label">MATERIAL PAPEL</label>
               <select class="form-control modal-select-dinamico" id="modal_material_papel" data-grupo="MATERIAL PAPEL" multiple="multiple" style="width: 100%;"></select>
             </div>
+            <div class="col-md-6">
+                <label for="otro_material_papel" class="form-label">Otro (Material Papel)</label>
+                <input type="text" class="form-control" id="otro_material_papel" name="otro_material_papel">
+            </div>
+            </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
             <div class="col-md-6">
               <label for="modal_material_rigido" class="form-label">MATERIAL RÍGIDO</label>
               <select class="form-control modal-select-dinamico" id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO" multiple="multiple" style="width: 100%;"></select>
             </div>
             <div class="col-md-6">
-              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
-              <select class="form-control modal-select-dinamico" id="modal_piezas_por_montaje" data-grupo="PIEZAS POR MONTAJE" multiple="multiple" style="width: 100%;"></select>
+                <label for="otro_material_rigido" class="form-label">Otro (Mate. Rígido)</label>
+                <input type="text" class="form-control" id="otro_material_rigido" name="otro_material_rigido">
             </div>
-            <div class="col-md-6">
-              <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
-              <select class="form-control modal-select-dinamico" id="modal_tamano_montaje" data-grupo="TAMAÑO DEL MONTAJE" multiple="multiple" style="width: 100%;"></select>
             </div>
-            <div class="col-md-6">
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+            <div class="col-md-8">
               <label for="modal_tipo_impresion" class="form-label">TIPO IMPRESIÓN</label>
               <select class="form-control modal-select-dinamico" id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN" multiple="multiple" style="width: 100%;"></select>
             </div>
+            <!-- Cantidad de Tintas -->
+            <div class="col-md-4">
+                <label for="cantidad_tintas" class="form-label">CANT. TINTAS</label>
+                <input type="number" class="form-control" id="cantidad_tintas" name="cantidad_tintas" min="0">
+            </div>
+            </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+            <div class="col-md-6">
+              <label for="modal_acabado" class="form-label">ACABADO</label>
+              <select class="form-control modal-select-dinamico" id="modal_acabado" data-grupo="ACABADO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-6">
+                <label for="otro_acabado" class="form-label">Otro (acabado)</label>
+                <input type="text" class="form-control" id="otro_acabado" name="otro_acabado">
+            </div>
+            </div>
+            </div>
+            <div class="col-md-6">
+              <label for="modal_finalizado" class="form-label">FINALIZADO</label>
+              <select class="form-control modal-select-dinamico" id="modal_finalizado" data-grupo="FINALIZADO" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div> 
+            <label for="troquelado" class="form-label">TROQUELADO</label>
+            <div class="row">
+              <div class="col-md-2">
+                <label for="numero_cavidades" class="form-label"># cavidades</label>
+                <input type="number" class="form-control" id="numero_cavidades" min="0">
+              </div>
+              <div class="col-md-2">
+                <label for="numero_golpes" class="form-label"># golpes</label>
+                <input type="number" class="form-control" id="numero_golpes" min="0">
+              </div>
+              <div class="col-md-2">
+                <label for="troquelado_total" class="form-label">troq. total</label>
+                <input type="number" class="form-control" id="troquelado_total" min="0">
+              </div>
+              <div class="col-md-2">
+                <label for="troquelado_parcial" class="form-label">troq. parcial</label>
+                <input type="number" class="form-control" id="troquelado_parcial" min="0">
+              </div>
+              <div class="col-md-2">
+                <label for="grafado" class="form-label">grafado</label>
+                <input type="number" class="form-control" id="grafado" min="0">
+              </div>
+            </div>
+          </div>
           </div>
         </form>
       </div>
@@ -227,6 +323,67 @@
   </div>
 </div>
 <!-- Fin Modal -->
+
+<!-- Modal Especificaciones de Pieza -->
+<div class="modal fade" id="especificacionesPiezaModal" tabindex="-1" aria-labelledby="especificacionesPiezaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="especificacionesPiezaModalLabel">Especificaciones de Pieza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered piece-table">
+                    <thead>
+                        <tr>
+                            <th>ITEM</th>
+                            <th>CALIBRE</th>
+                            <th>LARGO</th>
+                            <th>UNIDAD</th>
+                            <th>ANCHO</th>
+                            <th>UNIDAD</th>
+                            <th>CANTIDAD</th>
+                            <th>KG</th>
+                            <th>PÉRDIDA</th>
+                            <th>ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="especificaciones_table_body">
+                        <tr>
+                            <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>
+                            <td>
+                                <select class="form-select" name="especificaciones[0][largo_unidad]">
+                                    <option value="cm">cm</option>
+                                    <option value="mts">mts</option>
+                                    <option value="pulgadas">pulgadas</option>
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
+                            <td>
+                                <select class="form-select" name="especificaciones[0][ancho_unidad]">
+                                    <option value="cm">cm</option>
+                                    <option value="mts">mts</option>
+                                    <option value="pulgadas">pulgadas</option>
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][perdida]" min="0" step="0.01"></td>
+                            <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-primary" id="add_especificacion_btn">Agregar Fila</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="save_especificaciones_btn">Guardar Especificaciones</button>
+            </div>
+        </div>
+    </div>
+</div>  
 
 {% endblock %}
 
@@ -514,28 +671,38 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
-            <label for="pieza_id_actividad_${pieceIdSuffix}" class="form-label">Actividades <span class="text-danger">*</span></label>
-            <select name="pieza_id_actividad_${pieceIdSuffix}" id="pieza_id_actividad_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-actividad" multiple required></select>
+            <label for="pieza_id_actividad_${pieceIdSuffix}" class="form-label">Actividades </label>
+            <select name="pieza_id_actividad_${pieceIdSuffix}" id="pieza_id_actividad_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-actividad" multiple ></select>
             <div class="invalid-feedback">Seleccione al menos una actividad.</div>
           </div>
         </div>
         <div class="row g-3 mt-1">
-          <div class="col-md-6 col-lg-3"><label for="pieza_tamano_${pieceIdSuffix}" class="form-label">Tamaño</label><input type="text" name="pieza_tamano_${pieceIdSuffix}" id="pieza_tamano_${pieceIdSuffix}" class="form-control pieza-tamano"></div>
+          <!-- Tamaño (Ancho, Alto, Fondo) -->
+              <div class="col-md-6 col-lg-1">
+                  <label for="ancho_0_${pieceIdSuffix}" class="form-label">Ancho <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+              </div>
+              <div class="col-md-6 col-lg-1">
+                  <label for="alto_0_${pieceIdSuffix}" class="form-label">Alto <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+              </div>
+              <div class="col-md-6 col-lg-1">
+                  <label for="fondo_0_${pieceIdSuffix}" class="form-label">Fondo</label>
+                  <input type="number" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01">
+              </div>
           <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_tamano_montaje_${pieceIdSuffix}" class="form-label">Tamaño Montaje</label><input type="text" name="pieza_tamano_montaje_${pieceIdSuffix}" id="pieza_tamano_montaje_${pieceIdSuffix}" class="form-control pieza-tamano-montaje"></div>
         </div>
         <div class="row g-3 mt-1">
-          <div class="col-md-6"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
-          <div class="col-md-6"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
+          <div class="col-md-3"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
+          <div class="col-md-5"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
+          <div class="col-md-4"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
         </div>
         <div class="row g-3 mt-2">
           <div class="col-12 text-end">
-            <button type="button" class="btn btn-sm btn-outline-success open-detalles-pieza-modal-btn"
-                    data-bs-toggle="modal" data-bs-target="#piezaDetallesModal"
-                    data-piece-suffix="${pieceIdSuffix}"
-                    data-piece-counter="${pieceCounter}">
-              <i class="bi bi-gear-fill me-1"></i> Detalles Adicionales
+            <button type="button" class="btn btn-warning ms-2 open-especificaciones-pieza-modal-btn" data-bs-toggle="modal" data-bs-target="#especificacionesPiezaModal" data-piece-suffix="${pieceIdSuffix}" data-piece-counter="${pieceCounter}">Especificaciones</button>
+            <button type="button" class="btn btn-success ms-2 open-detalles-pieza-modal-btn" data-bs-toggle="modal" data-bs-target="#piezaDetallesModal"  data-piece-suffix="${pieceIdSuffix}" data-piece-counter="${pieceCounter}"><i class="bi bi-gear-fill me-1"></i> Detalles Adicionales
             </button>
           </div>
         </div>
@@ -739,6 +906,127 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   });
   // --- FIN: Lógica para Modal de Detalles Adicionales de Pieza ---
 
+  // --- INICIO: Lógica para Agregar URLs Dinámicas ---
+  $('#add_url_btn').on('click', function() {
+    const urlContainer = $('#url_container');
+    const newUrlGroup = $(`
+      <div class="dynamic-url-container d-flex align-items-center mt-2">
+        <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
+        <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
+      </div>
+    `);
+    urlContainer.append(newUrlGroup);
+  });
+
+  $('#url_container').on('click', '.remove-url-btn', function() {
+    $(this).closest('.dynamic-url-container').remove();
+  });
+  // --- FIN: Lógica para Agregar URLs Dinámicas ---
+
+  // --- INICIO: Lógica para Modal de Especificaciones de Pieza ---
+  let currentEspecificacionesPieceSuffix = null; // Para saber a qué pieza pertenecen las especificaciones
+
+  function generateEspecificacionRowHtml(rowIndex, data = {}) {
+    // Los nombres de los inputs aquí son temporales para la recolección, no se envían directamente.
+    // El backend recibirá las especificaciones como parte del JSON de 'piezas'.
+    return `
+      <tr>
+        <td><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
+        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
+        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>
+        <td>
+          <select class="form-select esp-largo-unidad">
+            <option value="cm" ${data.largo_unidad === 'cm' ? 'selected' : ''}>cm</option>
+            <option value="mts" ${data.largo_unidad === 'mts' ? 'selected' : ''}>mts</option>
+            <option value="pulgadas" ${data.largo_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
+          </select>
+        </td>
+        <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01"></td>
+        <td>
+          <select class="form-select esp-ancho-unidad">
+            <option value="cm" ${data.ancho_unidad === 'cm' ? 'selected' : ''}>cm</option>
+            <option value="mts" ${data.ancho_unidad === 'mts' ? 'selected' : ''}>mts</option>
+            <option value="pulgadas" ${data.ancho_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
+          </select>
+        </td>
+        <td><input type="number" class="form-control esp-cantidad" value="${data.cantidad || ''}" min="0"></td>
+        <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01"></td>
+        <td><input type="number" class="form-control esp-perdida" value="${data.perdida || ''}" min="0" step="0.01"></td>
+        <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
+      </tr>
+    `;
+  }
+
+  $('#especificacionesPiezaModal').on('show.bs.modal', function (event) {
+    const button = $(event.relatedTarget);
+    currentEspecificacionesPieceSuffix = button.data('piece-suffix');
+    const pieceCounter = button.data('piece-counter');
+    
+    $(this).find('.modal-title').text(`Especificaciones - Pieza #${pieceCounter}`);
+    const $tbody = $('#especificaciones_table_body');
+    $tbody.empty(); // Limpiar tabla
+
+    const $pieceGroup = $(`#piece-group-${currentEspecificacionesPieceSuffix}`);
+    const especificacionesGuardadas = $pieceGroup.data('especificaciones-pieza') || [];
+
+    if (especificacionesGuardadas.length > 0) {
+      especificacionesGuardadas.forEach((espData, index) => {
+        $tbody.append(generateEspecificacionRowHtml(index, espData));
+      });
+    } else {
+      $tbody.append(generateEspecificacionRowHtml(0)); // Añadir una fila vacía
+    }
+  });
+
+  $('#add_especificacion_btn').on('click', function() {
+    const $tbody = $('#especificaciones_table_body');
+    const rowIndex = $tbody.find('tr').length;
+    $tbody.append(generateEspecificacionRowHtml(rowIndex));
+  });
+
+  $('#especificaciones_table_body').on('click', '.remove-especificacion-row-btn', function() {
+    $(this).closest('tr').remove();
+  });
+
+  $('#save_especificaciones_btn').on('click', function() {
+    if (!currentEspecificacionesPieceSuffix) return;
+
+    const especificacionesArray = [];
+    $('#especificaciones_table_body tr').each(function() {
+      const $row = $(this);
+      especificacionesArray.push({
+        item: $row.find('.esp-item').val(),
+        calibre: $row.find('.esp-calibre').val(),
+        largo: $row.find('.esp-largo').val(),
+        largo_unidad: $row.find('.esp-largo-unidad').val(),
+        ancho: $row.find('.esp-ancho').val(),
+        ancho_unidad: $row.find('.esp-ancho-unidad').val(),
+        cantidad: $row.find('.esp-cantidad').val(),
+        kg: $row.find('.esp-kg').val(),
+        perdida: $row.find('.esp-perdida').val(),
+      });
+    });
+
+    $(`#piece-group-${currentEspecificacionesPieceSuffix}`).data('especificaciones-pieza', especificacionesArray);
+    
+    const tieneEspecificaciones = especificacionesArray.some(esp => Object.values(esp).some(val => val !== '')); // Verifica si alguna especificación tiene datos
+    const $btnModalTrigger = $(`.open-especificaciones-pieza-modal-btn[data-piece-suffix="${currentEspecificacionesPieceSuffix}"]`);
+    if (tieneEspecificaciones) {
+        $btnModalTrigger.removeClass('btn-warning').addClass('btn-info').html('Especificaciones Guardadas');
+    } else {
+        $btnModalTrigger.removeClass('btn-info').addClass('btn-warning').html('Especificaciones');
+        }
+    
+        // Cerrar el modal simulando clic en su botón de cierre estándar
+        const modalEl = document.getElementById('especificacionesPiezaModal');
+        $(modalEl).find('button[data-bs-dismiss="modal"]').first().trigger('click');
+      });
+    
+      $('#especificacionesPiezaModal').on('hidden.bs.modal', function () {
+    currentEspecificacionesPieceSuffix = null;
+  });
+  // --- FIN: Lógica para Modal de Especificaciones de Pieza ---
+
   // --- Lógica de Validación y Envío del Formulario Principal ---
   let isSubmitting = false;
   const submitBtn = $('#registroForm button[type="submit"]');
@@ -810,6 +1098,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
                 id_pieza_maestra: idPiezaMaestraSelect.val() ? parseInt(idPiezaMaestraSelect.val()) : null,
                 nombre_pieza: nombreEspecificoInput.val().trim(),
                 cantidad: parseInt(cantidadInput.val()),
+                ancho: $(`#ancho_0_${suffix}`).val() ? parseFloat($(`#ancho_0_${suffix}`).val()) : null,
+                alto: $(`#alto_0_${suffix}`).val() ? parseFloat($(`#alto_0_${suffix}`).val()) : null,
+                fondo: $(`#fondo_0_${suffix}`).val() ? parseFloat($(`#fondo_0_${suffix}`).val()) : null,
                 tamano: $(`#pieza_tamano_${suffix}`).val() || null,
                 material: $(`#pieza_material_${suffix}`).val() || null,
                 montaje: $(`#pieza_montaje_${suffix}`).val() || null,
@@ -817,8 +1108,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
                 id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null, // Guardar como array si es múltiple
-                // Añadir detalles adicionales del modal
-                valores_configuracion: $pieceGroup.data('valores-configuracion') || []
+                valores_configuracion: $pieceGroup.data('valores-configuracion') || [],
+                especificaciones_pieza: $pieceGroup.data('especificaciones-pieza') || []
             });
         }
     });

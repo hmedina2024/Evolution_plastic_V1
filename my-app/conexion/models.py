@@ -216,7 +216,8 @@ class OrdenProduccion(db.Model):
     fecha_entrega = db.Column(db.Date, nullable=True)
     descripcion_general = db.Column(db.Text, nullable=True)
     empaque = db.Column(db.String(100), nullable=True)
-    materiales = db.Column(db.Text, nullable=True)
+    logistica = db.Column(db.String(100), nullable=True) # Nuevo campo para logística
+    materiales = db.Column(db.Text, nullable=True) # Considerar si aún es necesario
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
@@ -233,6 +234,7 @@ class OrdenProduccion(db.Model):
     procesos_globales = db.relationship('Procesos', secondary='tbl_orden_produccion_procesos',
                                         backref=db.backref('ordenes_produccion_asociadas', lazy='select'),
                                         lazy='select')
+    urls_op = db.relationship('OrdenProduccionURLs', backref='orden', lazy=True, cascade="all, delete-orphan")
 
 class DocumentosOP(db.Model):
     __tablename__ = 'tbl_documentos_op'
@@ -263,6 +265,10 @@ class OrdenPiezas(db.Model):
     montaje_tamano = db.Column(db.String(100), nullable=True)
     material = db.Column(db.String(100), nullable=True)
     cantidad_material = db.Column(db.String(100), nullable=True)
+    ancho = db.Column(db.Numeric(10, 2), nullable=True)       # Nuevo campo
+    alto = db.Column(db.Numeric(10, 2), nullable=True)        # Nuevo campo
+    fondo = db.Column(db.Numeric(10, 2), nullable=True)       # Nuevo campo
+    proveedor_externo = db.Column(db.String(255), nullable=True) # Nuevo campo
     descripcion_pieza = db.Column(db.Text, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
@@ -273,6 +279,7 @@ class OrdenPiezas(db.Model):
     actividades = db.relationship('Actividades', secondary='tbl_orden_piezas_actividades',
                                     backref=db.backref('orden_piezas_asociadas', lazy='select'),
                                     lazy='select')
+    especificaciones = db.relationship('OrdenPiezaEspecificaciones', backref='orden_pieza_ref', lazy='select', cascade="all, delete-orphan")
 
 class OrdenPiezasProcesos(db.Model):
     __tablename__ = 'tbl_orden_piezas_procesos'
@@ -345,3 +352,33 @@ class OrdenPiezaValoresDetalle(db.Model):
 
     def __repr__(self):
         return f"<OrdenPiezaValoresDetalle OP:{self.id_orden_pieza} G:{self.grupo_configuracion} V:{self.valor_configuracion}>"
+
+class OrdenPiezaEspecificaciones(db.Model):
+    __tablename__ = 'tbl_orden_pieza_especificaciones'
+    id_orden_pieza_especificacion = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_orden_pieza = db.Column(db.Integer, db.ForeignKey('tbl_orden_piezas.id_orden_pieza', ondelete='CASCADE'), nullable=False)
+    
+    item = db.Column(db.String(255), nullable=True)
+    calibre = db.Column(db.String(50), nullable=True)
+    largo = db.Column(db.Numeric(10, 2), nullable=True)
+    largo_unidad = db.Column(db.String(10), nullable=True) # cm, mts, pulgadas
+    ancho = db.Column(db.Numeric(10, 2), nullable=True)
+    ancho_unidad = db.Column(db.String(10), nullable=True) # cm, mts, pulgadas
+    cantidad_especificacion = db.Column(db.Integer, nullable=True) # Cantidad para este item de especificación
+    kg = db.Column(db.Numeric(10, 2), nullable=True)
+    perdida = db.Column(db.Numeric(10, 2), nullable=True)
+    
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+
+    def __repr__(self):
+        return f"<OrdenPiezaEspecificaciones ID:{self.id_orden_pieza_especificacion} OrdenPiezaID:{self.id_orden_pieza} Item:{self.item}>"
+
+class OrdenProduccionURLs(db.Model):
+    __tablename__ = 'tbl_orden_produccion_urls'
+    id_op_url = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    url = db.Column(db.Text, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+
+    def __repr__(self):
+        return f"<OrdenProduccionURLs OP_ID:{self.id_op} URL:{self.url[:50]}>"
