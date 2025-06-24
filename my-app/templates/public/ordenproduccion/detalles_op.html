@@ -92,9 +92,13 @@
         <label for="empaque" class="form-label fw-bold text-primary">Empaque</label>
         <div class="form-control" readonly>{{ detalle_op.empaque }}</div>
       </div>
-      <div class="col-md-8">
-        <label for="materiales" class="form-label fw-bold text-primary">Materiales</label>
-        <textarea class="form-control" readonly rows="3">{{ detalle_op.materiales }}</textarea>
+      <div class="col-md-4">
+        <label for="logistica" class="form-label fw-bold text-primary">Logística</label>
+        <div class="form-control" readonly>{{ detalle_op.logistica | default('No especificada') }}</div>
+      </div>
+      <div class="col-md-4">
+        <label for="materiales" class="form-label fw-bold text-primary">Materiales (General)</label>
+        <textarea class="form-control" readonly rows="1">{{ detalle_op.materiales | default('No especificados') }}</textarea>
       </div>
     </div>
     <div class="row g-4 mt-3">
@@ -153,6 +157,24 @@
     <p class="text-muted">No hay documentos adjuntos.</p>
     {% endif %}
 
+    <!-- URLs -->
+    <h4 class="fw-bold text-primary mt-5 mb-4">URLs Asociadas</h4>
+    {% if detalle_op.urls_op %}
+    <div class="row g-3">
+      <div class="col-md-12">
+        <ul class="list-group">
+          {% for url_item in detalle_op.urls_op %}
+          <li class="list-group-item">
+            <a href="{{ url_item }}" target="_blank">{{ url_item }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay URLs asociadas.</p>
+    {% endif %}
+ 
     <!-- Piezas -->
     <h4 class="fw-bold text-primary mt-5 mb-4">Piezas Asociadas</h4>
     {% if detalle_op.piezas %}
@@ -184,19 +206,37 @@
           <div class="form-control" readonly>{{ pieza.material }}</div>
         </div>
       </div>
-      <div class="row g-4 mt-3">
+      <div class="row g-4 mt-2">
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Ancho Pieza</label>
+          <div class="form-control" readonly>{{ pieza.ancho_pieza }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Alto Pieza</label>
+          <div class="form-control" readonly>{{ pieza.alto_pieza }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold text-primary">Fondo Pieza</label>
+          <div class="form-control" readonly>{{ pieza.fondo_pieza }}</div>
+        </div>
         <div class="col-md-3">
+          <label class="form-label fw-bold text-primary">Proveedor Externo</label>
+          <div class="form-control" readonly>{{ pieza.proveedor_externo | default('No especificado') }}</div>
+        </div>
+         <div class="col-md-3">
           <label class="form-label fw-bold text-primary">Cantidad Material</label>
           <div class="form-control" readonly>{{ pieza.cantidad_material }}</div>
         </div>
-        <div class="col-md-9">
+      </div>
+      <div class="row g-4 mt-2">
+        <div class="col-md-12">
           <label class="form-label fw-bold text-primary">Actividades Asociadas</label>
           <div class="form-control" readonly>{{ pieza.actividades|join(', ') }}</div>
         </div>
       </div>
-      <div class="row g-4 mt-3">
+      <div class="row g-4 mt-2">
         <div class="col-md-12">
-          <label class="form-label fw-bold text-primary">Descripción General</label>
+          <label class="form-label fw-bold text-primary">Descripción Pieza</label>
           <textarea class="form-control" readonly rows="2">{{ pieza.descripcion_general }}</textarea>
         </div>
       </div>
@@ -214,6 +254,49 @@
             </ul>
           {% else %}
             <p class="text-muted small mb-0">No hay detalles de configuración adicionales para esta pieza.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Especificaciones de la Pieza -->
+      <div class="row g-4 mt-3">
+        <div class="col-md-12">
+          <h6 class="fw-bold text-secondary mb-2">Especificaciones de la Pieza:</h6>
+          {% if pieza.especificaciones and pieza.especificaciones|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered table-striped">
+              <thead class="table-light">
+                <tr>
+                  <th>Item</th>
+                  <th>Calibre</th>
+                  <th>Largo</th>
+                  <th>Un.</th>
+                  <th>Ancho</th>
+                  <th>Un.</th>
+                  <th>Cantidad</th>
+                  <th>KG</th>
+                  <th>Pérdida</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for esp in pieza.especificaciones %}
+                <tr>
+                  <td>{{ esp.item | default('N/A') }}</td>
+                  <td>{{ esp.calibre | default('N/A') }}</td>
+                  <td>{{ esp.largo | default('N/A') }}</td>
+                  <td>{{ esp.largo_unidad | default('N/A') }}</td>
+                  <td>{{ esp.ancho | default('N/A') }}</td>
+                  <td>{{ esp.ancho_unidad | default('N/A') }}</td>
+                  <td>{{ esp.cantidad_especificacion | default('N/A') }}</td>
+                  <td>{{ esp.kg | default('N/A') }}</td>
+                  <td>{{ esp.perdida | default('N/A') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+            <p class="text-muted small mb-0">No hay especificaciones para esta pieza.</p>
           {% endif %}
         </div>
       </div>

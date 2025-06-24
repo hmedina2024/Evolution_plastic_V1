@@ -81,7 +81,7 @@
         </div>
         <div class="col-md-6">
           <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
-          <select name="logistica" id="logistica" class="form-control select2" required>
+          <select name="logistica" id="logistica" class="form-control select2" >
             <option value="" disabled selected>Seleccionar Logística</option>
             <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
           </select>
@@ -188,25 +188,25 @@
           <div class="row g-3">           
             <div class="col-md-5">
               <label for="modal_cant_impresiones" class="form-label">CANT. IMPRESIONES</label>
-              <input class="form-control" id="modal_cant_impresiones" data-grupo="CANT. IMPRESIONES">
+              <input class="form-control modal-input-dinamico" id="modal_cant_impresiones" data-grupo-input="CANT. IMPRESIONES">
             </div>
             <div class="col-md-5">
               <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
-              <input class="form-control" id="modal_piezas_por_montaje">
+              <input class="form-control modal-input-dinamico" id="modal_piezas_por_montaje" data-grupo-input="PIEZAS POR MONTAJE">
             </div>
             <div class="col-md-2">
               <label for="modal_maculatura" class="form-label">MACULATURA</label>
-              <input type="number" class="form-control" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0">
+              <input type="number" class="form-control modal-input-dinamico" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0" data-grupo-input="MACULATURA">
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
             <div class="col-md-8">
               <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
-              <input type="number"  class="form-control" id="modal_tamano_montaje">
+              <input type="number"  class="form-control modal-input-dinamico" id="modal_tamano_montaje" data-grupo-input="TAMAÑO DEL MONTAJE">
             </div>
             <div class="col-md-4">
-                <label for="modal_unidad_medida_otro" class="form-label">unidad medida</label> 
-                <input type="text" class="form-control" id="modal_unidad_medida_otro" name="modal_unidad_medida_otro">
+                <label for="modal_unidad_medida_otro" class="form-label">UNIDAD MEDIDA</label>
+                <input type="text" class="form-control modal-input-dinamico" id="modal_unidad_medida_otro" name="modal_unidad_medida_otro" data-grupo-input="UNIDAD MEDIDA">
               </div>
             </div>
             </div>
@@ -218,7 +218,7 @@
             </div>
             <div class="col-md-6">
                 <label for="modal_formato_otro" class="form-label">Otro (Formato)</label>
-                <input type="text" class="form-control" id="modal_formato_otro" name="modal_formato_otro">
+                <input type="text" class="form-control modal-input-dinamico" id="modal_formato_otro" name="modal_formato_otro" data-grupo-input="FORMATO">
               </div>
               </div>
             </div>
@@ -230,9 +230,9 @@
             </div>
             <div class="col-md-6">
                 <label for="otro_material_adhesivo" class="form-label">Otro (Mate. Adhesivo)</label>
-                <input type="text" class="form-control" id="otro_material_adhesivo" name="otro_material_adhesivo">
-            </div>
-            </div>
+                <input type="text" class="form-control modal-input-dinamico" id="otro_material_adhesivo" name="otro_material_adhesivo" data-grupo-input="MATERIAL ADHESIVO">
+              </div>
+              </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
@@ -242,9 +242,9 @@
             </div>
             <div class="col-md-6">
                 <label for="otro_material_papel" class="form-label">Otro (Material Papel)</label>
-                <input type="text" class="form-control" id="otro_material_papel" name="otro_material_papel">
-            </div>
-            </div>
+                <input type="text" class="form-control modal-input-dinamico" id="otro_material_papel" name="otro_material_papel" data-grupo-input="MATERIAL PAPEL">
+              </div>
+              </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
@@ -254,9 +254,9 @@
             </div>
             <div class="col-md-6">
                 <label for="otro_material_rigido" class="form-label">Otro (Mate. Rígido)</label>
-                <input type="text" class="form-control" id="otro_material_rigido" name="otro_material_rigido">
-            </div>
-            </div>
+                <input type="text" class="form-control modal-input-dinamico" id="otro_material_rigido" name="otro_material_rigido" data-grupo-input="MATERIAL RÍGIDO">
+              </div>
+              </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
@@ -267,7 +267,7 @@
             <!-- Cantidad de Tintas -->
             <div class="col-md-4">
                 <label for="cantidad_tintas" class="form-label">CANT. TINTAS</label>
-                <input type="number" class="form-control" id="cantidad_tintas" name="cantidad_tintas" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="cantidad_tintas" name="cantidad_tintas" min="0" data-grupo-input="CANIDAD TINTAS">
             </div>
             </div>
             </div>
@@ -279,8 +279,8 @@
             </div>
             <div class="col-md-6">
                 <label for="otro_acabado" class="form-label">Otro (acabado)</label>
-                <input type="text" class="form-control" id="otro_acabado" name="otro_acabado">
-            </div>
+                <input type="text" class="form-control modal-input-dinamico" id="otro_acabado" name="otro_acabado" data-grupo-input="ACABADO">
+              </div>
             </div>
             </div>
             <div class="col-md-6">
@@ -292,23 +292,23 @@
             <div class="row">
               <div class="col-md-2">
                 <label for="numero_cavidades" class="form-label"># cavidades</label>
-                <input type="number" class="form-control" id="numero_cavidades" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="numero_cavidades" min="0" data-grupo-input="NUMERO CAVIDADES">
               </div>
               <div class="col-md-2">
                 <label for="numero_golpes" class="form-label"># golpes</label>
-                <input type="number" class="form-control" id="numero_golpes" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES">
               </div>
               <div class="col-md-2">
                 <label for="troquelado_total" class="form-label">troq. total</label>
-                <input type="number" class="form-control" id="troquelado_total" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="troquelado_total" min="0" data-grupo-input="TROQUELADO TOTAL">
               </div>
               <div class="col-md-2">
                 <label for="troquelado_parcial" class="form-label">troq. parcial</label>
-                <input type="number" class="form-control" id="troquelado_parcial" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="troquelado_parcial" min="0" data-grupo-input="TROQUELADO PARCIAL">
               </div>
               <div class="col-md-2">
                 <label for="grafado" class="form-label">grafado</label>
-                <input type="number" class="form-control" id="grafado" min="0">
+                <input type="number" class="form-control modal-input-dinamico" id="grafado" min="0" data-grupo-input="GRAFADO">
               </div>
             </div>
           </div>
@@ -671,9 +671,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
-            <label for="pieza_id_actividad_${pieceIdSuffix}" class="form-label">Actividades </label>
-            <select name="pieza_id_actividad_${pieceIdSuffix}" id="pieza_id_actividad_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-actividad" multiple ></select>
-            <div class="invalid-feedback">Seleccione al menos una actividad.</div>
+            <label for="pieza_id_actividad_${pieceIdSuffix}" class="form-label">Actividades</label>
+            <select name="pieza_id_actividad_${pieceIdSuffix}" id="pieza_id_actividad_${pieceIdSuffix}" class="form-control select2-dynamic-piece pieza-campo pieza-actividad" multiple></select>
           </div>
         </div>
         <div class="row g-3 mt-1">
@@ -845,16 +844,28 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
 
     const piezaDiv = $(`#piece-group-${localPieceSuffix}`);
     const valoresGuardados = piezaDiv.data('valores-configuracion') || [];
-
-    $('.modal-select-dinamico').each(function() {
+ 
+    // Limpiar y poblar Select2 dinámicos
+    $('#piezaDetallesModal .modal-select-dinamico').each(function() {
         const $select = $(this);
         const grupo = $select.data('grupo');
         const valoresParaEsteGrupo = valoresGuardados
-            .filter(item => item.grupo_configuracion === grupo)
+            .filter(item => item.grupo_configuracion === grupo && item.valor_configuracion) // Asegurar que valor_configuracion exista
             .map(item => item.valor_configuracion);
         setupModalSelect2(this, grupo, valoresParaEsteGrupo);
     });
 
+    // Limpiar y poblar Inputs dinámicos
+    $('#piezaDetallesModal .modal-input-dinamico').each(function() {
+        const $input = $(this);
+        const grupoInput = $input.data('grupo-input');
+        $input.val(''); // Limpiar primero
+        const valorGuardadoObj = valoresGuardados.find(item => item.grupo_configuracion === grupoInput);
+        if (valorGuardadoObj && typeof valorGuardadoObj.valor_configuracion !== 'undefined') {
+            $input.val(valorGuardadoObj.valor_configuracion);
+        }
+    });
+ 
     // Configurar el listener del botón "Guardar Detalles" CADA VEZ que se muestra el modal.
     // Desvincular listeners anteriores para evitar múltiples ejecuciones.
     $('#guardarDetallesPiezaModal').off('click').on('click', function() {
@@ -865,17 +876,29 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         }
 
         let nuevosValoresConfig = [];
-        // Asegurarse de seleccionar los selectores dentro del modal actual
+        // Recolectar valores de Select2 dinámicos
         $('#piezaDetallesModal .modal-select-dinamico').each(function() {
             const grupo = $(this).data('grupo');
-            const seleccionados = $(this).val();
+            const seleccionados = $(this).val(); // Esto ya es un array para multiple select
             if (seleccionados && seleccionados.length > 0) {
                 seleccionados.forEach(valor => {
-                    nuevosValoresConfig.push({ grupo_configuracion: grupo, valor_configuracion: valor });
+                    if (valor) { // Asegurarse de que el valor no sea nulo o vacío si es posible
+                        nuevosValoresConfig.push({ grupo_configuracion: grupo, valor_configuracion: valor });
+                    }
                 });
             }
         });
 
+        // Recolectar valores de Inputs dinámicos
+        $('#piezaDetallesModal .modal-input-dinamico').each(function() {
+            const $input = $(this);
+            const grupoInput = $input.data('grupo-input');
+            const valorInput = $input.val();
+            // Guardar incluso si está vacío, para poder limpiar un campo previamente guardado.
+            // O decidir si solo guardar si hay valor: if (valorInput && valorInput.trim() !== '') { ... }
+            nuevosValoresConfig.push({ grupo_configuracion: grupoInput, valor_configuracion: valorInput });
+        });
+ 
         $(`#piece-group-${localPieceSuffix}`).data('valores-configuracion', nuevosValoresConfig);
         
         const tieneValores = nuevosValoresConfig.length > 0;
@@ -1087,10 +1110,10 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         
         if (!cantidadInput.val() || parseInt(cantidadInput.val()) < 1) { cantidadInput.addClass('is-invalid'); piezaActualValida = false; }
         else { cantidadInput.removeClass('is-invalid'); }
-
-        if (!actividadSelect.val() || actividadSelect.val().length === 0) { actividadSelect.next('.select2-container').addClass('is-invalid-select2'); piezaActualValida = false; } 
-        else { actividadSelect.next('.select2-container').removeClass('is-invalid-select2'); }
-
+ 
+        // Ya no se valida si actividadSelect tiene valor, solo se limpia el estado de error si existiera.
+        actividadSelect.next('.select2-container').removeClass('is-invalid-select2');
+ 
         if (!piezaActualValida) { piezasValidas = false; }
 
         if (piezaActualValida) { 

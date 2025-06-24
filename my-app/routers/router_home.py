@@ -805,23 +805,8 @@ def detalle_op(id_op=None):
     return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
 
 
-@app.route('/editar-op/<int:id_op>', methods=['GET'])
-def editar_op(id_op):
-    try:
-        op_data, status = obtener_datos_op_para_edicion(id_op)
-        if status != 200:
-            flash(op_data.get('message', 'Error al cargar la orden de producción'), 'error')
-            return redirect(url_for('lista_op'))
-        return render_template('public/ordenproduccion/form_op_update.html', orden=op_data)
-    except Exception as e:
-        app.logger.error(f"Error en ruta /editar-op/{id_op}: {str(e)}", exc_info=True)
-        flash('Error inesperado al cargar el formulario de edición.', 'error')
-        return redirect(url_for('lista_op'))
-
-
-
 @app.route("/editar-op/<int:id_op>", methods=['GET'])
-def viewEditarop(id_op=None):
+def viewEditarop(id_op=None): # Esta será la única función para esta ruta
     if 'conectado' not in session or not session.get('conectado'):
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -833,22 +818,39 @@ def viewEditarop(id_op=None):
     app.logger.debug(f"Accediendo a editar OP con id_op: {id_op}")
     # Asegúrate de que la función obtener_datos_op_para_edicion esté importada correctamente al inicio del archivo.
     # from controllers.funciones_home import obtener_datos_op_para_edicion
-    datos_op = obtener_datos_op_para_edicion(id_op)
+    resultado_carga = obtener_datos_op_para_edicion(id_op)
+    
+    datos_op = None
+    if isinstance(resultado_carga, tuple) and len(resultado_carga) == 2:
+        datos_op = resultado_carga[0]
+        status_code = resultado_carga[1]
+        if status_code != 200:
+            flash(datos_op.get('message', 'Error al cargar la orden de producción para edición.'), 'danger')
+            return redirect(url_for('lista_op'))
+    elif isinstance(resultado_carga, dict) and 'status' in resultado_carga and resultado_carga['status'] == 'error':
+        flash(resultado_carga.get('message', 'Error al cargar la orden de producción para edición.'), 'danger')
+        return redirect(url_for('lista_op'))
+    elif isinstance(resultado_carga, dict): # Si solo devuelve el dict de datos (caso no esperado pero cubierto)
+         datos_op = resultado_carga
+    else:
+        flash('Respuesta inesperada al cargar datos de la orden.', 'danger')
+        return redirect(url_for('lista_op'))
 
-    if not datos_op:
-        flash('Orden de producción no encontrada o error al cargar sus datos para edición.', 'danger')
-        return redirect(url_for('lista_op')) # Corregido el nombre de la ruta
-
+    if not datos_op: # Chequeo adicional por si algo falló en la asignación anterior
+        flash('Orden de producción no encontrada o error fatal al cargar sus datos.', 'danger')
+        return redirect(url_for('lista_op'))
+ 
     # La variable datos_op ya contiene toda la información estructurada necesaria.
     page_title = f"Editar Orden de Producción #{datos_op.get('codigo_op', '')}"
     
     return render_template('public/ordenproduccion/form_op_update.html',
-                           datos_op=datos_op,
+                           op_data=datos_op, # Cambiado de datos_op a op_data
                            page_title=page_title)
-
-@app.route('/actualizar-op', methods=['POST'])
-def actualizar_op():
-    result_data = procesar_actualizar_form_op(request, request.files)
+ 
+@app.route('/actualizar-op/<int:id_op>', methods=['POST'])
+def actualizar_op(id_op):
+    # Pasar id_op a la función de procesamiento
+    result_data = procesar_actualizar_form_op(id_op, request.form, request.files)
     if isinstance(result_data, dict):
         return jsonify(result_data)
     else:
