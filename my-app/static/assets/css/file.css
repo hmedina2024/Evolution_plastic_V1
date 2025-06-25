@@ -400,3 +400,28 @@
 .render-upload-label, .render-delete-btn {
     margin-top: 5px;
 }
+
+#especificacionesPiezaModal .modal-dialog.modal-xl {
+  max-width: 1400px; /* O un valor en px, ej: 1300px */
+  /* También podrías usar width en lugar de max-width si quieres un tamaño fijo */
+  /* width: 1300px; */ 
+}
+
+.is-invalid-select2 .select2-selection {
+  border-color: #dc3545 !important;
+}
+.piece-form-group {
+  transition: all 0.3s ease-in-out;
+}
+.select2-container.is-invalid-select2 .select2-selection {
+  border-color: #dc3545;
+}
+
+.td-item-ancho {
+  width: 250px; /* Ajusta este valor según sea necesario */
+  min-width: 200px; /* Opcional: para asegurar un ancho mínimo */
+}
+
+.td-item-ancho .form-control.esp-item {
+    width: 100%;
+}

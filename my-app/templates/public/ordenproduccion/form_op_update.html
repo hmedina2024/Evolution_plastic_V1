@@ -1324,8 +1324,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     // El backend recibirá las especificaciones como parte del JSON de 'piezas'.
     return `
       <tr>
-        <td><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
-        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
+        <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
+        <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
         <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>
         <td>
           <select class="form-select esp-largo-unidad">
@@ -1394,7 +1394,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         largo_unidad: $row.find('.esp-largo-unidad').val(),
         ancho: $row.find('.esp-ancho').val(),
         ancho_unidad: $row.find('.esp-ancho-unidad').val(),
-        cantidad: $row.find('.esp-cantidad').val(), // Corregido para que coincida con el HTML generado
+        cantidad_especificacion: $row.find('.esp-cantidad').val(), // Corregido: usar la clave que espera el backend/modelo
         kg: $row.find('.esp-kg').val(),
         perdida: $row.find('.esp-perdida').val(),
       });
