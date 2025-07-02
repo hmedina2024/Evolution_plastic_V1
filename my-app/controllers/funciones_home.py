@@ -572,7 +572,7 @@ def eliminar_proceso(id_proceso):
         proceso = Procesos.query.get(id_proceso)
         if proceso:
             if Actividades.query.filter_by(id_proceso=id_proceso, fecha_borrado=None).first() or \
-               OrdenPiezasProcesos.query.filter_by(id_proceso=id_proceso).first():
+                OrdenPiezasProcesos.query.filter_by(id_proceso=id_proceso).first():
                 proceso.fecha_borrado = datetime.now()
                 db.session.commit()
                 return True, "Proceso marcado como eliminado (está en uso)."
@@ -589,36 +589,6 @@ def eliminar_proceso(id_proceso):
 # --- Funciones de Clientes ---
 
 
-def procesar_form_cliente(dataForm, foto_perfil_cliente):
-    try:
-        documento_str = dataForm.get('documento', '')
-        documento_sin_puntos = re.sub('[^0-9]+', '', documento_str)
-        if not documento_sin_puntos:
-            raise ValueError("Documento es requerido.")
-        documento = int(documento_sin_puntos)
-
-        nombre_cliente = dataForm.get('nombre_cliente')
-        id_tipo_documento_str = dataForm.get('id_tipo_documento')
-        if not nombre_cliente:
-            raise ValueError("Nombre del cliente es requerido.")
-        if not id_tipo_documento_str or not id_tipo_documento_str.isdigit():
-            raise ValueError(
-                "Tipo de documento es requerido y debe ser válido.")
-
-        proceso = db.session.query(Procesos).filter_by(id_proceso=id).first()
-        print(proceso)
-        if proceso:
-            return {
-                'id_proceso': proceso.id_proceso,
-                'codigo_proceso': proceso.codigo_proceso,
-                'nombre_proceso': proceso.nombre_proceso,
-                'descripcion_proceso': proceso.descripcion_proceso,
-                'fecha_registro': proceso.fecha_registro
-            }
-        return None
-    except Exception as e:
-        app.logger.error(f"Ocurrió un error en def buscar_proceso_unico: {e}")
-        return None
 
 
 def procesar_actualizar_form(data):
@@ -665,7 +635,7 @@ def procesar_form_cliente(dataForm, foto_perfil_cliente):
     result_foto_cliente = procesar_imagen_cliente(foto_perfil_cliente)
     try:
         cliente = Clientes(
-            tipo_documento=dataForm['tipo_documento'],
+            id_tipo_documento=dataForm['id_tipo_documento'],
             documento=documento,
             nombre_cliente=dataForm['nombre_cliente'],
             telefono_cliente=dataForm['telefono_cliente'],
@@ -826,8 +796,6 @@ def sql_detalles_clientes_bd(id_cliente):
         return None
 
 
-def buscar_cliente_bd(search='', search_date='', start=0, length=10, order=[{'column': 0, 'dir': 'desc'}]):
-    try:
         query = db.session.query(Clientes)
 
         # Aplicar filtros
@@ -898,7 +866,7 @@ def buscar_cliente_unico(id):
                 'id_cliente': cliente.id_cliente,
                 'documento': cliente.documento,
                 'nombre_cliente': cliente.nombre_cliente,
-                'tipo_documento': cliente.tipo_documento,
+                'id_tipo_documento': cliente.id_tipo_documento, # Devolver el ID para el select
                 'telefono_cliente': cliente.telefono_cliente,
                 'email_cliente': cliente.email_cliente,
                 'foto_cliente': cliente.foto_cliente
@@ -918,7 +886,7 @@ def procesar_actualizacion_cliente(data):
                 '[^0-9]+', '', data.form['documento'])
             documento = int(documento_sin_puntos)
 
-            cliente.tipo_documento = data.form['tipo_documento']
+            cliente.id_tipo_documento = data.form['id_tipo_documento'] # Corregido
             cliente.nombre_cliente = data.form['nombre_cliente']
             cliente.telefono_cliente = data.form['telefono_cliente']
             cliente.email_cliente = data.form['email_cliente']

@@ -21,36 +21,38 @@
       <input type="hidden" name="id_cliente" value="{{ respuestaCliente.id_cliente }}" />
       
       <div class="row g-4">
-        <div class="col-md-6">
+        <div class="col-md-3">
+          <label for="id_tipo_documento" class="form-label fw-bold text-primary">Tipo Documento</label>
+          <select class="form-select" name="id_tipo_documento" required>
+            <option value="" disabled>Seleccione</option>
+            {% for documento in tipo_documento %}
+              <option value="{{ documento.id_tipo_documento }}" {% if documento.id_tipo_documento == respuestaCliente.id_tipo_documento %}selected{% endif %}>
+                {{ documento.td_abreviacion }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="documento" class="form-label fw-bold text-primary">Documento</label>
+          <input class="form-control" type="text" name="documento" value="{{ respuestaCliente.documento }}" required />
+        </div>
+        <div class="col-md-4">
           <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre del Cliente</label>
           <input type="text" name="nombre_cliente" value="{{ respuestaCliente.nombre_cliente }}" class="form-control" required />
-        </div>
-        <div class="col-md-2">
-          <label for="tipo_documento" class="form-label fw-bold text-primary">Tipo Documento</label>
-          <div class="form-control" readonly>{{ respuestaCliente.tipo_documento }}</div>
-        </div>
-        <div class="col-md-3">
-          <label for="documento" class="form-label fw-bold text-primary">No. Documento</label>
-          <div class="form-control" readonly>{{ respuestaCliente.documento }}</div>
         </div>
       </div>
       
       <div class="row g-4 mt-3">
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label for="telefono_cliente" class="form-label fw-bold text-primary">Teléfono del Cliente</label>
-          <input class="form-control" type="text" name="telefono_cliente" id="cantidad" value="{{ respuestaCliente.telefono_cliente }}" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>  
+          <input class="form-control" type="text" name="telefono_cliente" value="{{ respuestaCliente.telefono_cliente }}" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
         </div>
         <div class="col-md-4">
           <label for="email_cliente" class="form-label fw-bold text-primary">Email del Cliente</label>
           <input type="email" name="email_cliente" value="{{ respuestaCliente.email_cliente }}" class="form-control" required />
         </div>
-        <div class="col-md-5 text-center">
-          <label class="form-label fw-bold text-primary">Foto del Cliente</label>
-          <br />
-          <img src="/static/fotos_clientes/{{ respuestaCliente.foto_cliente }}" style="width: 150px" alt="{{ respuestaCliente.nombre_cliente }}" />
-        </div>
       </div>
-      
+
       <div class="row g-4 mt-3">
         <div class="col-md-6">
           <label class="form-label fw-bold text-primary">Actualizar Foto del Cliente</label>
@@ -60,8 +62,8 @@
               <label for="imageUpload"><i class="bi bi-pen"></i></label>
             </div>
             <div class="avatar-preview">
-              {% set url_avatar= url_for('static', filename='assets/img/avatar.png') %}
-              <div id="imagePreview" style="background-image: url('{{ url_avatar }}');"></div>
+              {% set foto_url = url_for('static', filename='fotos_clientes/' + respuestaCliente.foto_cliente) if respuestaCliente.foto_cliente else url_for('static', filename='assets/img/avatar.png') %}
+              <div id="imagePreview" style="background-image: url('{{ foto_url }}');"></div>
             </div>
           </div>
         </div>
@@ -80,5 +82,26 @@
     </div>
     {% endif %}
   </div>
+{% block customJS %}
+<script>
+$(document).ready(function() {
+  function readURL(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        $('#imagePreview').css('background-image', `url(${e.target.result})`);
+      }
+      
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  $("#imageUpload").change(function () {
+    readURL(this);
+  });
+});
+</script>
+{% endblock %}
 </div>
 {% endblock %}

@@ -470,7 +470,7 @@ def view_buscar_cliente_bd():
         order = data.get('order', [{'column': 0, 'dir': 'desc'}])
 
         clientes, total, total_filtered = buscar_cliente_bd(
-            search, search_date, start, length, order)
+            search, start, length)
 
         response = {
             "draw": int(draw),
@@ -491,11 +491,12 @@ def view_buscar_cliente_bd():
 def viewEditarCliente(id):
     if 'conectado' in session:
         respuestaCliente = buscar_cliente_unico(id)
+        tipo_documento = obtener_tipo_documento() # Obtener la lista de tipos de documento
         if respuestaCliente:
-            return render_template('public/clientes/form_cliente_update.html', respuestaCliente=respuestaCliente)
+            return render_template('public/clientes/form_cliente_update.html', respuestaCliente=respuestaCliente, tipo_documento=tipo_documento)
         else:
             flash('El cliente no existe.', 'error')
-            return redirect(url_for('inicio'))
+            return redirect(url_for('lista_clientes')) # Redirigir a la lista, no a inicio
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -505,7 +506,16 @@ def viewEditarCliente(id):
 def actualizar_cliente():
     result_data = procesar_actualizacion_cliente(request)
     if result_data:
+        flash('Cliente actualizado correctamente.', 'success')
         return redirect(url_for('lista_clientes'))
+    else:
+        flash('Error al actualizar el cliente. Intente de nuevo.', 'error')
+        # Necesitamos el ID para redirigir de nuevo al formulario de edición
+        id_cliente = request.form.get('id_cliente')
+        if id_cliente:
+            return redirect(url_for('viewEditarCliente', id=id_cliente))
+        else:
+            return redirect(url_for('lista_clientes')) # Fallback si no hay ID
 
 
 @app.route('/borrar-cliente/<string:id_cliente>/<string:foto_cliente>', methods=['GET'])

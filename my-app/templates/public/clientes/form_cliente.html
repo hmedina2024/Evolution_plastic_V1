@@ -17,10 +17,10 @@
       <div class="row g-4">
         <div class="col-md-3">
           <label for="tipo_cliente" class="form-label fw-bold text-primary">Tipo Documento</label>
-          <select class="form-select" name="tipo_documento" required>
+          <select class="form-select" name="id_tipo_documento" required>
             <option value="" selected disabled>Seleccione</option>
             {% for documento in tipo_documento %}
-                <option value="{{ documento.td_abreviacion }}">{{ documento.td_abreviacion }}</option>
+                <option value="{{ documento.id_tipo_documento }}">{{ documento.td_abreviacion }}</option>
             {% endfor %}
           </select>
         </div>
