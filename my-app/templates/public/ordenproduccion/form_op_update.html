@@ -1501,7 +1501,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
                 proveedor_externo: $(`#proveedor_externo_${suffix}`).val() || null,
-                id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null, // Guardar como array si es múltiple
+                actividades_pieza: actividadSelect.val() ? actividadSelect.val().map(id => String(id)) : [], // Asegurar que los IDs sean strings
                 valores_configuracion: $pieceGroup.data('valores-configuracion') || [],
                 especificaciones_pieza: $pieceGroup.data('especificaciones-pieza') || []
             });

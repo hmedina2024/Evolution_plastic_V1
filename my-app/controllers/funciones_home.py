@@ -3003,7 +3003,11 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 ancho=float(pieza_d_form_db_val['ancho']) if pieza_d_form_db_val.get('ancho') else None,
                 alto=float(pieza_d_form_db_val['alto']) if pieza_d_form_db_val.get('alto') else None,
                 fondo=float(pieza_d_form_db_val['fondo']) if pieza_d_form_db_val.get('fondo') else None,
-                proveedor_externo=pieza_d_form_db_val.get('proveedor_externo')
+                proveedor_externo=pieza_d_form_db_val.get('proveedor_externo'),
+                montaje=pieza_d_form_db_val.get('montaje'),
+                montaje_tamano=pieza_d_form_db_val.get('tamano_montaje'),
+                cantidad_material=pieza_d_form_db_val.get('cantidad_material'),
+                material=pieza_d_form_db_val.get('material')
                 # Corregido: Se elimina id_usuario_registro ya que no existe en el modelo OrdenPiezas
             )
             db.session.add(nueva_op_pieza_obj_db_val)
@@ -3015,7 +3019,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
             
             for id_act_p_form_str_db_val in pieza_d_form_db_val.get('actividades_pieza', []):
                 if id_act_p_form_str_db_val.isdigit():
-                    db.session.add(OrdenPiezasActividades(id_orden_pieza=nueva_op_pieza_obj_db_val.id_orden_pieza, id_actividad=int(id_act_p_form_str_db_val), id_usuario_registro=id_usuario_registro))
+                    db.session.add(OrdenPiezasActividades(id_orden_pieza=nueva_op_pieza_obj_db_val.id_orden_pieza, id_actividad=int(id_act_p_form_str_db_val)))
             
             # Corregido: Usar 'valores_configuracion' para obtener la lista de detalles
             for config_item_from_json in pieza_d_form_db_val.get('valores_configuracion', []):

@@ -1120,6 +1120,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
                 tamano_montaje: $(`#pieza_tamano_montaje_${suffix}`).val() || null,
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
+                proveedor_externo: $(`#proveedor_externo_${suffix}`).val() || null, // Añadido para recolectar el proveedor
                 id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null, // Guardar como array si es múltiple
                 valores_configuracion: $pieceGroup.data('valores-configuracion') || [],
                 especificaciones_pieza: $pieceGroup.data('especificaciones-pieza') || []

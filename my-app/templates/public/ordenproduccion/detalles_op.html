@@ -50,11 +50,7 @@
         <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
       </div>
-      <div class="col-md-2">
-        <label for="medida" class="form-label fw-bold text-primary">Medida</label>
-        <div class="form-control" readonly>{{ detalle_op.medida }}</div>
-      </div>
-      <div class="col-md-2">
+      <div class="col-md-4">
         <label for="referencia" class="form-label fw-bold text-primary">Referencia</label>
         <div class="form-control" readonly>{{ detalle_op.referencia }}</div>
       </div>
@@ -95,10 +91,6 @@
       <div class="col-md-4">
         <label for="logistica" class="form-label fw-bold text-primary">Logística</label>
         <div class="form-control" readonly>{{ detalle_op.logistica | default('No especificada') }}</div>
-      </div>
-      <div class="col-md-4">
-        <label for="materiales" class="form-label fw-bold text-primary">Materiales (General)</label>
-        <textarea class="form-control" readonly rows="1">{{ detalle_op.materiales | default('No especificados') }}</textarea>
       </div>
     </div>
     <div class="row g-4 mt-3">
@@ -188,10 +180,6 @@
         <div class="col-md-2">
           <label class="form-label fw-bold text-primary">Cantidad</label>
           <div class="form-control" readonly>{{ pieza.cantidad }}</div>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold text-primary">Tamaño</label>
-          <div class="form-control" readonly>{{ pieza.tamano }}</div>
         </div>
         <div class="col-md-2">
           <label class="form-label fw-bold text-primary">Montaje</label>

@@ -98,6 +98,7 @@ $(document).ready(function() {
   }
 
   $("#imageUpload").change(function () {
+    console.log("El evento change de #imageUpload se ha disparado."); // NUEVO LOG
     readURL(this);
   });
 });
