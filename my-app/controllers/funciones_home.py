@@ -2008,19 +2008,19 @@ def procesar_form_op(dataForm, files):
                     ancho_val = float(esp_item.get('ancho')) if esp_item.get('ancho') else None
                     cantidad_esp_val = int(esp_item.get('cantidad')) if esp_item.get('cantidad') else None
                     kg_val = float(esp_item.get('kg')) if esp_item.get('kg') else None
-                    perdida_val = float(esp_item.get('perdida')) if esp_item.get('perdida') else None
+                    retal_kg_val = float(esp_item.get('retal_kg')) if esp_item.get('retal_kg') else None
                     
                     especificacion_obj = OrdenPiezaEspecificaciones(
                         id_orden_pieza=orden_pieza_obj.id_orden_pieza,
                         item=esp_item.get('item'),
                         calibre=esp_item.get('calibre'),
                         largo=largo_val,
-                        largo_unidad=esp_item.get('largo_unidad'),
-                        ancho=ancho_val,
-                        ancho_unidad=esp_item.get('ancho_unidad'),
+                        ancho=ancho_val,                        
+                        unidad=esp_item.get('unidad'),
                         cantidad_especificacion=cantidad_esp_val,
                         kg=kg_val,
-                        perdida=perdida_val
+                        retal_kg=retal_kg_val,
+                        reproceso=esp_item.get('reproceso')
                     )
                     db.session.add(especificacion_obj)
             else:
@@ -2227,13 +2227,13 @@ def sql_detalles_op_bd(id_op):
                     especificaciones_list.append({
                         'item': esp.item,
                         'calibre': esp.calibre,
-                        'largo': str(esp.largo) if esp.largo is not None else None, # Convertir Decimal a str
-                        'largo_unidad': esp.largo_unidad,
+                        'largo': str(esp.largo) if esp.largo is not None else None, # Convertir Decimal a str                        
                         'ancho': str(esp.ancho) if esp.ancho is not None else None, # Convertir Decimal a str
-                        'ancho_unidad': esp.ancho_unidad,
+                        'unidad': esp.unidad,                        
                         'cantidad_especificacion': esp.cantidad_especificacion,
                         'kg': str(esp.kg) if esp.kg is not None else None, # Convertir Decimal a str
-                        'perdida': str(esp.perdida) if esp.perdida is not None else None # Convertir Decimal a str
+                        'retal_kg': str(esp.retal_kg) if esp.retal_kg is not None else None, # Convertir Decimal a str
+                        'reproceso': esp.reproceso
                     })
             app.logger.debug(f"Especificaciones para pieza {pieza_orden_obj.id_orden_pieza}: {especificaciones_list}")
             
@@ -2299,6 +2299,7 @@ def sql_detalles_op_bd(id_op):
             'descripcion_general': orden_obj.descripcion_general if orden_obj.descripcion_general else 'No especificado',
             'empaque': orden_obj.empaque if orden_obj.empaque else 'No especificado',
             'logistica': orden_obj.logistica if orden_obj.logistica else 'No especificado', # Nuevo
+            'estado_proyecto': orden_obj.estado_proyecto if orden_obj.estado_proyecto else 'No especificado', # Nuevo
             'materiales': orden_obj.materiales if orden_obj.materiales else 'No especificado', # Materiales generales de la OP
             'fecha_registro': orden_obj.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden_obj.fecha_registro else 'Sin registro',
             'id_usuario_registro': orden_obj.id_usuario_registro, # Añadido por si es útil
@@ -2418,13 +2419,13 @@ def obtener_datos_op_para_edicion(id_op):
                         {
                             'item': esp.item,
                             'calibre': esp.calibre,
-                            'largo': str(esp.largo) if esp.largo is not None else None,
-                            'largo_unidad': esp.largo_unidad,
+                            'largo': str(esp.largo) if esp.largo is not None else None,                            
                             'ancho': str(esp.ancho) if esp.ancho is not None else None,
-                            'ancho_unidad': esp.ancho_unidad,
+                            'unidad': esp.unidad,
                             'cantidad_especificacion': esp.cantidad_especificacion,
                             'kg': str(esp.kg) if esp.kg is not None else None,
-                            'perdida': str(esp.perdida) if esp.perdida is not None else None
+                            'retal_kg': str(esp.retal_kg) if esp.retal_kg is not None else None,
+                            'reproceso': esp.reproceso
                         }
                         for esp in p.especificaciones
                     ]
@@ -2806,7 +2807,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                         current_pieza_errores.append(f"Formato de especificaciones inválido.")
                     else:
                         for esp_idx_p_val, esp_data_p_val in enumerate(especificaciones_p_val, 1):
-                            for num_fld_p_val in ['largo', 'ancho_especificacion', 'cantidad_especificacion', 'kg', 'perdida']: # 'ancho' cambiado a 'ancho_especificacion'
+                            for num_fld_p_val in ['largo', 'ancho_especificacion', 'cantidad_especificacion', 'kg', 'retal_kg']: # 'ancho' cambiado a 'ancho_especificacion'
                                 val_str_esp_val = esp_data_p_val.get(num_fld_p_val)
                                 if val_str_esp_val is not None and val_str_esp_val != '':
                                     try: float(val_str_esp_val)
@@ -2855,6 +2856,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         orden.empaque = empaque_val
         orden.estado = estado_val
         orden.logistica = logistica_val
+        orden.estado_proyecto = dataForm.get('estado_proyecto')
         
         try:
             current_version_ord_db_val = int(orden.version) if orden.version and orden.version.isdigit() else 0
@@ -3040,13 +3042,13 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 db.session.add(OrdenPiezaEspecificaciones(
                     id_orden_pieza=nueva_op_pieza_obj_db_val.id_orden_pieza,
                     item=esp_item_p_form_db_val.get('item'), calibre=esp_item_p_form_db_val.get('calibre'),
-                    largo=float(esp_item_p_form_db_val.get('largo')) if esp_item_p_form_db_val.get('largo') else None,
-                    largo_unidad=esp_item_p_form_db_val.get('largo_unidad'),
-                    ancho=float(esp_item_p_form_db_val.get('ancho')) if esp_item_p_form_db_val.get('ancho') else None, # Corregido: argumento y fuente de datos
-                    ancho_unidad=esp_item_p_form_db_val.get('ancho_unidad'),
+                    largo=float(esp_item_p_form_db_val.get('largo')) if esp_item_p_form_db_val.get('largo') else None,                    
+                    ancho=float(esp_item_p_form_db_val.get('ancho')) if esp_item_p_form_db_val.get('ancho') else None, # Corregido: argumento y fuente de datos                    
+                    unidad=esp_item_p_form_db_val.get('unidad'),
                     cantidad_especificacion=int(esp_item_p_form_db_val.get('cantidad_especificacion')) if esp_item_p_form_db_val.get('cantidad_especificacion') else None,
                     kg=float(esp_item_p_form_db_val.get('kg')) if esp_item_p_form_db_val.get('kg') else None,
-                    perdida=float(esp_item_p_form_db_val.get('perdida')) if esp_item_p_form_db_val.get('perdida') else None
+                    retal_kg=float(esp_item_p_form_db_val.get('retal_kg')) if esp_item_p_form_db_val.get('retal_kg') else None,
+                    reproceso=esp_item_p_form_db_val.get('reproceso')
                     # Corregido: Se elimina id_usuario_registro ya que no existe en el modelo OrdenPiezaEspecificaciones
                 ))
         

@@ -217,6 +217,7 @@ class OrdenProduccion(db.Model):
     descripcion_general = db.Column(db.Text, nullable=True)
     empaque = db.Column(db.String(100), nullable=True)
     logistica = db.Column(db.String(100), nullable=True) # Nuevo campo para logística
+    estado_proyecto = db.Column(db.String(200), nullable=True)
     materiales = db.Column(db.Text, nullable=True) # Considerar si aún es necesario
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -361,13 +362,12 @@ class OrdenPiezaEspecificaciones(db.Model):
     item = db.Column(db.String(255), nullable=True)
     calibre = db.Column(db.String(50), nullable=True)
     largo = db.Column(db.Numeric(10, 2), nullable=True)
-    largo_unidad = db.Column(db.String(10), nullable=True) # cm, mts, pulgadas
     ancho = db.Column(db.Numeric(10, 2), nullable=True)
-    ancho_unidad = db.Column(db.String(10), nullable=True) # cm, mts, pulgadas
+    unidad = db.Column(db.String(10), nullable=True) # cm, mts, pulgadas
     cantidad_especificacion = db.Column(db.Integer, nullable=True) # Cantidad para este item de especificación
     kg = db.Column(db.Numeric(10, 2), nullable=True)
-    perdida = db.Column(db.Numeric(10, 2), nullable=True)
-    
+    retal_kg = db.Column(db.Numeric(10, 2), nullable=True)
+    reproceso = db.Column(db.String(255), nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
 
     def __repr__(self):

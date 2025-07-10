@@ -425,3 +425,8 @@
 .td-item-ancho .form-control.esp-item {
     width: 100%;
 }
+
+.td-reproceso {
+  width: 250px; /* Ajusta este valor según sea necesario */
+  min-width: 200px; /* Opcional: para asegurar un ancho mínimo */
+}

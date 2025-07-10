@@ -76,7 +76,17 @@
             <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
-        </div>       
+        </div>
+        <div class="col-md-6">
+          <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
+          <select name="estado_proyecto" id="estado_proyecto" class="form-control select2">
+            <option value="" selected>Seleccionar Estado del Proyecto</option>
+            <option value="Artes en ajustes">Artes en ajustes</option>
+            <option value="Artes aprobadas">Artes aprobadas</option>
+            <option value="Validar con prototipo aprobado">Validar con prototipo aprobado</option>
+            <option value="Validar con cabeza de serie">Validar con cabeza de serie</option>
+          </select>
+        </div>
       </div>
       <div class="row g-4 mt-3">        
         <div class="col-md-4">
@@ -115,7 +125,7 @@
       <div class="row g-3">
         <div class="col-md-6">
             <label for="op_ids_procesos" class="form-label fw-bold text-primary">Proceso(s) de la OP <span class="text-danger">*</span></label>
-            <select name="op_ids_procesos" id="op_ids_procesos" class="form-control select2" multiple="multiple" required style="width:100%;"></select>
+            <select name="op_ids_procesos" id="op_ids_procesos" class="form-control select2" multiple="multiple" style="width:100%;"></select>
             <div class="invalid-feedback">Seleccione al menos un proceso para la OP.</div>
         </div>
         <div class="col-md-6" id="op_otro_proceso_container" style="display:none;">
@@ -328,13 +338,13 @@
                         <tr>
                             <th>ITEM</th>
                             <th>CALIBRE</th>
-                            <th>LARGO</th>
-                            <th>UNIDAD</th>
+                            <th>LARGO</th>                            
                             <th>ANCHO</th>
                             <th>UNIDAD</th>
                             <th>CANTIDAD</th>
                             <th>KG</th>
-                            <th>PÉRDIDA</th>
+                            <th>RETAL (kg)</th>
+                            <th>REPROCESO</th>
                             <th>ACCIONES</th>
                         </tr>
                     </thead>
@@ -342,25 +352,19 @@
                         <tr>
                             <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
                             <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>
-                            <td>
-                                <select class="form-select" name="especificaciones[0][largo_unidad]">
-                                    <option value="cm">cm</option>
-                                    <option value="mts">mts</option>
-                                    <option value="pulgadas">pulgadas</option>
-                                </select>
-                            </td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>                            
                             <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
                             <td>
-                                <select class="form-select" name="especificaciones[0][ancho_unidad]">
+                                <select class="form-select" name="especificaciones[0][unidad]">
                                     <option value="cm">cm</option>
                                     <option value="mts">mts</option>
                                     <option value="pulgadas">pulgadas</option>
                                 </select>
-                            </td>
+                            </td>                            
                             <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
                             <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][perdida]" min="0" step="0.01"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
                             <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
                         </tr>
                     </tbody>
@@ -529,6 +533,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   setupSelect2('#id_empleado', "{{ url_for('api_empleados') }}", 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
 
   // --- INICIO: Selector Global de Procesos para la OP ---
   const $opProcesosSelect = $('#op_ids_procesos');
@@ -946,25 +952,19 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
       <tr>
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
         <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
-        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>
-        <td>
-          <select class="form-select esp-largo-unidad">
-            <option value="cm" ${data.largo_unidad === 'cm' ? 'selected' : ''}>cm</option>
-            <option value="mts" ${data.largo_unidad === 'mts' ? 'selected' : ''}>mts</option>
-            <option value="pulgadas" ${data.largo_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
-          </select>
-        </td>
+        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>        
         <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01"></td>
         <td>
-          <select class="form-select esp-ancho-unidad">
-            <option value="cm" ${data.ancho_unidad === 'cm' ? 'selected' : ''}>cm</option>
-            <option value="mts" ${data.ancho_unidad === 'mts' ? 'selected' : ''}>mts</option>
-            <option value="pulgadas" ${data.ancho_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
+          <select class="form-select esp-largo-unidad">
+            <option value="cm" ${data.unidad === 'cm' ? 'selected' : ''}>cm</option>
+            <option value="mts" ${data.unidad === 'mts' ? 'selected' : ''}>mts</option>
+            <option value="pulgadas" ${data.unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
           </select>
-        </td>
+        </td>        
         <td><input type="number" class="form-control esp-cantidad" value="${data.cantidad || ''}" min="0"></td>
         <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01"></td>
-        <td><input type="number" class="form-control esp-perdida" value="${data.perdida || ''}" min="0" step="0.01"></td>
+        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01"></td>
+        <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
     `;
@@ -1010,13 +1010,13 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
       especificacionesArray.push({
         item: $row.find('.esp-item').val(),
         calibre: $row.find('.esp-calibre').val(),
-        largo: $row.find('.esp-largo').val(),
-        largo_unidad: $row.find('.esp-largo-unidad').val(),
-        ancho: $row.find('.esp-ancho').val(),
-        ancho_unidad: $row.find('.esp-ancho-unidad').val(),
+        largo: $row.find('.esp-largo').val(),        
+        ancho: $row.find('.esp-ancho').val(),        
         cantidad: $row.find('.esp-cantidad').val(),
+        unidad: $row.find('.esp-largo-unidad').val(),
         kg: $row.find('.esp-kg').val(),
-        perdida: $row.find('.esp-perdida').val(),
+        retal_kg: $row.find('.esp-retal_kg').val(),
+        reproceso: $row.find('.esp-reproceso').val(),
       });
     });
 
@@ -1059,20 +1059,14 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         }
     });
 
-    const opProcesosVal = $opProcesosSelect.val();
-    if (!opProcesosVal || opProcesosVal.length === 0) {
-        $opProcesosSelect.next('.select2-container').addClass('is-invalid-select2');
+    const opProcesosVal = $opProcesosSelect.val() || [];
+    if (opProcesosVal.includes('otro_proceso_custom_op') && !$opOtroProcesoInput.val().trim()) {
+        $opOtroProcesoInput.addClass('is-invalid');
+        $('#op_otro_proceso_container .invalid-feedback').show();
         formValido = false;
     } else {
-        $opProcesosSelect.next('.select2-container').removeClass('is-invalid-select2');
-        if (opProcesosVal.includes('otro_proceso_custom_op') && !$opOtroProcesoInput.val().trim()) {
-            $opOtroProcesoInput.addClass('is-invalid');
-            $('#op_otro_proceso_container .invalid-feedback').show();
-            formValido = false;
-        } else {
-            $opOtroProcesoInput.removeClass('is-invalid');
-            $('#op_otro_proceso_container .invalid-feedback').hide();
-        }
+        $opOtroProcesoInput.removeClass('is-invalid');
+        $('#op_otro_proceso_container .invalid-feedback').hide();
     }
 
     let piezasValidas = true;
@@ -1144,11 +1138,50 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     isSubmitting = true;
     submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
     
-    const formData = new FormData(form); // Recoge campos normales, pero el input 'documentos' podría estar vacío debido al .value = null
+    const formData = new FormData();
+    formData.append('fecha', $('#fecha').val());
+    formData.append('fecha_entrega', $('#fecha_entrega').val());
+    formData.append('version', $('#version').val());
+    formData.append('cotizacion', $('#cotizacion').val());
+    formData.append('odi', $('#odi').val());
+    formData.append('id_cliente', $('#id_cliente').val());
+    formData.append('producto', $('#producto').val());
+    formData.append('cantidad', $('#cantidad').val());
+    formData.append('referencia', $('#referencia').val());
+    formData.append('id_empleado', $('#id_empleado').val());
+    formData.append('descripcion_general_op', $('#descripcion_general_op').val());
+    const opIdsProcesos = $('#op_ids_procesos').val();
+    if (opIdsProcesos) {
+        opIdsProcesos.forEach(id => {
+            formData.append('op_ids_procesos', id);
+        });
+    }
+    formData.append('op_otro_proceso', $('#op_otro_proceso').val());
+    formData.append('piezas', $('#piezas').val());
+    formData.append('empaque', $('#empaque').val());
+    formData.append('estado', $('#estado').val());
 
-    // Eliminar el campo 'documentos' que FormData(form) podría haber tomado (probablemente vacío)
-    // para asegurar que solo usemos los de selectedFiles.
-    formData.delete('documentos');
+    // Manejo de campos opcionales que pueden ser null
+    const logisticaVal = $('#logistica').val();
+    formData.append('logistica', logisticaVal === null ? '' : logisticaVal);
+    
+    const estadoProyectoVal = $('#estado_proyecto').val();
+    formData.append('estado_proyecto', estadoProyectoVal === null ? '' : estadoProyectoVal);
+
+    const supervisorVal = $('#id_supervisor').val();
+    formData.append('id_supervisor', supervisorVal === null ? '' : supervisorVal);
+
+    // Manejo de archivos de render
+    if ($('#imageUpload')[0].files[0]) {
+      formData.append('render', $('#imageUpload')[0].files[0]);
+    }
+
+    // Manejo de URLs
+    $('input[name="urls[]"]').each(function() {
+        if ($(this).val()) {
+            formData.append('urls[]', $(this).val());
+        }
+    });
 
     // Añadir los archivos de selectedFiles al FormData
     // 'selectedFiles' es el array que hemos estado manteniendo en el cliente

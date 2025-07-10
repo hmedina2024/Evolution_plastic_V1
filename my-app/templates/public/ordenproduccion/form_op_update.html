@@ -82,7 +82,17 @@
             <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
-        </div>       
+        </div>
+        <div class="col-md-6">
+          <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
+          <select name="estado_proyecto" id="estado_proyecto" class="form-control select2">
+            <option value="" {% if not op_data.estado_proyecto %}selected{% endif %}>Seleccionar Estado del Proyecto</option>
+            <option value="Artes en ajustes" {% if op_data.estado_proyecto == 'Artes en ajustes' %}selected{% endif %}>Artes en ajustes</option>
+            <option value="Artes aprobadas" {% if op_data.estado_proyecto == 'Artes aprobadas' %}selected{% endif %}>Artes aprobadas</option>
+            <option value="Validar con prototipo aprobado" {% if op_data.estado_proyecto == 'Validar con prototipo aprobado' %}selected{% endif %}>Validar con prototipo aprobado</option>
+            <option value="Validar con cabeza de serie" {% if op_data.estado_proyecto == 'Validar con cabeza de serie' %}selected{% endif %}>Validar con cabeza de serie</option>
+          </select>
+        </div>
       </div>
       <div class="row g-4 mt-3">        
         <div class="col-md-4">
@@ -329,18 +339,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <table class="table table-bordered piece-table">
+                <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
                             <th>ITEM</th>
                             <th>CALIBRE</th>
-                            <th>LARGO</th>
-                            <th>UNIDAD</th>
+                            <th>LARGO</th>                            
                             <th>ANCHO</th>
-                            <th>UNIDAD</th>
+                            <th>UNIDAD</th>                            
                             <th>CANTIDAD</th>
                             <th>KG</th>
-                            <th>PÉRDIDA</th>
+                            <th>RETAL (kg)</th>
+                            <th>REPROCESO</th>
                             <th>ACCIONES</th>
                         </tr>
                     </thead>
@@ -348,17 +358,10 @@
                         <tr>
                             <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
                             <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>
-                            <td>
-                                <select class="form-select" name="especificaciones[0][largo_unidad]">
-                                    <option value="cm">cm</option>
-                                    <option value="mts">mts</option>
-                                    <option value="pulgadas">pulgadas</option>
-                                </select>
-                            </td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>                            
                             <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
                             <td>
-                                <select class="form-select" name="especificaciones[0][ancho_unidad]">
+                                <select class="form-select" name="especificaciones[0][unidad]">
                                     <option value="cm">cm</option>
                                     <option value="mts">mts</option>
                                     <option value="pulgadas">pulgadas</option>
@@ -366,7 +369,8 @@
                             </td>
                             <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
                             <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][perdida]" min="0" step="0.01"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
                             <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
                         </tr>
                     </tbody>
@@ -618,6 +622,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
 
   // --- Llenar campos del formulario con datosOpExistente ---
   if (datosOpExistente && Object.keys(datosOpExistente).length > 0) {
@@ -660,6 +665,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
     if (datosOpExistente.logistica) {
       $('#logistica').val(datosOpExistente.logistica).trigger('change');
+    }
+
+    if (datosOpExistente.estado_proyecto) {
+      $('#estado_proyecto').val(datosOpExistente.estado_proyecto).trigger('change');
     }
 
     // Procesos Globales (Select2 multiple con AJAX y opción "Otro")
@@ -1327,24 +1336,18 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
         <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
         <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>
-        <td>
-          <select class="form-select esp-largo-unidad">
-            <option value="cm" ${data.largo_unidad === 'cm' ? 'selected' : ''}>cm</option>
-            <option value="mts" ${data.largo_unidad === 'mts' ? 'selected' : ''}>mts</option>
-            <option value="pulgadas" ${data.largo_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
-          </select>
-        </td>
         <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01"></td>
         <td>
-          <select class="form-select esp-ancho-unidad">
-            <option value="cm" ${data.ancho_unidad === 'cm' ? 'selected' : ''}>cm</option>
-            <option value="mts" ${data.ancho_unidad === 'mts' ? 'selected' : ''}>mts</option>
-            <option value="pulgadas" ${data.ancho_unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
+          <select class="form-select esp-largo-unidad">
+            <option value="cm" ${data.unidad === 'cm' ? 'selected' : ''}>cm</option>
+            <option value="mts" ${data.unidad === 'mts' ? 'selected' : ''}>mts</option>
+            <option value="pulgadas" ${data.unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
           </select>
         </td>
         <td><input type="number" class="form-control esp-cantidad" value="${data.cantidad_especificacion || ''}" min="0"></td>
         <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01"></td>
-        <td><input type="number" class="form-control esp-perdida" value="${data.perdida || ''}" min="0" step="0.01"></td>
+        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01"></td>
+        <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
     `;
@@ -1390,13 +1393,13 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       especificacionesArray.push({
         item: $row.find('.esp-item').val(),
         calibre: $row.find('.esp-calibre').val(),
-        largo: $row.find('.esp-largo').val(),
-        largo_unidad: $row.find('.esp-largo-unidad').val(),
+        largo: $row.find('.esp-largo').val(),        
         ancho: $row.find('.esp-ancho').val(),
-        ancho_unidad: $row.find('.esp-ancho-unidad').val(),
+        unidad: $row.find('.esp-largo-unidad').val(),        
         cantidad_especificacion: $row.find('.esp-cantidad').val(), // Corregido: usar la clave que espera el backend/modelo
         kg: $row.find('.esp-kg').val(),
-        perdida: $row.find('.esp-perdida').val(),
+        retal_kg: $row.find('.esp-retal_kg').val(),
+        reproceso: $row.find('.esp-reproceso').val(),
       });
     });
 
@@ -1525,6 +1528,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
     
     const formData = new FormData(form); // Recoge campos normales, pero el input 'documentos' podría estar vacío debido al .value = null
+    formData.append('estado_proyecto', $('#estado_proyecto').val());
 
     // Eliminar el campo 'documentos' que FormData(form) podría haber tomado (probablemente vacío)
     // para asegurar que solo usemos los de selectedFiles.

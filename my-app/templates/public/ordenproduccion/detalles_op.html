@@ -92,6 +92,10 @@
         <label for="logistica" class="form-label fw-bold text-primary">Logística</label>
         <div class="form-control" readonly>{{ detalle_op.logistica | default('No especificada') }}</div>
       </div>
+      <div class="col-md-4">
+        <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado Proyecto</label>
+        <div class="form-control" readonly>{{ detalle_op.estado_proyecto | default('No especificado') }}</div>
+      </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-3">
@@ -258,12 +262,12 @@
                   <th>Item</th>
                   <th>Calibre</th>
                   <th>Largo</th>
-                  <th>Un.</th>
                   <th>Ancho</th>
-                  <th>Un.</th>
+                  <th>Unidad</th>
                   <th>Cantidad</th>
                   <th>KG</th>
-                  <th>Pérdida</th>
+                  <th>RETAL (kg)</th>
+                  <th>Reproceso</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,12 +276,12 @@
                   <td>{{ esp.item | default('N/A') }}</td>
                   <td>{{ esp.calibre | default('N/A') }}</td>
                   <td>{{ esp.largo | default('N/A') }}</td>
-                  <td>{{ esp.largo_unidad | default('N/A') }}</td>
                   <td>{{ esp.ancho | default('N/A') }}</td>
-                  <td>{{ esp.ancho_unidad | default('N/A') }}</td>
+                  <td>{{ esp.unidad | default('N/A') }}</td>
                   <td>{{ esp.cantidad_especificacion | default('N/A') }}</td>
                   <td>{{ esp.kg | default('N/A') }}</td>
-                  <td>{{ esp.perdida | default('N/A') }}</td>
+                  <td>{{ esp.retal_kg | default('N/A') }}</td>
+                  <td>{{ esp.reproceso | default('N/A') }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
