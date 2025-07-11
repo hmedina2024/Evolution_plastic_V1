@@ -1639,6 +1639,7 @@ def procesar_form_op(dataForm, files):
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
     logistica_val = dataForm.get('logistica') # Obtener logística
+    estado_proyecto_val = dataForm.get('estado_proyecto')
     urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
     # materiales_op_val = dataForm.get('materiales_op') # Eliminado
  
@@ -1748,7 +1749,7 @@ def procesar_form_op(dataForm, files):
         if not valido:
             errores.append(f"Render: {nombre_archivo_o_msg}")
         elif nombre_archivo_o_msg:
-            path_render_a_guardar = os.path.join('static', 'render_op', nombre_archivo_o_msg).replace("\\", "/")
+            path_render_a_guardar = nombre_archivo_o_msg
 
     documentos_a_guardar = []
     documentos_adjuntos_files = files.getlist('documentos')
@@ -1923,14 +1924,15 @@ def procesar_form_op(dataForm, files):
             descripcion_general=descripcion_general_op_val,
             empaque=empaque_val,
             logistica=logistica_val, # Añadir logística
+            estado_proyecto=estado_proyecto_val,
             # materiales=materiales_op_val, # Eliminado
             id_usuario_registro=id_usuario_registro
         )
         db.session.add(orden)
         db.session.flush()
 
-        if path_render_a_guardar:
-            nuevo_render = RendersOP(id_op=orden.id_op, render_path=path_render_a_guardar)
+        if nombre_render_a_guardar:
+            nuevo_render = RendersOP(id_op=orden.id_op, render_path=nombre_render_a_guardar)
             db.session.add(nuevo_render)
 
         for doc_info in documentos_a_guardar:
@@ -2081,16 +2083,21 @@ def validar_cod_op(codigo_op):
         return False
 
 
-def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None):
+def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None, search_nombre_cliente=None):
     try:
         # Construir la consulta base
-        query = db.session.query(OrdenProduccion).filter(
+        query = db.session.query(OrdenProduccion).join(Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente).filter(
             OrdenProduccion.fecha_borrado.is_(None))
 
         # Filtrar por código de OP si se proporciona
         if search_codigo_op:
             query = query.filter(
                 OrdenProduccion.codigo_op.ilike(f"%{search_codigo_op}%"))
+        
+        # Filtrar por nombre de cliente si se proporciona
+        if search_nombre_cliente:
+            query = query.filter(
+                Clientes.nombre_cliente.ilike(f"%{search_nombre_cliente}%"))
 
         # Filtrar por fecha de registro si se proporciona
         if search_fecha:
@@ -2372,15 +2379,13 @@ def obtener_datos_op_para_edicion(id_op):
             'empaque': orden.empaque or '',
             'logistica': orden.logistica or '', # Añadir logística
             'materiales': orden.materiales or 'No especificado',
+            'estado_proyecto': orden.estado_proyecto or 'No especificado',
             'procesos_globales': [
                 {'id_proceso': p.id_proceso, 'nombre_proceso': p.nombre_proceso}
                 for p in orden.procesos_globales
             ],
             'op_otro_proceso': next((p.nombre_proceso for p in orden.procesos_globales if 'OTRO_' in p.nombre_proceso), ''),
-            'renders': [
-                {'id_render': r.id_render, 'render_path': r.render_path}
-                for r in orden.renders
-            ],
+            'renders': [r.render_path.split('/')[-1] for r in orden.renders if r.fecha_borrado is None],
             'documentos': [
                 {
                     'id_documento': d.id_documento,
@@ -3415,13 +3420,15 @@ def eliminar_op(id_op):
         return 0
 
 
-def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, order=None):
+def buscar_ordenes_produccion_bd(codigo_op='', fecha='', nombre_cliente='', start=0, length=10, order=None):
     try:
-        # Consulta base con JOIN para obtener el nombre del supervisor
+        # Consulta base con JOIN para obtener el nombre del supervisor y cliente
         query = db.session.query(
             OrdenProduccion,
             db.func.concat(Empleados.nombre_empleado, ' ',
                            Empleados.apellido_empleado).label('nombre_supervisor')
+        ).outerjoin(
+            Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
         ).outerjoin(
             Empleados, OrdenProduccion.id_supervisor == Empleados.id_empleado
         )
@@ -3443,6 +3450,10 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
                 app.logger.error(
                     f"Error al parsear la fecha: {fecha}, error: {e}")
                 # Si la fecha no es válida, no aplicamos el filtro
+        
+        # Filtro por nombre de cliente
+        if nombre_cliente:
+            query = query.filter(Clientes.nombre_cliente.ilike(f'%{nombre_cliente}%'))
 
         # Total de registros sin filtrar
         total = db.session.query(OrdenProduccion).count()
@@ -3456,7 +3467,7 @@ def buscar_ordenes_produccion_bd(codigo_op='', fecha='', start=0, length=10, ord
         column_mapping = {
             0: OrdenProduccion.id_op,        # Columna '#'
             1: OrdenProduccion.codigo_op,    # Columna 'Cod. OP'
-            2: OrdenProduccion.nombre_cliente,  # Columna 'Cliente'
+            2: Clientes.nombre_cliente,  # Columna 'Cliente'
             3: OrdenProduccion.producto,     # Columna 'Producto'
             4: OrdenProduccion.cantidad,     # Columna 'Cantidad'
             5: OrdenProduccion.estado,       # Columna 'Estado'
@@ -4303,3 +4314,5 @@ def get_detalles_pieza_maestra_options(grupo_detalles_pieza_param):
     except Exception as e:
         app.logger.error(f"Error en get_detalles_pieza_maestra_options para el grupo '{grupo_detalles_pieza_param}': {e}", exc_info=True)
         return [] # Devolver lista vacía en caso de error
+
+

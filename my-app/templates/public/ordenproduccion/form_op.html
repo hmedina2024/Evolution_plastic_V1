@@ -64,12 +64,12 @@
           <label for="referencia" class="form-label fw-bold text-primary">REFERENCIA</label>
           <input type="text" name="referencia" id="referencia" class="form-control">
         </div>        
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
           <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
           <select name="logistica" id="logistica" class="form-control select2" >
             <option value="" disabled selected>Seleccionar Logística</option>
@@ -77,7 +77,7 @@
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
           <select name="estado_proyecto" id="estado_proyecto" class="form-control select2">
             <option value="" selected>Seleccionar Estado del Proyecto</option>
@@ -333,7 +333,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <table class="table table-bordered piece-table">
+                <div class="table-responsive">
+                    <table class="table table-bordered piece-table">
                     <thead>
                         <tr>
                             <th>ITEM</th>
@@ -354,13 +355,13 @@
                             <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
                             <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>                            
                             <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
-                            <td>
-                                <select class="form-select" name="especificaciones[0][unidad]">
+                            <td class="td-unidad-ancho">
+                                <select class="form-select" name="especificaciones[0][unidad]" style="width: 1000px !important;">
                                     <option value="cm">cm</option>
                                     <option value="mts">mts</option>
                                     <option value="pulgadas">pulgadas</option>
                                 </select>
-                            </td>                            
+                            </td>
                             <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
                             <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
                             <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01"></td>
@@ -368,7 +369,8 @@
                             <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
                         </tr>
                     </tbody>
-                </table>
+                    </table>
+                </div>
                 <button type="button" class="btn btn-primary" id="add_especificacion_btn">Agregar Fila</button>
             </div>
             <div class="modal-footer">
@@ -1150,13 +1152,6 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     formData.append('referencia', $('#referencia').val());
     formData.append('id_empleado', $('#id_empleado').val());
     formData.append('descripcion_general_op', $('#descripcion_general_op').val());
-    const opIdsProcesos = $('#op_ids_procesos').val();
-    if (opIdsProcesos) {
-        opIdsProcesos.forEach(id => {
-            formData.append('op_ids_procesos', id);
-        });
-    }
-    formData.append('op_otro_proceso', $('#op_otro_proceso').val());
     formData.append('piezas', $('#piezas').val());
     formData.append('empaque', $('#empaque').val());
     formData.append('estado', $('#estado').val());
@@ -1170,6 +1165,15 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
 
     const supervisorVal = $('#id_supervisor').val();
     formData.append('id_supervisor', supervisorVal === null ? '' : supervisorVal);
+
+    // Manejo de procesos
+    const opIdsProcesos = $('#op_ids_procesos').val();
+    if (opIdsProcesos) {
+        opIdsProcesos.forEach(id => {
+            formData.append('op_ids_procesos', id);
+        });
+    }
+    formData.append('op_otro_proceso', $('#op_otro_proceso').val());
 
     // Manejo de archivos de render
     if ($('#imageUpload')[0].files[0]) {

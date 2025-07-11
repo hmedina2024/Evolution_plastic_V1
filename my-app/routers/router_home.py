@@ -892,6 +892,7 @@ def buscando_ordenes_produccion():
     length = request.json.get('length', 10)
     search_codigo_op = request.json.get('codigo_op', '')
     search_fecha = request.json.get('fecha', '')
+    search_nombre_cliente = request.json.get('nombre_cliente', '')
 
     # Llamar a la función ajustada
     result = sql_lista_op_bd(
@@ -899,7 +900,8 @@ def buscando_ordenes_produccion():
         start=start,
         length=length,
         search_codigo_op=search_codigo_op,
-        search_fecha=search_fecha
+        search_fecha=search_fecha,
+        search_nombre_cliente=search_nombre_cliente
     )
 
     return jsonify(result)
@@ -1390,3 +1392,5 @@ def buscando_empresas_route():
             "fin": 0,
             "error": "No autorizado"
         })
+
+
