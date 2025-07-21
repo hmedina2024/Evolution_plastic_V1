@@ -97,13 +97,16 @@ $(document).ready(function () {
                         per_page: 10
                     };
                 },
-                processResults: function (data) {
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
                     return {
                         results: data[dataKey].map(item => ({
-                            id: item[idField],  // id_op como valor interno
-                            text: item[textField]  // codigo_op como texto visible
+                            id: item[idField],
+                            text: item[textField]
                         })),
-                        pagination: { more: data[dataKey].length === 10 }
+                        pagination: {
+                            more: (params.page * 10) < data.total
+                        }
                     };
                 },
                 cache: true
@@ -124,7 +127,66 @@ $(document).ready(function () {
     // Configurar Select2 para cada campo con el nuevo formato
     setupSelect2('id_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
     setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
-    setupSelect2('id_actividad', '/api/actividades', 'Buscar actividad...', 'actividades', 'id_actividad', 'nombre_actividad');
+    
+    // Inicializar el Select2 de actividades deshabilitado
+    const actividadSelect = $('#id_actividad').select2({
+        placeholder: 'Seleccione un proceso primero',
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true
+    }).prop('disabled', true);
+
+    // Cuando se selecciona un proceso, actualizar las actividades
+    $('#id_proceso').on('select2:select', function (e) {
+        const id_proceso = e.params.data.id;
+        
+        // Habilitar y reconfigurar el Select2 de actividades
+        actividadSelect.prop('disabled', false).empty().select2({
+            placeholder: 'Buscar actividad...',
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: '/api/actividades',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10,
+                        id_proceso: id_proceso // Enviar el id_proceso seleccionado
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.actividades.map(item => ({
+                            id: item.id_actividad,
+                            text: item.nombre_actividad
+                        })),
+                        pagination: {
+                            more: (params.page * 10) < data.total
+                        }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) { return data.text; },
+            templateSelection: function (data) { return data.text || data.id; }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
+    });
+
+    // Si se deselecciona el proceso, deshabilitar y limpiar actividades
+    $('#id_proceso').on('select2:unselect', function () {
+        actividadSelect.empty().prop('disabled', true).select2({
+            placeholder: 'Seleccione un proceso primero'
+        });
+    });
     setupSelect2('id_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', 'id_op', 'codigo_op');
 
     // Validaciones de fechas (sin cambios)

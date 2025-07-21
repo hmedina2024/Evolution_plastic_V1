@@ -3,6 +3,9 @@
 {% block title %}Registrar Nueva Actividad{% endblock %}
 
 {% block customCSS %}
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename ='assets/css/file.css') }}" />
 {% endblock %}
 
@@ -34,16 +37,25 @@
         hidden />
       
       <div class="row g-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label for="codigo_actividad" class="form-label fw-bold text-primary">Código de Actividad</label>
           <input type="text" name="codigo_actividad" value="{{ respuestaActividad.codigo_actividad }}" class="form-control" required readonly />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label for="nombre_actividad" class="form-label fw-bold text-primary">Nombre Actividad</label>
           <input class="form-control" type="text" name="nombre_actividad" value="{{ respuestaActividad.nombre_actividad }}" required />
         </div>
-      </div>
-      
+        <div class="col-md-4">
+          <label for="id_proceso"
+            class="form-label fw-bold text-primary">Proceso <span
+              class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2"
+            required>
+            <option value="{{ respuestaActividad.id_proceso }}" selected>{{
+              respuestaActividad.proceso }}</option>
+          </select>
+        </div>
+      </div>      
       <div class="row g-4 mt-3">
         <div class="col-md-6">
           <label for="descripcion_actividad" class="form-label fw-bold text-primary">Descripción de la Actividad</label>
@@ -76,4 +88,64 @@
 
 {% block customJS %}
 <script src="{{ url_for('static', filename ='assets/customJS/file.js') }}"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>  
+  <script>
+  $(document).ready(function () {
+    function setupSelect2(selectId, url, placeholder, dataKey, initialValue, initialText) {
+      const $select = $(`#${selectId}`);
+
+      // Inicializar Select2 con un valor inicial
+      if (initialValue && initialText) {
+        $select.append(new Option(initialText, initialValue, true, true)).trigger('change');
+      } else {
+        $select.append(new Option(placeholder, '', true, true)).trigger('change');
+      }
+
+      $select.select2({
+        placeholder: placeholder,
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return {
+              search: params.term || '',
+              page: params.page || 1,
+              per_page: 10
+            };
+          },
+          processResults: function (data) {
+            console.log('Datos recibidos de la API:', data); // Depuración
+            return {
+              results: data[dataKey].map(item => ({
+                id: item.id || item[Object.keys(item)[0]], // Ajusta según la estructura de la API
+                text: item.text || item[Object.values(item)[0]] || Object.values(item)[1] // Ajusta según la estructura
+              })),
+              pagination: { more: data[dataKey].length === 10 }
+            };
+          },
+          cache: true
+        },
+        templateResult: function (data) {
+          return data.text || data.id;
+        },
+        templateSelection: function (data) {
+          return data.text || data.id || placeholder;
+        }
+      }).on('select2:open', function () {
+        setTimeout(() => {
+          document.querySelector('.select2-search__field').focus();
+        }, 50);
+      });
+    }
+
+    // Configurar Select2 para cada campo
+      setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', '{{ respuestaActividad.id_proceso }}', '{{ respuestaActividad.proceso }}');
+
+  });
+</script>
 {% endblock %}

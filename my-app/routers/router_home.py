@@ -1154,18 +1154,25 @@ def api_actividades():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
-    app.logger.debug(
-        f"ParÃ¡metros recibidos: page={page}, per_page={per_page}, search={search}")
+    id_proceso = request.args.get('id_proceso', None, type=int)
 
-    actividades = get_actividades_paginados(page, per_page, search)
+    paginated_actividades = get_actividades_paginados(page, per_page, search, id_proceso)
+    
+    actividades = paginated_actividades.items
+    total_actividades = paginated_actividades.total
+
     actividades_data = [
         {
-            'id_actividad': act.id_actividad,
-            'nombre_actividad': act.nombre_actividad
+            'id_actividad': str(act.id_actividad),
+            'nombre_actividad': act.nombre_actividad.upper()
         }
         for act in actividades
     ]
-    return jsonify({'actividades': actividades_data})
+    
+    return jsonify({
+        'actividades': actividades_data,
+        'total': total_actividades
+    })
 
 
 

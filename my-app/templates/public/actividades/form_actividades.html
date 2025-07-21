@@ -3,6 +3,7 @@
 {% block title %}Registrar Actividad{% endblock %}
 
 {% block customCSS %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
@@ -17,14 +18,18 @@
       <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-actividad" autocomplete="off" enctype="multipart/form-data">
         <div class="card-body p-4"> 
           <div class="row g-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label for="cod_actividad" class="form-label fw-bold text-primary">COD. ACTIVIDAD</label>
               <input type="text" name="cod_actividad" class="form-control" required />
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label for="nombre_actividad" class="form-label fw-bold text-primary">NOMBRE DE LA ACTIVIDAD</label>
               <input type="text" name="nombre_actividad" class="form-control" required />
             </div>
+            <div class="col-md-4">
+          <label for="id_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2" required></select>
+        </div>
           </div>
           
           <div class="row g-4 mt-3">
@@ -48,9 +53,55 @@
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Añadimos jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
+    // Configuración de Select2 para manejar el nuevo formato de las APIs
+    function setupSelect2(selectId, url, placeholder, dataKey, idField, textField) {
+        $(`#${selectId}`).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || '',
+                        page: params.page || 1,
+                        per_page: 10
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data[dataKey].map(item => ({
+                            id: item[idField],  // id_op como valor interno
+                            text: item[textField]  // codigo_op como texto visible
+                        })),
+                        pagination: { more: data[dataKey].length === 10 }
+                    };
+                },
+                cache: true
+            },
+            templateResult: function (data) {
+                return data.text;  // Asegura que el texto mostrado sea el codigo_op
+            },
+            templateSelection: function (data) {
+                return data.text || data.id;  // Muestra codigo_op o id_op si no hay texto
+            }
+        }).on('select2:open', function () {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 50);
+        });
+    }
+
+    // Inicializar Select2 para el campo de proceso
+    setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
+
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
     const submitBtn = $('button[type="submit"]');

@@ -940,6 +940,7 @@ def procesar_form_actividad(dataForm):
         actividad = Actividades(
             codigo_actividad=dataForm['cod_actividad'],
             nombre_actividad=dataForm['nombre_actividad'],
+            id_proceso=dataForm['id_proceso'],
             descripcion_actividad=dataForm['descripcion_actividad']
         )
         db.session.add(actividad)
@@ -1007,10 +1008,13 @@ def buscar_actividad_unico(id):
         actividad = db.session.query(
             Actividades).filter_by(id_actividad=id).first()
         if actividad:
+            proceso = actividad.proceso
             return {
                 'id_actividad': actividad.id_actividad,
                 'codigo_actividad': actividad.codigo_actividad,
                 'nombre_actividad': actividad.nombre_actividad,
+                'id_proceso': actividad.id_proceso,
+                'proceso': proceso.nombre_proceso if proceso else 'Desconocido',
                 'descripcion_actividad': actividad.descripcion_actividad,
                 'fecha_registro': actividad.fecha_registro
             }
@@ -1028,6 +1032,7 @@ def procesar_actualizar_actividad(data):
         if actividad:
             actividad.codigo_actividad = data.form['codigo_actividad']
             actividad.nombre_actividad = data.form['nombre_actividad']
+            actividad.id_proceso = data.form['id_proceso']
             actividad.descripcion_actividad = data.form['descripcion_actividad']
             db.session.commit()
             return 1  # Indica éxito (rowcount)
@@ -3934,14 +3939,17 @@ def get_piezas_paginados(page, per_page, search):
     return query.paginate(page=page, per_page=per_page, error_out=False).items
 
 
-def get_actividades_paginados(page, per_page, search):
+def get_actividades_paginados(page, per_page, search, id_proceso=None):
     query = Actividades.query.filter(Actividades.fecha_borrado.is_(None))
+
+    if id_proceso:
+        query = query.filter(Actividades.id_proceso == id_proceso)
 
     if search:
         search_term = f"%{search}%"
         query = query.filter(Actividades.nombre_actividad.ilike(search_term))
 
-    return query.paginate(page=page, per_page=per_page, error_out=False).items
+    return query.paginate(page=page, per_page=per_page, error_out=False)
 
 
 
