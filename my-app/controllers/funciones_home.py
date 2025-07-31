@@ -1644,6 +1644,7 @@ def procesar_form_op(dataForm, files):
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
     logistica_val = dataForm.get('logistica') # Obtener logística
+    instructivo_val = dataForm.get('instructivo') 
     estado_proyecto_val = dataForm.get('estado_proyecto')
     urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
     # materiales_op_val = dataForm.get('materiales_op') # Eliminado
@@ -1929,6 +1930,7 @@ def procesar_form_op(dataForm, files):
             descripcion_general=descripcion_general_op_val,
             empaque=empaque_val,
             logistica=logistica_val, # Añadir logística
+            instructivo=instructivo_val, # Añadir logística
             estado_proyecto=estado_proyecto_val,
             # materiales=materiales_op_val, # Eliminado
             id_usuario_registro=id_usuario_registro
@@ -1936,8 +1938,8 @@ def procesar_form_op(dataForm, files):
         db.session.add(orden)
         db.session.flush()
 
-        if nombre_render_a_guardar:
-            nuevo_render = RendersOP(id_op=orden.id_op, render_path=nombre_render_a_guardar)
+        if path_render_a_guardar:
+            nuevo_render = RendersOP(id_op=orden.id_op, render_path=path_render_a_guardar)
             db.session.add(nuevo_render)
 
         for doc_info in documentos_a_guardar:

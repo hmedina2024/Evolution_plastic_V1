@@ -217,6 +217,7 @@ class OrdenProduccion(db.Model):
     descripcion_general = db.Column(db.Text, nullable=True)
     empaque = db.Column(db.String(100), nullable=True)
     logistica = db.Column(db.String(100), nullable=True) # Nuevo campo para logística
+    instructivo = db.Column(db.String(10), nullable=True) # Nuevo campo instructivo
     estado_proyecto = db.Column(db.String(200), nullable=True)
     materiales = db.Column(db.Text, nullable=True) # Considerar si aún es necesario
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)

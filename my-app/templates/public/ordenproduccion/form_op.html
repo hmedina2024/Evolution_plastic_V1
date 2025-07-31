@@ -69,7 +69,7 @@
           <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
           <select name="logistica" id="logistica" class="form-control select2" >
             <option value="" disabled selected>Seleccionar Logística</option>
@@ -77,7 +77,14 @@
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-2">
+          <label for="instructivo" class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO <span class="text-danger">*</span></label>
+          <select name="instructivo" id="instructivo" class="form-control select2" required>
+            <option value="" disabled selected>Requiere Instructivo</option>
+            <option value="SI">SI</option><option value="NO">NO</option>
+          </select>
+        </div>
+        <div class="col-md-3">
           <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
           <select name="estado_proyecto" id="estado_proyecto" class="form-control select2">
             <option value="" selected>Seleccionar Estado del Proyecto</option>
@@ -536,6 +543,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
 
   // --- INICIO: Selector Global de Procesos para la OP ---
@@ -1159,6 +1167,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     // Manejo de campos opcionales que pueden ser null
     const logisticaVal = $('#logistica').val();
     formData.append('logistica', logisticaVal === null ? '' : logisticaVal);
+
+    const instructivoVal = $('#instructivo').val();
+    formData.append('instructivo', instructivoVal === null ? '' : instructivoVal);
     
     const estadoProyectoVal = $('#estado_proyecto').val();
     formData.append('estado_proyecto', estadoProyectoVal === null ? '' : estadoProyectoVal);
