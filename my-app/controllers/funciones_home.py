@@ -1978,7 +1978,8 @@ def procesar_form_op(dataForm, files):
                 alto=float(pieza_data_form.get('alto')) if pieza_data_form.get('alto') else None,
                 fondo=float(pieza_data_form.get('fondo')) if pieza_data_form.get('fondo') else None,
                 proveedor_externo=pieza_data_form.get('proveedor_externo'),
-                descripcion_pieza=pieza_data_form.get('descripcion_pieza')
+                descripcion_pieza=pieza_data_form.get('descripcion_pieza'),
+                tipo_molde=pieza_data_form.get('tipo_molde')
             )
             db.session.add(orden_pieza_obj)
             db.session.flush() # Para obtener el id_orden_pieza para las tablas relacionadas
@@ -2274,6 +2275,7 @@ def sql_detalles_op_bd(id_op):
                 'fondo_pieza': str(pieza_orden_obj.fondo) if pieza_orden_obj.fondo is not None else 'No especificado', # Nuevo
                 'proveedor_externo': pieza_orden_obj.proveedor_externo if pieza_orden_obj.proveedor_externo else 'No especificado', # Nuevo
                 'descripcion_general': pieza_orden_obj.descripcion_pieza if pieza_orden_obj.descripcion_pieza else 'No especificado',
+                'tipo_molde': pieza_orden_obj.tipo_molde if pieza_orden_obj.tipo_molde else 'No especificado', # Nuevo
                 'actividades': actividades_nombres if actividades_nombres else ['No especificadas'],
                 'detalles_configuracion': detalles_config_list,
                 'especificaciones': especificaciones_list # Nuevo
@@ -2313,6 +2315,7 @@ def sql_detalles_op_bd(id_op):
             'descripcion_general': orden_obj.descripcion_general if orden_obj.descripcion_general else 'No especificado',
             'empaque': orden_obj.empaque if orden_obj.empaque else 'No especificado',
             'logistica': orden_obj.logistica if orden_obj.logistica else 'No especificado', # Nuevo
+            'instructivo': orden_obj.instructivo if orden_obj.instructivo else 'No especificado', # Nuevo
             'estado_proyecto': orden_obj.estado_proyecto if orden_obj.estado_proyecto else 'No especificado', # Nuevo
             'materiales': orden_obj.materiales if orden_obj.materiales else 'No especificado', # Materiales generales de la OP
             'fecha_registro': orden_obj.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden_obj.fecha_registro else 'Sin registro',
@@ -2385,6 +2388,7 @@ def obtener_datos_op_para_edicion(id_op):
             'descripcion_general': orden.descripcion_general or '',
             'empaque': orden.empaque or '',
             'logistica': orden.logistica or '', # Añadir logística
+            'instructivo': orden.instructivo or '', # Añadir logística
             'materiales': orden.materiales or 'No especificado',
             'estado_proyecto': orden.estado_proyecto or 'No especificado',
             'procesos_globales': [
@@ -2419,6 +2423,7 @@ def obtener_datos_op_para_edicion(id_op):
                     'fondo_pieza': str(p.fondo) if p.fondo is not None else None,
                     'proveedor_externo': p.proveedor_externo or 'No especificado',
                     'descripcion_pieza': p.descripcion_pieza or 'No especificado',
+                    'tipo_molde': p.tipo_molde or 'No especificado',
                     'actividades': [
                         {'id_actividad': a.id_actividad, 'nombre_actividad': a.nombre_actividad}
                         for a in p.actividades
@@ -2628,6 +2633,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
     empaque_val = dataForm.get('empaque')
     estado_val = dataForm.get('estado')
     logistica_val = dataForm.get('logistica') # Nuevo campo
+    instructivo_val = dataForm.get('instructivo') # Nuevo campo
     # medida_val = dataForm.get('medida') # Campo a revisar/eliminar, por ahora no se usa en la actualización
 
     # Validaciones de campos básicos
@@ -2867,7 +2873,8 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         orden.descripcion_general_op = descripcion_general_op_val
         orden.empaque = empaque_val
         orden.estado = estado_val
-        orden.logistica = logistica_val
+        orden.logistica = dataForm.get('logistica')
+        orden.instructivo = dataForm.get('instructivo')
         orden.estado_proyecto = dataForm.get('estado_proyecto')
         
         try:
@@ -3018,6 +3025,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 alto=float(pieza_d_form_db_val['alto']) if pieza_d_form_db_val.get('alto') else None,
                 fondo=float(pieza_d_form_db_val['fondo']) if pieza_d_form_db_val.get('fondo') else None,
                 proveedor_externo=pieza_d_form_db_val.get('proveedor_externo'),
+                tipo_molde=pieza_d_form_db_val.get('tipo_molde'),
                 montaje=pieza_d_form_db_val.get('montaje'),
                 montaje_tamano=pieza_d_form_db_val.get('tamano_montaje'),
                 cantidad_material=pieza_d_form_db_val.get('cantidad_material'),

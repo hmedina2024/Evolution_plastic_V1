@@ -57,7 +57,7 @@
         </div>
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="number" name="cantidad" id="cantidad" required min="1">
+          <input class="form-control" type="text" name="cantidad" id="cantidad" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
         <div class="col-md-6">
@@ -203,13 +203,15 @@
             </div>
             <div class="col-md-2">
               <label for="modal_maculatura" class="form-label">MACULATURA</label>
-              <input type="number" class="form-control modal-input-dinamico" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0" data-grupo-input="MACULATURA">
+              <input type="text" class="form-control modal-input-dinamico" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0" data-grupo-input="MACULATURA" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
             <div class="col-md-8">
               <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
-              <input type="number"  class="form-control modal-input-dinamico" id="modal_tamano_montaje" data-grupo-input="TAMAÑO DEL MONTAJE">
+              <input type="text"  class="form-control modal-input-dinamico" id="modal_tamano_montaje" data-grupo-input="TAMAÑO DEL MONTAJE" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
             <div class="col-md-4">
                 <label for="modal_unidad_medida_otro" class="form-label">UNIDAD MEDIDA</label>
@@ -274,7 +276,8 @@
             <!-- Cantidad de Tintas -->
             <div class="col-md-4">
                 <label for="cantidad_tintas" class="form-label">CANT. TINTAS</label>
-                <input type="number" class="form-control modal-input-dinamico" id="cantidad_tintas" name="cantidad_tintas" min="0" data-grupo-input="CANIDAD TINTAS">
+                <input type="text" class="form-control modal-input-dinamico" id="cantidad_tintas" name="cantidad_tintas" min="0" data-grupo-input="CANIDAD TINTAS" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
             </div>
             </div>
@@ -299,23 +302,28 @@
             <div class="row">
               <div class="col-md-2">
                 <label for="numero_cavidades" class="form-label"># cavidades</label>
-                <input type="number" class="form-control modal-input-dinamico" id="numero_cavidades" min="0" data-grupo-input="NUMERO CAVIDADES">
+                <input type="text" class="form-control modal-input-dinamico" id="numero_cavidades" min="0" data-grupo-input="NUMERO CAVIDADES" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-2">
                 <label for="numero_golpes" class="form-label"># golpes</label>
-                <input type="number" class="form-control modal-input-dinamico" id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES">
+                <input type="text" class="form-control modal-input-dinamico" id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-2">
                 <label for="troquelado_total" class="form-label">troq. total</label>
-                <input type="number" class="form-control modal-input-dinamico" id="troquelado_total" min="0" data-grupo-input="TROQUELADO TOTAL">
+                <input type="text" class="form-control modal-input-dinamico" id="troquelado_total" min="0" data-grupo-input="TROQUELADO TOTAL" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-2">
                 <label for="troquelado_parcial" class="form-label">troq. parcial</label>
-                <input type="number" class="form-control modal-input-dinamico" id="troquelado_parcial" min="0" data-grupo-input="TROQUELADO PARCIAL">
+                <input type="text" class="form-control modal-input-dinamico" id="troquelado_parcial" min="0" data-grupo-input="TROQUELADO PARCIAL" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-2">
                 <label for="grafado" class="form-label">grafado</label>
-                <input type="number" class="form-control modal-input-dinamico" id="grafado" min="0" data-grupo-input="GRAFADO">
+                <input type="text" class="form-control modal-input-dinamico" id="grafado" min="0" data-grupo-input="GRAFADO" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
             </div>
           </div>
@@ -359,9 +367,12 @@
                     <tbody id="especificaciones_table_body">
                         <tr>
                             <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>                            
-                            <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][calibre]" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>                            
+                            <td><input type="text" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
                             <td class="td-unidad-ancho">
                                 <select class="form-select" name="especificaciones[0][unidad]" style="width: 1000px !important;">
                                     <option value="cm">cm</option>
@@ -369,9 +380,12 @@
                                     <option value="pulgadas">pulgadas</option>
                                 </select>
                             </td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][cantidad]" min="0" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                            <td><input type="text" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
                             <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
                             <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
                         </tr>
@@ -673,7 +687,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           </div>
           <div class="col-md-6 col-lg-2">
             <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1">
+            <input type="text" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
@@ -685,24 +700,28 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           <!-- Tamaño (Ancho, Alto, Fondo) -->
               <div class="col-md-6 col-lg-1">
                   <label for="ancho_0_${pieceIdSuffix}" class="form-label">Ancho <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+                  <input type="text" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="alto_0_${pieceIdSuffix}" class="form-label">Alto <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+                  <input type="text" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="fondo_0_${pieceIdSuffix}" class="form-label">Fondo</label>
-                  <input type="number" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01">
+                  <input type="text" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
           <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_tamano_montaje_${pieceIdSuffix}" class="form-label">Tamaño Montaje</label><input type="text" name="pieza_tamano_montaje_${pieceIdSuffix}" id="pieza_tamano_montaje_${pieceIdSuffix}" class="form-control pieza-tamano-montaje"></div>
         </div>
         <div class="row g-3 mt-1">
-          <div class="col-md-3"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
-          <div class="col-md-5"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
-          <div class="col-md-4"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
+          <div class="col-md-2"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
+          <div class="col-md-4"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
+          <div class="col-md-3"><label for="tipo_molde_${pieceIdSuffix}" class="form-label">Tipo de molde<span class="text-danger">*</span></label><input required type="text" name="tipo_molde_${pieceIdSuffix}" id="tipo_molde${pieceIdSuffix}" class="form-control tipo-molde" rows="1"></input></div>
+          <div class="col-md-3"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
         </div>
         <div class="row g-3 mt-2">
           <div class="col-12 text-end">
@@ -961,9 +980,12 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     return `
       <tr>
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
-        <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
-        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>        
-        <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01"></td>
+        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="text" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>        
+        <td><input type="text" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
         <td>
           <select class="form-select esp-largo-unidad">
             <option value="cm" ${data.unidad === 'cm' ? 'selected' : ''}>cm</option>
@@ -971,9 +993,12 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             <option value="pulgadas" ${data.unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
           </select>
         </td>        
-        <td><input type="number" class="form-control esp-cantidad" value="${data.cantidad || ''}" min="0"></td>
-        <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01"></td>
-        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01"></td>
+        <td><input type="text" class="form-control esp-cantidad" value="${data.cantidad || ''}" min="0" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="text" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="text" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
@@ -1124,6 +1149,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
                 tamano_montaje: $(`#pieza_tamano_montaje_${suffix}`).val() || null,
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
+                tipo_molde: $(`#tipo_molde_${suffix}`).val() || null,
                 proveedor_externo: $(`#proveedor_externo_${suffix}`).val() || null, // Añadido para recolectar el proveedor
                 id_actividad: actividadSelect.val() ? actividadSelect.val().map(id => parseInt(id)) : null, // Guardar como array si es múltiple
                 valores_configuracion: $pieceGroup.data('valores-configuracion') || [],

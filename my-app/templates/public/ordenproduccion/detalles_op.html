@@ -88,11 +88,15 @@
         <label for="empaque" class="form-label fw-bold text-primary">Empaque</label>
         <div class="form-control" readonly>{{ detalle_op.empaque }}</div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label for="logistica" class="form-label fw-bold text-primary">Logística</label>
         <div class="form-control" readonly>{{ detalle_op.logistica | default('No especificada') }}</div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-2">
+        <label for="instructivo" class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO</label>
+        <div class="form-control" readonly>{{ detalle_op.instructivo | default('No especificada') }}</div>
+      </div>
+      <div class="col-md-3">
         <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado Proyecto</label>
         <div class="form-control" readonly>{{ detalle_op.estado_proyecto | default('No especificado') }}</div>
       </div>
@@ -220,15 +224,17 @@
         </div>
       </div>
       <div class="row g-4 mt-2">
-        <div class="col-md-12">
+        <div class="col-md-4">
           <label class="form-label fw-bold text-primary">Actividades Asociadas</label>
           <div class="form-control" readonly>{{ pieza.actividades|join(', ') }}</div>
         </div>
-      </div>
-      <div class="row g-4 mt-2">
-        <div class="col-md-12">
+        <div class="col-md-5">
           <label class="form-label fw-bold text-primary">Descripción Pieza</label>
           <textarea class="form-control" readonly rows="2">{{ pieza.descripcion_general }}</textarea>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold text-primary">Tipo Molde</label>
+          <div class="form-control" readonly>{{ pieza.tipo_molde }}</div>
         </div>
       </div>
       <!-- Detalles de Configuración Adicional de la Pieza -->

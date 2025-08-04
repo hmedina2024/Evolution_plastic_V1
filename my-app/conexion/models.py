@@ -272,6 +272,7 @@ class OrdenPiezas(db.Model):
     fondo = db.Column(db.Numeric(10, 2), nullable=True)       # Nuevo campo
     proveedor_externo = db.Column(db.String(255), nullable=True) # Nuevo campo
     descripcion_pieza = db.Column(db.Text, nullable=True)
+    tipo_molde = db.Column(db.Text, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
 

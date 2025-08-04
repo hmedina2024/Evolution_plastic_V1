@@ -3,8 +3,11 @@
 {% block title %}Actualizar Orden de Producción{% endblock %}
 
 {% block customCSS %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
 {% block body %}
@@ -14,140 +17,220 @@
       <a href="/lista-de-op" class="text-white">
         <i class="bi bi-arrow-left-circle"></i>
       </a>
-      ACTUALIZAR ORDEN DE PRODUCCIÓN (OP: {{ op_data.codigo_op | default('N/A') }})
+      ACTUALIZAR ORDEN DE PRODUCCIÓN (OP: {{ op_data.codigo_op | default('N/A')
+      }})
     </h3>
   </div>
   <div class="card-body p-4">
-    {# Asumimos que op_data.id_op estará disponible en el contexto de la plantilla #}
-    <form class="form-horizontal mx-auto needs-validation" method="POST" action="{{ url_for('actualizar_op', id_op=op_data.id_op) }}" autocomplete="off" enctype="multipart/form-data" id="actualizarOpForm" novalidate>
+    {# Asumimos que op_data.id_op estará disponible en el contexto de la
+    plantilla #}
+    <form class="form-horizontal mx-auto needs-validation" method="POST"
+      action="{{ url_for('actualizar_op', id_op=op_data.id_op) }}"
+      autocomplete="off" enctype="multipart/form-data" id="actualizarOpForm"
+      novalidate>
       <input type="hidden" name="id_op" value="{{ op_data.id_op }}">
       <div class="row g-4">
         <div class="col-md-2 position-relative">
-          <label for="fecha" class="form-label fw-bold text-primary">Fecha Creación: <span class="text-danger">*</span></label>
-          <input class="form-control" type="date" name="fecha" id="fecha" required>
+          <label for="fecha" class="form-label fw-bold text-primary">Fecha
+            Creación: <span class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha" id="fecha"
+            required>
           <div class="invalid-feedback">Por favor, ingrese la fecha.</div>
         </div>
         <div class="col-md-2 position-relative">
-          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA DE ENTREGA <span class="text-danger">*</span></label>
-          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega" required>
-          <div class="invalid-feedback">Por favor, ingrese la fecha de entrega.</div>
+          <label for="fecha_entrega"
+            class="form-label fw-bold text-primary">FECHA DE ENTREGA <span
+              class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha_entrega"
+            id="fecha_entrega" required>
+          <div class="invalid-feedback">Por favor, ingrese la fecha de
+            entrega.</div>
         </div>
         <!-- <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
           <input class="form-control" type="text" name="cod_op" id="cod_op" value="{{ codigo_op }}" readonly required>
           <div class="invalid-feedback">Código OP es requerido y generado.</div>
         </div> -->
-        <div class="col-md-4" style="display: none;"> {/* Campo versión oculto por defecto */}
-          <label for="version" class="form-label fw-bold text-primary">VERSIÓN OP</label>
-          <input type="text" name="version" id="version" class="form-control" value="1">
+        <div class="col-md-4" style="display: none;"> {/* Campo versión oculto
+          por defecto */}
+          <label for="version" class="form-label fw-bold text-primary">VERSIÓN
+            OP</label>
+          <input type="text" name="version" id="version" class="form-control"
+            value="1">
         </div>
         <div class="col-md-2">
-          <label for="cotizacion" class="form-label fw-bold text-primary">COTIZACIÓN: <span class="text-danger">*</span></label>
-          <input type="text" name="cotizacion" id="cotizacion" class="form-control" required>
+          <label for="cotizacion"
+            class="form-label fw-bold text-primary">COTIZACIÓN: <span
+              class="text-danger">*</span></label>
+          <input type="text" name="cotizacion" id="cotizacion"
+            class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese la cotización.</div>
         </div>
         <div class="col-md-2">
-          <label for="odi" class="form-label fw-bold text-primary">ODI <span class="text-danger">*</span></label>
+          <label for="odi" class="form-label fw-bold text-primary">ODI <span
+              class="text-danger">*</span></label>
           <input type="text" name="odi" id="odi" class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese el ODI.</div>
         </div>
         <div class="col-md-4">
-          <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE CLIENTE <span class="text-danger">*</span></label>
-          <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
+          <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE
+            CLIENTE <span class="text-danger">*</span></label>
+          <select name="id_cliente" id="id_cliente" class="form-control select2"
+            required></select>
           <div class="invalid-feedback">Por favor, seleccione un cliente.</div>
         </div>
         <div class="col-md-4">
-          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO <span class="text-danger">*</span></label>
-          <input type="text" name="producto" id="producto" class="form-control" required>
-          <div class="invalid-feedback">Por favor, ingrese el nombre del producto.</div>
+          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO
+            <span class="text-danger">*</span></label>
+          <input type="text" name="producto" id="producto" class="form-control"
+            required>
+          <div class="invalid-feedback">Por favor, ingrese el nombre del
+            producto.</div>
         </div>
         <div class="col-md-2">
-          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="number" name="cantidad" id="cantidad" required min="1">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad
+            OP<span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cantidad" id="cantidad"
+            required min="1" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
         <div class="col-md-4">
-          <label for="referencia" class="form-label fw-bold text-primary">REFERENCIA</label>
-          <input type="text" name="referencia" id="referencia" class="form-control">
-        </div>        
-        <div class="col-md-4">
-          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
-          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
-          <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
+          <label for="referencia"
+            class="form-label fw-bold text-primary">REFERENCIA</label>
+          <input type="text" name="referencia" id="referencia"
+            class="form-control">
         </div>
         <div class="col-md-4">
-          <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
-          <select name="logistica" id="logistica" class="form-control select2" >
-            <option value="" disabled selected>Seleccionar Logística</option>
-            <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
+          <label for="id_empleado"
+            class="form-label fw-bold text-primary">Nombre Vendedor <span
+              class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado"
+            class="form-control select2" required></select>
+          <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
+        </div>
+        <div class="col-md-3">
+          <label for="logistica"
+            class="form-label fw-bold text-primary">LOGÍSTICA</label>
+          <select name="logistica" id="logistica" class="form-control select2">
+            <option value disabled selected>Seleccionar Logística</option>
+            <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option
+              value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option
+              value="INSTALACIÓN">INSTALACIÓN</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
-        <div class="col-md-4">
-          <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
-          <select name="estado_proyecto" id="estado_proyecto" class="form-control select2" >
-            <option value="" disabled selected>Seleccionar Estado del Proyecto</option>
+        <div class="col-md-2">
+          <label for="instructivo"
+            class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO<span
+              class="text-danger">*</span></label>
+          <select required name="instructivo" id="instructivo" class="form-control select2">
+            <option value disabled selected>Requiere Instructivo</option>
+            <option value="SI">SI</option><option value="NO">NO</option>
+          </select>
+          <div class="invalid-feedback">Por favor, seleccione un estado.</div>
+        </div>
+        <div class="col-md-3">
+          <label for="estado_proyecto"
+            class="form-label fw-bold text-primary">Estado proyecto</label>
+          <select name="estado_proyecto" id="estado_proyecto"
+            class="form-control select2">
+            <option value disabled selected>Seleccionar Estado del
+              Proyecto</option>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
-            <option value="Validar con prototipo aprobado">Validar con prototipo aprobado</option>
-            <option value="Validar con cabeza de serie">Validar con cabeza de serie</option>
+            <option value="Validar con prototipo aprobado">Validar con prototipo
+              aprobado</option>
+            <option value="Validar con cabeza de serie">Validar con cabeza de
+              serie</option>
           </select>
-          <div class="invalid-feedback">Por favor, seleccione un estado proyecto.</div>
-        </div>        
-      </div>    
-       <div class="row g-4 mt-3">        
+          <div class="invalid-feedback">Por favor, seleccione un estado
+            proyecto.</div>
+        </div>
+      </div>
+      <div class="row g-4 mt-3">
         <div class="col-md-4">
-          <label for="render" class="form-label fw-bold text-primary">RENDER APROBADO</label>
-          {% set existing_render = op_data.renders[0] if op_data.renders and op_data.renders|length > 0 else None %}
-          {% set render_url = '/static/render_op/' ~ existing_render if existing_render else url_for('static', filename='assets/img/Prototipo.png') %}
-          <div class="render-upload-container" id="imagePreview" style="background-image: url('{{ render_url }}');">
-            <input type="hidden" id="existing_render_path" name="existing_render_path" value="{{ existing_render or '' }}">
-            <input type="file" id="imageUpload" name="render" accept=".png, .jpg, .jpeg" class="render-upload-input">
-            <label for="imageUpload" class="render-upload-label"><i class="bi bi-upload"></i> Cambiar</label>
-            <button type="button" class="render-delete-btn" id="deleteImageBtn" style="display: none;"><i class="bi bi-x-circle"></i> Quitar</button>
+          <label for="render" class="form-label fw-bold text-primary">RENDER
+            APROBADO</label>
+          {% set existing_render = op_data.renders[0] if op_data.renders and
+          op_data.renders|length > 0 else None %}
+          {% set render_url = '/static/render_op/' ~ existing_render if
+          existing_render else url_for('static',
+          filename='assets/img/Prototipo.png') %}
+          <div class="render-upload-container" id="imagePreview"
+            style="background-image: url('{{ render_url }}');">
+            <input type="hidden" id="existing_render_path"
+              name="existing_render_path" value="{{ existing_render or '' }}">
+            <input type="file" id="imageUpload" name="render"
+              accept=".png, .jpg, .jpeg" class="render-upload-input">
+            <label for="imageUpload" class="render-upload-label"><i
+                class="bi bi-upload"></i> Cambiar</label>
+            <button type="button" class="render-delete-btn" id="deleteImageBtn"
+              style="display: none;"><i class="bi bi-x-circle"></i>
+              Quitar</button>
           </div>
         </div>
         <div class="col-md-4">
-          <label for="documentos" class="form-label fw-bold text-primary">Cargar Documentos</label>
-          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple>
+          <label for="documentos" class="form-label fw-bold text-primary">Cargar
+            Documentos</label>
+          <input class="form-control" type="file" name="documentos"
+            id="documentos" accept="*" multiple>
           <ul class="list-group mt-2" id="fileList"></ul>
         </div>
-         <div class="col-md-4">
-            <label class="form-label">CARGAR URL</label>
-            <div id="url_container">
-                <div class="dynamic-url-container d-flex align-items-center">
-                    <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
-                    <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
-                </div>
+        <div class="col-md-4">
+          <label class="form-label">CARGAR URL</label>
+          <div id="url_container">
+            <div class="dynamic-url-container d-flex align-items-center">
+              <input type="url" class="form-control" name="urls[]"
+                placeholder="Ingrese una URL">
+              <button type="button"
+                class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
             </div>
-            <button type="button" class="btn btn-primary mt-2" id="add_url_btn">Agregar otra URL</button>
+          </div>
+          <button type="button" class="btn btn-primary mt-2"
+            id="add_url_btn">Agregar otra URL</button>
         </div>
         <div class="col-md-12">
-          <label for="descripcion_general_op" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN) <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="descripcion_general_op" name="descripcion_general_op" rows="3" required></textarea>
+          <label for="descripcion_general_op"
+            class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN)
+            <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="descripcion_general_op"
+            name="descripcion_general_op" rows="3" required></textarea>
           <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
       </div>
 
       <hr class="my-4">
-      <h4 class="text-primary mb-3">Procesos Generales de la Orden de Producción</h4>
+      <h4 class="text-primary mb-3">Procesos Generales de la Orden de
+        Producción</h4>
       <div class="row g-3">
         <div class="col-md-6">
-            <label for="op_ids_procesos" class="form-label fw-bold text-primary">Proceso(s) de la OP <span class="text-danger">*</span></label>
-            <select name="op_ids_procesos" id="op_ids_procesos" class="form-control select2" multiple="multiple" required style="width:100%;"></select>
-            <div class="invalid-feedback">Seleccione al menos un proceso para la OP.</div>
+          <label for="op_ids_procesos"
+            class="form-label fw-bold text-primary">Proceso(s) de la OP <span
+              class="text-danger">*</span></label>
+          <select name="op_ids_procesos" id="op_ids_procesos"
+            class="form-control select2" multiple="multiple" required
+            style="width:100%;"></select>
+          <div class="invalid-feedback">Seleccione al menos un proceso para la
+            OP.</div>
         </div>
-        <div class="col-md-6" id="op_otro_proceso_container" style="display:none;">
-            <label for="op_otro_proceso" class="form-label fw-bold text-primary">Otro Proceso (especificar) <span class="text-danger">*</span></label>
-            <input type="text" name="op_otro_proceso" id="op_otro_proceso" class="form-control">
-            <div class="invalid-feedback">Especifique el nombre del nuevo proceso.</div>
+        <div class="col-md-6" id="op_otro_proceso_container"
+          style="display:none;">
+          <label for="op_otro_proceso"
+            class="form-label fw-bold text-primary">Otro Proceso (especificar)
+            <span class="text-danger">*</span></label>
+          <input type="text" name="op_otro_proceso" id="op_otro_proceso"
+            class="form-control">
+          <div class="invalid-feedback">Especifique el nombre del nuevo
+            proceso.</div>
         </div>
       </div>
-      
+
       <hr class="my-4">
-      <h4 class="text-primary mb-3">Piezas de la Orden de Producción (Opcional)</h4>
+      <h4 class="text-primary mb-3">Piezas de la Orden de Producción
+        (Opcional)</h4>
       <div id="dynamicFormsContainer">
-        </div>
+      </div>
       <button type="button" id="addPieceBtn" class="btn btn-primary mt-2 mb-3">
         <i class="bi bi-plus-circle me-1"></i> Agregar Pieza
       </button>
@@ -155,20 +238,28 @@
 
       <div class="row mt-2 g-4">
         <div class="col-md-5">
-          <label for="empaque" class="form-label fw-bold text-primary">EMPAQUE</label>
+          <label for="empaque"
+            class="form-label fw-bold text-primary">EMPAQUE</label>
           <input type="text" name="empaque" id="empaque" class="form-control">
         </div>
         <div class="col-md-4">
-          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
+          <label for="id_supervisor"
+            class="form-label fw-bold text-primary">Supervisor</label>
+          <select name="id_supervisor" id="id_supervisor"
+            class="form-control select2"></select>
         </div>
         <div class="col-md-3">
-          <label for="estado" class="form-label fw-bold text-primary">ESTADO <span class="text-danger">*</span></label>
-          <select name="estado" id="estado" class="form-control select2" required>
-            <option value="" disabled selected>Seleccionar Estado</option>
-            <option value="ANULA">ANULA</option><option value="FACTU">FACTU</option><option value="CRUCE">CRUCE</option>
-            <option value="INV">INV</option><option value="LP">LP</option><option value="NC">NC</option>
-            <option value="PR">PR</option><option value="PR CR">PR CR</option><option value="TER">TER</option>
+          <label for="estado" class="form-label fw-bold text-primary">ESTADO
+            <span class="text-danger">*</span></label>
+          <select name="estado" id="estado" class="form-control select2"
+            required>
+            <option value disabled selected>Seleccionar Estado</option>
+            <option value="ANULA">ANULA</option><option
+              value="FACTU">FACTU</option><option value="CRUCE">CRUCE</option>
+            <option value="INV">INV</option><option
+              value="LP">LP</option><option value="NC">NC</option>
+            <option value="PR">PR</option><option value="PR CR">PR
+              CR</option><option value="TER">TER</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
@@ -184,149 +275,235 @@
 </div>
 
 <!-- Modal para Detalles Adicionales de Pieza -->
-<div class="modal fade" id="piezaDetallesModal" tabindex="-1" aria-labelledby="piezaDetallesModalLabel" aria-hidden="true">
+<div class="modal fade" id="piezaDetallesModal" tabindex="-1"
+  aria-labelledby="piezaDetallesModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="piezaDetallesModalLabel">Detalles Adicionales de Pieza</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="piezaDetallesModalLabel">Detalles
+          Adicionales de Pieza</h5>
+        <button type="button" class="btn-close btn-close-white"
+          data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="formPiezaDetalles">
-          <input type="hidden" id="modalPieceIdSuffix" name="modalPieceIdSuffix">
-          <div class="row g-3">           
+          <input type="hidden" id="modalPieceIdSuffix"
+            name="modalPieceIdSuffix">
+          <div class="row g-3">
             <div class="col-md-5">
-              <label for="modal_cant_impresiones" class="form-label">CANT. IMPRESIONES</label>
-              <input class="form-control modal-input-dinamico" id="modal_cant_impresiones" data-grupo-input="CANT. IMPRESIONES">
+              <label for="modal_cant_impresiones" class="form-label">CANT.
+                IMPRESIONES</label>
+              <input class="form-control modal-input-dinamico"
+                id="modal_cant_impresiones"
+                data-grupo-input="CANT. IMPRESIONES">
             </div>
             <div class="col-md-5">
-              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
-              <input class="form-control modal-input-dinamico" id="modal_piezas_por_montaje" data-grupo-input="PIEZAS POR MONTAJE">
+              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS
+                POR MONTAJE</label>
+              <input class="form-control modal-input-dinamico"
+                id="modal_piezas_por_montaje"
+                data-grupo-input="PIEZAS POR MONTAJE">
             </div>
             <div class="col-md-2">
-              <label for="modal_maculatura" class="form-label">MACULATURA</label>
-              <input type="number" class="form-control modal-input-dinamico" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0" data-grupo-input="MACULATURA">
+              <label for="modal_maculatura"
+                class="form-label">MACULATURA</label>
+              <input type="text" class="form-control modal-input-dinamico"
+                id="modal_maculatura" name="maculatura" style="width: 100%; "
+                min="0" data-grupo-input="MACULATURA" pattern="[0-9]*"
+                inputmode="numeric"
+                onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-8">
-              <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
-              <input type="number"  class="form-control modal-input-dinamico" id="modal_tamano_montaje" data-grupo-input="TAMAÑO DEL MONTAJE">
-            </div>
-            <div class="col-md-4">
-                <label for="modal_unidad_medida_otro" class="form-label">UNIDAD MEDIDA</label>
-                <input type="text" class="form-control modal-input-dinamico" id="modal_unidad_medida_otro" name="modal_unidad_medida_otro" data-grupo-input="UNIDAD MEDIDA">
-              </div>
-            </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-              <div class="col-md-6">
-              <label for="modal_formato" class="form-label">FORMATO</label>
-              <select class="form-control modal-select-dinamico" id="modal_formato" data-grupo="FORMATO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="modal_formato_otro" class="form-label">Otro (Formato)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="modal_formato_otro" name="modal_formato_otro" data-grupo-input="FORMATO">
-              </div>
-              </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_adhesivo" class="form-label">MATERIAL ADHESIVO</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_adhesivo" class="form-label">Otro (Mate. Adhesivo)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_adhesivo" name="otro_material_adhesivo" data-grupo-input="MATERIAL ADHESIVO">
-              </div>
+                <div class="col-md-8">
+                  <label for="modal_tamano_montaje" class="form-label">TAMAÑO
+                    DEL MONTAJE</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_tamano_montaje"
+                    data-grupo-input="TAMAÑO DEL MONTAJE" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-4">
+                  <label for="modal_unidad_medida_otro"
+                    class="form-label">UNIDAD MEDIDA</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_unidad_medida_otro"
+                    name="modal_unidad_medida_otro"
+                    data-grupo-input="UNIDAD MEDIDA">
+                </div>
               </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_papel" class="form-label">MATERIAL PAPEL</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_papel" data-grupo="MATERIAL PAPEL" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_papel" class="form-label">Otro (Material Papel)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_papel" name="otro_material_papel" data-grupo-input="MATERIAL PAPEL">
-              </div>
-              </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_rigido" class="form-label">MATERIAL RÍGIDO</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_rigido" class="form-label">Otro (Mate. Rígido)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_rigido" name="otro_material_rigido" data-grupo-input="MATERIAL RÍGIDO">
-              </div>
+                <div class="col-md-6">
+                  <label for="modal_formato" class="form-label">FORMATO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_formato" data-grupo="FORMATO" multiple="multiple"
+                    style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="modal_formato_otro" class="form-label">Otro
+                    (Formato)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_formato_otro" name="modal_formato_otro"
+                    data-grupo-input="FORMATO">
+                </div>
               </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-8">
-              <label for="modal_tipo_impresion" class="form-label">TIPO IMPRESIÓN</label>
-              <select class="form-control modal-select-dinamico" id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <!-- Cantidad de Tintas -->
-            <div class="col-md-4">
-                <label for="cantidad_tintas" class="form-label">CANT. TINTAS</label>
-                <input type="number" class="form-control modal-input-dinamico" id="cantidad_tintas" name="cantidad_tintas" min="0" data-grupo-input="CANIDAD TINTAS">
-            </div>
-            </div>
+                <div class="col-md-6">
+                  <label for="modal_material_adhesivo"
+                    class="form-label">MATERIAL ADHESIVO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_adhesivo" class="form-label">Otro
+                    (Mate. Adhesivo)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_adhesivo" name="otro_material_adhesivo"
+                    data-grupo-input="MATERIAL ADHESIVO">
+                </div>
+              </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-6">
-              <label for="modal_acabado" class="form-label">ACABADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_acabado" data-grupo="ACABADO" multiple="multiple" style="width: 100%;"></select>
+                <div class="col-md-6">
+                  <label for="modal_material_papel" class="form-label">MATERIAL
+                    PAPEL</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_papel" data-grupo="MATERIAL PAPEL"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_papel" class="form-label">Otro
+                    (Material Papel)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_papel" name="otro_material_papel"
+                    data-grupo-input="MATERIAL PAPEL">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="modal_material_rigido" class="form-label">MATERIAL
+                    RÍGIDO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_rigido" class="form-label">Otro
+                    (Mate. Rígido)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_rigido" name="otro_material_rigido"
+                    data-grupo-input="MATERIAL RÍGIDO">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-8">
+                  <label for="modal_tipo_impresion" class="form-label">TIPO
+                    IMPRESIÓN</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <!-- Cantidad de Tintas -->
+                <div class="col-md-4">
+                  <label for="cantidad_tintas" class="form-label">CANT.
+                    TINTAS</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="cantidad_tintas" name="cantidad_tintas" min="0"
+                    data-grupo-input="CANIDAD TINTAS" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="modal_acabado" class="form-label">ACABADO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_acabado" data-grupo="ACABADO" multiple="multiple"
+                    style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_acabado" class="form-label">Otro
+                    (acabado)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_acabado" name="otro_acabado"
+                    data-grupo-input="ACABADO">
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-                <label for="otro_acabado" class="form-label">Otro (acabado)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_acabado" name="otro_acabado" data-grupo-input="ACABADO">
-              </div>
+              <label for="modal_finalizado"
+                class="form-label">FINALIZADO</label>
+              <select class="form-control modal-select-dinamico"
+                id="modal_finalizado" data-grupo="FINALIZADO"
+                multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label for="troquelado" class="form-label">TROQUELADO</label>
+              <div class="row">
+                <div class="col-md-2">
+                  <label for="numero_cavidades" class="form-label">#
+                    cavidades</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="numero_cavidades" min="0"
+                    data-grupo-input="NUMERO CAVIDADES" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="numero_golpes" class="form-label"># golpes</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="troquelado_total" class="form-label">troq.
+                    total</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="troquelado_total" min="0"
+                    data-grupo-input="TROQUELADO TOTAL" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="troquelado_parcial" class="form-label">troq.
+                    parcial</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="troquelado_parcial" min="0"
+                    data-grupo-input="TROQUELADO PARCIAL" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="grafado" class="form-label">grafado</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="grafado" min="0" data-grupo-input="GRAFADO"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
               </div>
             </div>
-            <div class="col-md-6">
-              <label for="modal_finalizado" class="form-label">FINALIZADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_finalizado" data-grupo="FINALIZADO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div> 
-            <label for="troquelado" class="form-label">TROQUELADO</label>
-            <div class="row">
-              <div class="col-md-2">
-                <label for="numero_cavidades" class="form-label"># cavidades</label>
-                <input type="number" class="form-control modal-input-dinamico" id="numero_cavidades" min="0" data-grupo-input="NUMERO CAVIDADES">
-              </div>
-              <div class="col-md-2">
-                <label for="numero_golpes" class="form-label"># golpes</label>
-                <input type="number" class="form-control modal-input-dinamico" id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES">
-              </div>
-              <div class="col-md-2">
-                <label for="troquelado_total" class="form-label">troq. total</label>
-                <input type="number" class="form-control modal-input-dinamico" id="troquelado_total" min="0" data-grupo-input="TROQUELADO TOTAL">
-              </div>
-              <div class="col-md-2">
-                <label for="troquelado_parcial" class="form-label">troq. parcial</label>
-                <input type="number" class="form-control modal-input-dinamico" id="troquelado_parcial" min="0" data-grupo-input="TROQUELADO PARCIAL">
-              </div>
-              <div class="col-md-2">
-                <label for="grafado" class="form-label">grafado</label>
-                <input type="number" class="form-control modal-input-dinamico" id="grafado" min="0" data-grupo-input="GRAFADO">
-              </div>
-            </div>
-          </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" id="guardarDetallesPiezaModal">Guardar Detalles</button>
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="guardarDetallesPiezaModal">Guardar Detalles</button>
       </div>
     </div>
   </div>
@@ -334,68 +511,94 @@
 <!-- Fin Modal -->
 
 <!-- Modal Especificaciones de Pieza -->
-<div class="modal fade" id="especificacionesPiezaModal" tabindex="-1" aria-labelledby="especificacionesPiezaModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="especificacionesPiezaModalLabel">Especificaciones de Pieza</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                    <thead>
-                        <tr>
-                            <th>ITEM</th>
-                            <th>CALIBRE</th>
-                            <th>LARGO</th>                            
-                            <th>ANCHO</th>
-                            <th>UNIDAD</th>                            
-                            <th>CANTIDAD</th>
-                            <th>KG</th>
-                            <th>RETAL (kg)</th>
-                            <th>REPROCESO</th>
-                            <th>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody id="especificaciones_table_body">
-                        <tr>
-                            <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][calibre]"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01"></td>                            
-                            <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01"></td>
-                            <td class="td-unidad-ancho">
-                                <select class="form-select" name="especificaciones[0][unidad]" style="width: 1000px !important;">
-                                    <option value="cm">cm</option>
-                                    <option value="mts">mts</option>
-                                    <option value="pulgadas">pulgadas</option>
-                                </select>
-                            </td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
-                            <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
-                <button type="button" class="btn btn-primary" id="add_especificacion_btn">Agregar Fila</button>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" id="save_especificaciones_btn">Guardar Especificaciones</button>
-            </div>
+<div class="modal fade" id="especificacionesPiezaModal" tabindex="-1"
+  aria-labelledby="especificacionesPiezaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"
+          id="especificacionesPiezaModalLabel">Especificaciones de Pieza</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+          aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th>ITEM</th>
+                <th>CALIBRE</th>
+                <th>LARGO</th>
+                <th>ANCHO</th>
+                <th>UNIDAD</th>
+                <th>CANTIDAD</th>
+                <th>KG</th>
+                <th>RETAL (kg)</th>
+                <th>REPROCESO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="especificaciones_table_body">
+              <tr>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][item]"></td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][calibre]"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][largo]" min="0" step="0.01"
+                    inputmode="decimal"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][ancho]" min="0" step="0.01"
+                    inputmode="decimal"></td>
+                <td class="td-unidad-ancho">
+                  <select class="form-select" name="especificaciones[0][unidad]"
+                    style="width: 1000px !important;">
+                    <option value="cm">cm</option>
+                    <option value="mts">mts</option>
+                    <option value="pulgadas">pulgadas</option>
+                  </select>
+                </td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][cantidad]" min="0"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][kg]" min="0" step="0.01"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][retal_kg]" min="0" step="0.01"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][reproceso]"></td>
+                <td><button type="button"
+                    class="btn btn-danger remove-row-btn">Eliminar</button></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <button type="button" class="btn btn-primary"
+          id="add_especificacion_btn">Agregar Fila</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="save_especificaciones_btn">Guardar Especificaciones</button>
+      </div>
     </div>
-</div>  
+  </div>
+</div>
 
 {% endblock %}
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 {# Almacenar datos de la OP en un script tag para ser leídos por JavaScript #}
 <script id="opDataJson" type="application/json">
@@ -628,6 +831,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
 
   // --- Llenar campos del formulario con datosOpExistente ---
@@ -671,6 +875,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
     if (datosOpExistente.logistica) {
       $('#logistica').val(datosOpExistente.logistica).trigger('change');
+    }
+
+    if (datosOpExistente.instructivo) {
+      $('#instructivo').val(datosOpExistente.instructivo).trigger('change');
     }
 
     if (datosOpExistente.estado_proyecto) {
@@ -846,6 +1054,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 $(`#pieza_cantidad_material_${currentPieceSuffix}`).val(piezaData.cantidad_material);
                 $(`#pieza_descripcion_${currentPieceSuffix}`).val(piezaData.descripcion_pieza);
                 $(`#proveedor_externo_${currentPieceSuffix}`).val(piezaData.proveedor_externo);
+                $(`#tipo_molde_${currentPieceSuffix}`).val(piezaData.tipo_molde);
 
                 if (piezaData.actividades && Array.isArray(piezaData.actividades)) {
                      const $actividadSelect = $(`#pieza_id_actividad_${currentPieceSuffix}`);
@@ -937,7 +1146,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
           </div>
           <div class="col-md-6 col-lg-2">
             <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1">
+            <input type="text" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
@@ -948,24 +1158,26 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         <div class="row g-3 mt-1">
               <div class="col-md-6 col-lg-1">
                   <label for="ancho_0_${pieceIdSuffix}" class="form-label">Ancho <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required inputmode="decimal">
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="alto_0_${pieceIdSuffix}" class="form-label">Alto <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required>
+                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required inputmode="decimal">
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="fondo_0_${pieceIdSuffix}" class="form-label">Fondo</label>
-                  <input type="number" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01">
+                  <input type="text" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
               </div>
           <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_tamano_montaje_${pieceIdSuffix}" class="form-label">Tamaño Montaje</label><input type="text" name="pieza_tamano_montaje_${pieceIdSuffix}" id="pieza_tamano_montaje_${pieceIdSuffix}" class="form-control pieza-tamano-montaje"></div>
         </div>
         <div class="row g-3 mt-1">
-          <div class="col-md-3"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
-          <div class="col-md-5"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
-          <div class="col-md-4"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
+          <div class="col-md-2"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
+          <div class="col-md-4"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
+          <div class="col-md-3"><label for="tipo_molde_${pieceIdSuffix}" class="form-label">Tipo Molde<span class="text-danger">*</span></label><input required type="text" name="tipo_molde_${pieceIdSuffix}" id="tipo_molde_${pieceIdSuffix}" class="form-control tipo-molde"></div>
+          <div class="col-md-3"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
         </div>
         <div class="row g-3 mt-2">
           <div class="col-12 text-end">
@@ -1084,6 +1296,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 $(`#pieza_cantidad_material_${currentPieceSuffix}`).val(piezaData.cantidad_material);
                 $(`#pieza_descripcion_${currentPieceSuffix}`).val(piezaData.descripcion_pieza);
                 $(`#proveedor_externo_${currentPieceSuffix}`).val(piezaData.proveedor_externo);
+                $(`#tipo_molde_${currentPieceSuffix}`).val(piezaData.tipo_molde);
 
                 if (piezaData.actividades && Array.isArray(piezaData.actividades)) {
                      const $actividadSelect = $(`#pieza_id_actividad_${currentPieceSuffix}`);
@@ -1340,9 +1553,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     return `
       <tr>
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
-        <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}"></td>
-        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01"></td>
-        <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01"></td>
+        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01" inputmode="decimal"></td>
+        <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01" inputmode="decimal"></td>
         <td>
           <select class="form-select esp-largo-unidad">
             <option value="cm" ${data.unidad === 'cm' ? 'selected' : ''}>cm</option>
@@ -1350,9 +1564,12 @@ if (imageUpload && imagePreview && deleteImageBtn) {
             <option value="pulgadas" ${data.unidad === 'pulgadas' ? 'selected' : ''}>pulgadas</option>
           </select>
         </td>
-        <td><input type="number" class="form-control esp-cantidad" value="${data.cantidad_especificacion || ''}" min="0"></td>
-        <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01"></td>
-        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01"></td>
+        <td><input type="text" class="form-control esp-cantidad" value="${data.cantidad_especificacion || ''}" min="0" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="text" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="text" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
+            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
@@ -1500,15 +1717,16 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 id_pieza_maestra: idPiezaMaestraSelect.val() ? parseInt(idPiezaMaestraSelect.val()) : null,
                 nombre_pieza: nombreEspecificoInput.val().trim(),
                 cantidad: parseInt(cantidadInput.val()),
-                ancho: $(`#ancho_0_${suffix}`).val() ? parseFloat($(`#ancho_0_${suffix}`).val()) : null,
-                alto: $(`#alto_0_${suffix}`).val() ? parseFloat($(`#alto_0_${suffix}`).val()) : null,
-                fondo: $(`#fondo_0_${suffix}`).val() ? parseFloat($(`#fondo_0_${suffix}`).val()) : null,
+                ancho: $(`#ancho_0_${suffix}`).val() ? String($(`#ancho_0_${suffix}`).val()) : null,
+                alto: $(`#alto_0_${suffix}`).val() ? String($(`#alto_0_${suffix}`).val()) : null,
+                fondo: $(`#fondo_0_${suffix}`).val() ? String($(`#fondo_0_${suffix}`).val()) : null,
                 tamano: $(`#pieza_tamano_${suffix}`).val() || null,
                 material: $(`#pieza_material_${suffix}`).val() || null,
                 montaje: $(`#pieza_montaje_${suffix}`).val() || null,
                 tamano_montaje: $(`#pieza_tamano_montaje_${suffix}`).val() || null,
                 cantidad_material: $(`#pieza_cantidad_material_${suffix}`).val() || null,
                 descripcion_pieza: $(`#pieza_descripcion_${suffix}`).val() || null,
+                tipo_molde: $(`#tipo_molde_${suffix}`).val() || null,
                 proveedor_externo: $(`#proveedor_externo_${suffix}`).val() || null,
                 actividades_pieza: actividadSelect.val() ? actividadSelect.val().map(id => String(id)) : [], // Asegurar que los IDs sean strings
                 valores_configuracion: $pieceGroup.data('valores-configuracion') || [],
