@@ -2264,19 +2264,19 @@ def sql_detalles_op_bd(id_op):
             piezas_list.append({
                 'id_orden_pieza': pieza_orden_obj.id_orden_pieza,
                 'nombre_pieza': nombre_a_mostrar,
-                'cantidad': pieza_orden_obj.cantidad if pieza_orden_obj.cantidad else 'No especificado',
-                'tamano': pieza_orden_obj.tamano if pieza_orden_obj.tamano else 'No especificado',
-                'montaje': pieza_orden_obj.montaje if pieza_orden_obj.montaje else 'No especificado',
-                'montaje_tamano': pieza_orden_obj.montaje_tamano if pieza_orden_obj.montaje_tamano else 'No especificado',
-                'material': pieza_orden_obj.material if pieza_orden_obj.material else 'No especificado',
-                'cantidad_material': pieza_orden_obj.cantidad_material if pieza_orden_obj.cantidad_material else 'No especificado',
-                'ancho_pieza': str(pieza_orden_obj.ancho) if pieza_orden_obj.ancho is not None else 'No especificado', # Nuevo
-                'alto_pieza': str(pieza_orden_obj.alto) if pieza_orden_obj.alto is not None else 'No especificado',   # Nuevo
-                'fondo_pieza': str(pieza_orden_obj.fondo) if pieza_orden_obj.fondo is not None else 'No especificado', # Nuevo
-                'proveedor_externo': pieza_orden_obj.proveedor_externo if pieza_orden_obj.proveedor_externo else 'No especificado', # Nuevo
-                'descripcion_general': pieza_orden_obj.descripcion_pieza if pieza_orden_obj.descripcion_pieza else 'No especificado',
-                'tipo_molde': pieza_orden_obj.tipo_molde if pieza_orden_obj.tipo_molde else 'No especificado', # Nuevo
-                'actividades': actividades_nombres if actividades_nombres else ['No especificadas'],
+                'cantidad': pieza_orden_obj.cantidad if pieza_orden_obj.cantidad else '',
+                'tamano': pieza_orden_obj.tamano if pieza_orden_obj.tamano else '',
+                'montaje': pieza_orden_obj.montaje if pieza_orden_obj.montaje else '',
+                'montaje_tamano': pieza_orden_obj.montaje_tamano if pieza_orden_obj.montaje_tamano else '',
+                'material': pieza_orden_obj.material if pieza_orden_obj.material else '',
+                'cantidad_material': pieza_orden_obj.cantidad_material if pieza_orden_obj.cantidad_material else '',
+                'ancho_pieza': str(pieza_orden_obj.ancho) if pieza_orden_obj.ancho is not None else '', # Nuevo
+                'alto_pieza': str(pieza_orden_obj.alto) if pieza_orden_obj.alto is not None else '',   # Nuevo
+                'fondo_pieza': str(pieza_orden_obj.fondo) if pieza_orden_obj.fondo is not None else '', # Nuevo
+                'proveedor_externo': pieza_orden_obj.proveedor_externo if pieza_orden_obj.proveedor_externo else '', # Nuevo
+                'descripcion_general': pieza_orden_obj.descripcion_pieza if pieza_orden_obj.descripcion_pieza else '',
+                'tipo_molde': pieza_orden_obj.tipo_molde if pieza_orden_obj.tipo_molde else '', # Nuevo
+                'actividades': actividades_nombres if actividades_nombres else [''],
                 'detalles_configuracion': detalles_config_list,
                 'especificaciones': especificaciones_list # Nuevo
             })
@@ -2299,25 +2299,25 @@ def sql_detalles_op_bd(id_op):
             'id_cliente': orden_obj.id_cliente, # Añadido por si es útil
             'nombre_cliente': nombre_cliente if nombre_cliente else 'Desconocido',
             'producto': orden_obj.producto if orden_obj.producto else 'Sin descripción',
-            'version': orden_obj.version if orden_obj.version else 'No especificado',
-            'cotizacion': orden_obj.cotizacion if orden_obj.cotizacion else 'No especificado',
+            'version': orden_obj.version if orden_obj.version else '',
+            'cotizacion': orden_obj.cotizacion if orden_obj.cotizacion else '',
             'estado': orden_obj.estado if orden_obj.estado else 'Sin estado',
             'cantidad': orden_obj.cantidad if orden_obj.cantidad else 0,
-            'medida': orden_obj.medida if orden_obj.medida else 'No especificado',
-            'referencia': orden_obj.referencia if orden_obj.referencia else 'No especificado',
+            'medida': orden_obj.medida if orden_obj.medida else '',
+            'referencia': orden_obj.referencia if orden_obj.referencia else '',
             'odi': orden_obj.odi if orden_obj.odi else 'Sin ODI',
             'id_empleado': orden_obj.id_empleado, # Añadido por si es útil (Vendedor)
             'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor', # Nombre del Vendedor
             'id_supervisor': orden_obj.id_supervisor, # Añadido por si es útil
             'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor',
-            'fecha': orden_obj.fecha.strftime('%Y-%m-%d') if orden_obj.fecha else 'No especificado',
-            'fecha_entrega': orden_obj.fecha_entrega.strftime('%Y-%m-%d') if orden_obj.fecha_entrega else 'No especificado',
-            'descripcion_general': orden_obj.descripcion_general if orden_obj.descripcion_general else 'No especificado',
-            'empaque': orden_obj.empaque if orden_obj.empaque else 'No especificado',
-            'logistica': orden_obj.logistica if orden_obj.logistica else 'No especificado', # Nuevo
-            'instructivo': orden_obj.instructivo if orden_obj.instructivo else 'No especificado', # Nuevo
-            'estado_proyecto': orden_obj.estado_proyecto if orden_obj.estado_proyecto else 'No especificado', # Nuevo
-            'materiales': orden_obj.materiales if orden_obj.materiales else 'No especificado', # Materiales generales de la OP
+            'fecha': orden_obj.fecha.strftime('%Y-%m-%d') if orden_obj.fecha else '',
+            'fecha_entrega': orden_obj.fecha_entrega.strftime('%Y-%m-%d') if orden_obj.fecha_entrega else '',
+            'descripcion_general': orden_obj.descripcion_general if orden_obj.descripcion_general else '',
+            'empaque': orden_obj.empaque if orden_obj.empaque else '',
+            'logistica': orden_obj.logistica if orden_obj.logistica else '', # Nuevo
+            'instructivo': orden_obj.instructivo if orden_obj.instructivo else '', # Nuevo
+            'estado_proyecto': orden_obj.estado_proyecto if orden_obj.estado_proyecto else '', # Nuevo
+            'materiales': orden_obj.materiales if orden_obj.materiales else '', # Materiales generales de la OP
             'fecha_registro': orden_obj.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden_obj.fecha_registro else 'Sin registro',
             'id_usuario_registro': orden_obj.id_usuario_registro, # Añadido por si es útil
             'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
@@ -2325,7 +2325,7 @@ def sql_detalles_op_bd(id_op):
             'renders': renders,
             'documentos': documentos,
             'urls_op': urls_op_list, # Nuevo
-            'procesos': procesos_globales_nombres if procesos_globales_nombres else ['No especificados'], # Clave 'procesos' para el template
+            'procesos': procesos_globales_nombres if procesos_globales_nombres else ['s'], # Clave 'procesos' para el template
             'piezas': piezas_list
         }
         app.logger.debug(f"Detalles de la orden a retornar: {detalle_op_data}")
@@ -2389,8 +2389,8 @@ def obtener_datos_op_para_edicion(id_op):
             'empaque': orden.empaque or '',
             'logistica': orden.logistica or '', # Añadir logística
             'instructivo': orden.instructivo or '', # Añadir logística
-            'materiales': orden.materiales or 'No especificado',
-            'estado_proyecto': orden.estado_proyecto or 'No especificado',
+            'materiales': orden.materiales or '',
+            'estado_proyecto': orden.estado_proyecto or '',
             'procesos_globales': [
                 {'id_proceso': p.id_proceso, 'nombre_proceso': p.nombre_proceso}
                 for p in orden.procesos_globales
@@ -2413,17 +2413,17 @@ def obtener_datos_op_para_edicion(id_op):
                     'pieza': {'nombre_pieza': p.pieza.nombre_pieza if p.pieza else 'N/A'},
                     'nombre_pieza_op': p.nombre_pieza_op or 'N/A',
                     'cantidad': p.cantidad or 0,
-                    'tamano': p.tamano or 'No especificado',
-                    'montaje': p.montaje or 'No especificado',
-                    'montaje_tamano': p.montaje_tamano or 'No especificado',
-                    'material': p.material or 'No especificado',
-                    'cantidad_material': p.cantidad_material or 'No especificado',
+                    'tamano': p.tamano or '',
+                    'montaje': p.montaje or '',
+                    'montaje_tamano': p.montaje_tamano or '',
+                    'material': p.material or '',
+                    'cantidad_material': p.cantidad_material or '',
                     'ancho_pieza': str(p.ancho) if p.ancho is not None else None,
                     'alto_pieza': str(p.alto) if p.alto is not None else None,
                     'fondo_pieza': str(p.fondo) if p.fondo is not None else None,
-                    'proveedor_externo': p.proveedor_externo or 'No especificado',
-                    'descripcion_pieza': p.descripcion_pieza or 'No especificado',
-                    'tipo_molde': p.tipo_molde or 'No especificado',
+                    'proveedor_externo': p.proveedor_externo or '',
+                    'descripcion_pieza': p.descripcion_pieza or '',
+                    'tipo_molde': p.tipo_molde or '',
                     'actividades': [
                         {'id_actividad': a.id_actividad, 'nombre_actividad': a.nombre_actividad}
                         for a in p.actividades

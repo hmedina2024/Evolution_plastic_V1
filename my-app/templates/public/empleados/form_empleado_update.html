@@ -48,7 +48,7 @@
         </div>
         <div class="col-md-2">
           <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado</label>
-          <input type="text" name="tipo_empleado_display" id="tipo_empleado" value="{{ respuestaEmpleado.tipo_empleado or 'No especificado' }}" class="form-control" readonly required />
+          <input type="text" name="tipo_empleado_display" id="tipo_empleado" value="{{ respuestaEmpleado.tipo_empleado or '' }}" class="form-control" readonly required />
           <input type="hidden" name="tipo_empleado" id="tipo_empleado_value" value="{{ respuestaEmpleado.tipo_empleado or '' }}" />
         </div>
         <div class="col-md-2">

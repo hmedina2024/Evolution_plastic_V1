@@ -98,7 +98,7 @@
       </div>
       <div class="col-md-3">
         <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado Proyecto</label>
-        <div class="form-control" readonly>{{ detalle_op.estado_proyecto | default('No especificado') }}</div>
+        <div class="form-control" readonly>{{ detalle_op.estado_proyecto | default('') }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
@@ -216,7 +216,7 @@
         </div>
         <div class="col-md-3">
           <label class="form-label fw-bold text-primary">Proveedor Externo</label>
-          <div class="form-control" readonly>{{ pieza.proveedor_externo | default('No especificado') }}</div>
+          <div class="form-control" readonly>{{ pieza.proveedor_externo | default('') }}</div>
         </div>
          <div class="col-md-3">
           <label class="form-label fw-bold text-primary">Cantidad Material</label>
