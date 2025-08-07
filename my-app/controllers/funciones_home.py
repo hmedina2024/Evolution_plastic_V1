@@ -4119,7 +4119,7 @@ def sql_lista_empresasBD(page=1, per_page=10):
 
 def sql_detalles_empresaBD(id_empresa):
     try:
-        empresa = db.session.query(Empresa).filter_by(
+        empresa = db.session.query(Empresa).options(joinedload(Empresa.usuario_reg)).filter_by(
             id_empresa=id_empresa, fecha_borrado=None).first()
         if empresa:
             return empresa

@@ -63,7 +63,7 @@
       </div>
       <div class="col-md-4">
         <label for="usuario_registro" class="form-label fw-bold text-primary">Usuario que Registró</label>
-        <div class="form-control" readonly>{{ detalle_empresa.usuario_registro }}</div>
+        <div class="form-control" readonly>{{ detalle_empresa.usuario_reg.name_surname if detalle_empresa.usuario_reg else 'N/A' }}</div>
       </div>
       <div class="col-md-4">
         <label for="id_empresa" class="form-label fw-bold text-primary">ID</label>
