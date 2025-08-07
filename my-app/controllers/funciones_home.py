@@ -588,8 +588,7 @@ def eliminar_proceso(id_proceso):
 
 # --- Funciones de Clientes ---
 
-
-
+# Clientes
 
 def procesar_actualizar_form(data):
     try:
@@ -607,24 +606,6 @@ def procesar_actualizar_form(data):
         app.logger.error(f"Ocurrió un error en procesar_actualizar_form: {e}")
         return None
 
-# Eliminar Procesos
-
-
-def eliminar_proceso(id_proceso):
-    try:
-        proceso = db.session.query(Procesos).filter_by(
-            id_proceso=id_proceso).first()
-        if proceso:
-            db.session.delete(proceso)
-            db.session.commit()
-            return 1  # Indica éxito (rowcount)
-        return 0
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error en eliminar_proceso: {e}")
-        return 0
-
-# Clientes
 
 
 def procesar_form_cliente(dataForm, foto_perfil_cliente):
@@ -958,8 +939,9 @@ def procesar_form_actividad(dataForm):
 def sql_lista_actividades_bd(page=1, per_page=10):
     try:
         offset = (page - 1) * per_page
-        query = db.session.query(Actividades).order_by(
-            Actividades.id_actividad.desc()).limit(per_page).offset(offset)
+        query = Actividades.query.filter(Actividades.fecha_borrado.is_(None))\
+                            .order_by(Actividades.id_actividad.desc())\
+                            .limit(per_page).offset(offset)
         actividades_bd = query.all()
         return [{
             'id_actividad': a.id_actividad,
@@ -1045,20 +1027,24 @@ def procesar_actualizar_actividad(data):
 
 # Eliminar Actividades
 
-
 def eliminar_actividad(id_actividad):
     try:
-        actividad = db.session.query(Actividades).filter_by(
-            id_actividad=id_actividad).first()
+        actividad = Actividades.query.get(id_actividad)
         if actividad:
-            db.session.delete(actividad)
+            if Actividades.query.filter_by(id_actividad=id_actividad, fecha_borrado=None).first() or \
+                OrdenPiezasProcesos.query.filter_by(id_actividad=id_actividad).first():
+                actividad.fecha_borrado = datetime.now()
+                db.session.commit()
+                return True, "Proceso marcado como eliminado (está en uso)."
+
+            actividad.fecha_borrado = datetime.now()
             db.session.commit()
-            return 1  # Indica éxito (rowcount)
-        return 0
+            return True, "Actividad eliminado (o marcado como eliminado) correctamente."
+        return False, "Actividad no encontrado."
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error en eliminar_actividad: {e}")
-        return 0
+        app.logger.error(f"Error en eliminar_actividad: {e}", exc_info=True)
+        return False, "Error interno al eliminar el proceso."
 
 # Operación Diaria
 
@@ -3884,12 +3870,13 @@ def get_empleados_paginados(page, per_page, search):
             )
 
         # Aplicar orden (más natural para resultados de búsqueda) y paginación
+        total = query.count()
         empleados_bd = query.order_by(
             Empleados.nombre_empleado,
             Empleados.apellido_empleado
         ).limit(per_page).offset(offset).all()
 
-        return empleados_bd
+        return empleados_bd, total
 
     except Exception as e:
         # Usar app.logger si está configurado, sino un print o logging estándar
@@ -3936,7 +3923,9 @@ def get_procesos_paginados(page, per_page, search):
         search_term = f"%{search}%"
         query = query.filter(Procesos.nombre_proceso.ilike(search_term))
 
-    return query.paginate(page=page, per_page=per_page, error_out=False).items
+    paginated_query = query.paginate(page=page, per_page=per_page, error_out=False)
+    return paginated_query.items, paginated_query.total
+
 
 
 def get_piezas_paginados(page, per_page, search):
@@ -4018,7 +4007,16 @@ def get_ordenes_paginadas(page, per_page, search):
 
     # Depuración para verificar la consulta
     app.logger.debug(f"Query generada: {query}")
-    return query.paginate(page=page, per_page=per_page, error_out=False).items
+    paginated_query = query.paginate(page=page, per_page=per_page, error_out=False)
+    ordenes_data = [
+        {
+            'id_op': ord.id_op,
+            'codigo_op': ord.codigo_op,
+            'cliente': ord.cliente.nombre_cliente if ord.cliente else None
+        }
+        for ord in paginated_query.items
+    ]
+    return ordenes_data, paginated_query.total
 
 
 def get_clientes_paginados(page=1, per_page=10, search=''):
@@ -4038,10 +4036,11 @@ def get_clientes_paginados(page=1, per_page=10, search=''):
         clientes = query.offset(offset).limit(per_page).all()
 
         # Formatear los resultados
-        return [{
+        clientes_data = [{
             'id_cliente': c.id_cliente,
             'nombre_cliente': c.nombre_cliente
         } for c in clientes]
+        return clientes_data, total
     except Exception as e:
         app.logger.error(f"Error en get_clientes_paginados: {e}")
         return []

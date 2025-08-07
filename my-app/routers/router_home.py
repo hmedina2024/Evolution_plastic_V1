@@ -387,10 +387,12 @@ def actualizar_proceso():
 
 @app.route('/borrar-proceso/<int:id_proceso>', methods=['GET'])
 def borrar_proceso(id_proceso):
-    resp = eliminar_proceso(id_proceso)
-    if resp:
-        flash('El proceso fue eliminado correctamente', 'success')
-        return redirect(url_for('lista_procesos'))
+    success, message = eliminar_proceso(id_proceso)
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    return redirect(url_for('lista_procesos'))
 
 # Clientes
 
@@ -1075,7 +1077,7 @@ def api_empleados():
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
 
-    empleados = get_empleados_paginados(page, per_page, search)
+    empleados, total_empleados = get_empleados_paginados(page, per_page, search)
     empleados_data = [
         {
             'id_empleado': emp.id_empleado,
@@ -1085,7 +1087,8 @@ def api_empleados():
         }
         for emp in empleados
     ]
-    return jsonify({'empleados': empleados_data})
+    more = (page * per_page) < total_empleados
+    return jsonify({'empleados': empleados_data, 'pagination': {'more': more}, 'total': total_empleados})
 
 
 @app.route('/api/supervisores', methods=['GET'])
@@ -1107,7 +1110,7 @@ def api_procesos():
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
 
-    procesos = get_procesos_paginados(page, per_page, search)
+    procesos, total_procesos = get_procesos_paginados(page, per_page, search)
     procesos_data = [
         {
             'id_proceso': proc.id_proceso,
@@ -1115,7 +1118,8 @@ def api_procesos():
         }
         for proc in procesos
     ]
-    return jsonify({'procesos': procesos_data})
+    more = (page * per_page) < total_procesos
+    return jsonify({'procesos': procesos_data, 'pagination': {'more': more}, 'total': total_procesos})
 
 
 @app.route('/api/piezas', methods=['GET'])
@@ -1184,16 +1188,9 @@ def api_ordenes_produccion():
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
 
-    ordenes = get_ordenes_paginadas(page, per_page, search)
-    ordenes_data = [
-        {
-            'id_op': ord.id_op,
-            'codigo_op': ord.codigo_op,
-            'cliente': ord.cliente.nombre_cliente if ord.cliente else None
-        }
-        for ord in ordenes
-    ]
-    return jsonify({'ordenes': ordenes_data})
+    ordenes_data, total_ordenes = get_ordenes_paginadas(page, per_page, search)
+    more = (page * per_page) < total_ordenes
+    return jsonify({'ordenes': ordenes_data, 'pagination': {'more': more}, 'total': total_ordenes})
 
 
 @app.route('/api/clientes', methods=['GET'])
@@ -1203,8 +1200,9 @@ def api_clientes():
     search = request.args.get('search', '', type=str)
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
-    clientes = get_clientes_paginados(page, per_page, search)
-    return jsonify({'clientes': clientes})
+    clientes, total_clientes = get_clientes_paginados(page, per_page, search)
+    more = (page * per_page) < total_clientes
+    return jsonify({'clientes': clientes, 'pagination': {'more': more}})
 
 @app.route('/api/detalles-pieza-maestra-opciones', methods=['GET'])
 def api_detalles_pieza_maestra_opciones():
