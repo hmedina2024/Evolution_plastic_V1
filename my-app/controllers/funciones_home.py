@@ -191,7 +191,7 @@ def empleados_reporte():
 def generar_codigo_op():
     try:
         ultima_op = db.session.query(OrdenProduccion.codigo_op).order_by(
-            OrdenProduccion.id_op.desc()).first()
+            OrdenProduccion.codigo_op.desc()).first()
         if ultima_op and ultima_op[0] and str(ultima_op[0]).isdigit():
             nuevo_codigo = int(ultima_op[0]) + 1
         else:
