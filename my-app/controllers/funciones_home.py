@@ -1176,6 +1176,9 @@ def procesar_form_operacion(dataForm):
                     email_password = 'qsmr ccyb yzjd gzkm'
                     subject = 'Confirmación: Finalización de Actividad'
 
+                    orden_produccion = OrdenProduccion.query.get(id_op)
+                    codigo_op_a_mostrar = orden_produccion.codigo_op if orden_produccion else id_op
+
                     for admin in admins:
                         email_receiver = admin.email_user
                         body = f"""
@@ -1184,7 +1187,7 @@ def procesar_form_operacion(dataForm):
                         - Empleado: {empleado.nombre_empleado} {empleado.apellido_empleado or ''}
                         - Proceso: {id_proceso}  # Ajusta según el modelo
                         - Actividad: {id_actividad}  # Ajusta según el modelo
-                        - Orden de Producción: {id_op}
+                        - Orden de Producción: {codigo_op_a_mostrar}
                         - Cantidad Realizada: {cantidad}
                         - Fecha y Hora Inicio: {fecha_hora_inicio}
                         - Fecha y Hora Fin: {fecha_hora_fin}
