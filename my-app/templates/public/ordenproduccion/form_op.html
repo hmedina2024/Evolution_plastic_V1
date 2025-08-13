@@ -5,7 +5,6 @@
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
-
 {% endblock %}
 
 {% block body %}
@@ -367,12 +366,9 @@
                     <tbody id="especificaciones_table_body">
                         <tr>
                             <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][calibre]" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][largo]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>                            
-                            <td><input type="text" class="form-control" name="especificaciones[0][ancho]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][calibre]" min="0" step="any"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="any"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="any"></td>
                             <td class="td-unidad-ancho">
                                 <select class="form-select" name="especificaciones[0][unidad]" style="width: 1000px !important;">
                                     <option value="cm">cm</option>
@@ -380,12 +376,9 @@
                                     <option value="pulgadas">pulgadas</option>
                                 </select>
                             </td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][cantidad]" min="0" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][kg]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="any"></td>
+                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="any"></td>
                             <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
                             <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
                         </tr>
@@ -687,8 +680,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           </div>
           <div class="col-md-6 col-lg-2">
             <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-            <input type="text" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1">
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
@@ -700,18 +692,15 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           <!-- Tamaño (Ancho, Alto, Fondo) -->
               <div class="col-md-6 col-lg-1">
                   <label for="ancho_0_${pieceIdSuffix}" class="form-label">Ancho <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="any" required>
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="alto_0_${pieceIdSuffix}" class="form-label">Alto <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="any" required>
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="fondo_0_${pieceIdSuffix}" class="form-label">Fondo</label>
-                  <input type="text" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                  <input type="number" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="any">
               </div>
           <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
@@ -720,7 +709,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         <div class="row g-3 mt-1">
           <div class="col-md-2"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
           <div class="col-md-4"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="1"></textarea></div>
-          <div class="col-md-3"><label for="tipo_molde_${pieceIdSuffix}" class="form-label">Tipo de molde<span class="text-danger">*</span></label><input required type="text" name="tipo_molde_${pieceIdSuffix}" id="tipo_molde${pieceIdSuffix}" class="form-control tipo-molde" rows="1"></input></div>
+          <div class="col-md-3"><label for="tipo_molde_${pieceIdSuffix}" class="form-label">Tipo de molde<span class="text-danger">*</span></label><input required type="text" name="tipo_molde_${pieceIdSuffix}" id="tipo_molde_${pieceIdSuffix}" class="form-control tipo-molde" rows="1"></input></div>
           <div class="col-md-3"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
         </div>
         <div class="row g-3 mt-2">
@@ -980,12 +969,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     return `
       <tr>
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
-        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-        <td><input type="text" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>        
-        <td><input type="text" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}" min="0" step="any"></td>
+        <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="any"></td>
+        <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="any"></td>
         <td>
           <select class="form-select esp-largo-unidad">
             <option value="cm" ${data.unidad === 'cm' ? 'selected' : ''}>cm</option>
@@ -995,10 +981,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         </td>        
         <td><input type="text" class="form-control esp-cantidad" value="${data.cantidad || ''}" min="0" pattern="[0-9]*" inputmode="numeric"
             onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-        <td><input type="text" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-        <td><input type="text" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="any"></td>
+        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="any"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>

@@ -62,7 +62,8 @@
   padding: 0.25rem 1rem;
   line-height: 1.2;
   border-radius: 10px 10px 0 0;
-  position: sticky; /* Cambiar a sticky */
+  position: sticky;
+  /* Cambiar a sticky */
   top: 0;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -149,19 +150,21 @@
 
 
 
----Estilo para subir archivos de imagen 
-
-.card-header.bg-primary .fw-bold {
+---Estilo para subir archivos de imagen .card-header.bg-primary .fw-bold {
   color: #fff !important;
 }
+
 /* Estilo para el acordeón */
 .accordion-menu {
   list-style: none;
   padding: 0;
 }
+
 .accordion-menu li {
-  margin-bottom: 10px; /* Espacio entre ítems */
+  margin-bottom: 10px;
+  /* Espacio entre ítems */
 }
+
 .accordion-item {
   cursor: pointer;
   padding: 10px 15px;
@@ -172,15 +175,19 @@
   align-items: center;
   transition: background-color 0.3s;
 }
+
 .accordion-item:hover {
   background-color: #e9ecef;
 }
+
 .accordion-item i {
   margin-right: 10px;
 }
+
 /* Estilo para los subformularios */
 .subform-section {
-  display: none; /* Inicialmente oculto */
+  display: none;
+  /* Inicialmente oculto */
   background-color: #d0dbcf;
   padding: 20px;
   border-radius: 8px;
@@ -188,15 +195,19 @@
   border: 1px solid #dee2e6;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
 .subform-section.active {
-  display: block; /* Mostrar cuando está activo */
+  display: block;
+  /* Mostrar cuando está activo */
 }
+
 .subform-section h5 {
   color: #007bff;
   margin-bottom: 15px;
   font-size: 1.25rem;
   font-weight: 500;
 }
+
 /* Estilo para subir archivos de imagen */
 .render-upload-container {
   position: relative;
@@ -212,6 +223,7 @@
   background-repeat: no-repeat;
   background-color: #f9f9f9;
 }
+
 .render-upload-label {
   position: absolute;
   top: 10px;
@@ -223,9 +235,11 @@
   cursor: pointer;
   z-index: 10;
 }
+
 .render-upload-input {
   display: none;
 }
+
 .render-delete-btn {
   position: absolute;
   bottom: 10px;
@@ -238,15 +252,18 @@
   cursor: pointer;
   z-index: 10;
 }
+
 .render-delete-btn i {
   margin-right: 4px;
 }
+
 /* Estilo para la lista de archivos */
 .file-list {
   list-style: none;
   padding: 0;
   margin-top: 10px;
 }
+
 .file-list li {
   display: flex;
   justify-content: space-between;
@@ -257,33 +274,40 @@
   margin-bottom: 5px;
   font-size: 0.9rem;
 }
+
 .file-list .file-name {
   flex: 1;
   color: #333;
 }
+
 .file-list .file-type {
   color: #666;
   margin-left: 10px;
 }
 
 
----checkboxes
-
-.process-container {
-  display: flex; /* Usar flexbox para alineación horizontal */
-  flex-wrap: nowrap; /* Forzar una sola fila */
-  gap: 15px; /* Espacio entre los checkboxes */
+---checkboxes .process-container {
+  display: flex;
+  /* Usar flexbox para alineación horizontal */
+  flex-wrap: nowrap;
+  /* Forzar una sola fila */
+  gap: 15px;
+  /* Espacio entre los checkboxes */
   padding: 10px;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  overflow-x: auto; /* Agregar barra de desplazamiento horizontal si no caben */
-  white-space: nowrap; /* Evitar que el texto se rompa */
+  overflow-x: auto;
+  /* Agregar barra de desplazamiento horizontal si no caben */
+  white-space: nowrap;
+  /* Evitar que el texto se rompa */
 }
 
 .process-checkbox {
-  display: inline-flex; /* Alinear inline para mantenerlos en una fila */
+  display: inline-flex;
+  /* Alinear inline para mantenerlos en una fila */
   align-items: center;
-  margin-right: 15px; /* Espacio entre cada checkbox */
+  margin-right: 15px;
+  /* Espacio entre cada checkbox */
 }
 
 .process-checkbox input[type="checkbox"] {
@@ -292,46 +316,50 @@
 
 .other-process {
   margin-top: 10px;
-  width: 100%; /* Asegura que el campo "Otros" ocupe todo el ancho */
+  width: 100%;
+  /* Asegura que el campo "Otros" ocupe todo el ancho */
 }
 
 
-  .dynamic-form-container {
-    margin-top: 20px;
-  }
-  .piece-button {
-    display: inline-block;
-    margin-right: 10px;
-    margin-bottom: 10px;
-    padding: 5px 10px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .piece-button:hover {
-    background-color: #0056b3;
-  }
-  .piece-form {
-    display: none;
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 10px;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  .piece-form.active {
-    display: block;
-  }
-  .form-actions {
-    margin-top: 15px;
-  }
+.dynamic-form-container {
+  margin-top: 20px;
+}
 
----Tabla dentro de formulario
+.piece-button {
+  display: inline-block;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  text-decoration: none;
+}
 
-.table-container {
+.piece-button:hover {
+  background-color: #0056b3;
+}
+
+.piece-form {
+  display: none;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 10px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.piece-form.active {
+  display: block;
+}
+
+.form-actions {
+  margin-top: 15px;
+}
+
+---Tabla dentro de formulario .table-container {
   margin-top: 10px;
   padding: 10px;
   border: 1px solid #ddd;
@@ -357,76 +385,101 @@
 
 
 .form-control[readonly] {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-  }
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+}
 
-  .piece-card {
-    border: 1px solid #ced4da;
-    border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: #f9f9f9;
-  }
+.piece-card {
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
 
-  /* Estilo para la línea de separación azul */
-  .separator-line {
-    border: 0;
-    height: 5px;
-    background-color: #042f5d; /* Color azul que coincide con text-primary de Bootstrap */
-    margin: 20px 0;
-  }
+/* Estilo para la línea de separación azul */
+.separator-line {
+  border: 0;
+  height: 5px;
+  background-color: #042f5d;
+  /* Color azul que coincide con text-primary de Bootstrap */
+  margin: 20px 0;
+}
 
-  .card-header {
+.card-header {
   border-radius: 10px 10px 0 0;
-  position: sticky; /* Cambiar a sticky */
+  position: sticky;
+  /* Cambiar a sticky */
   top: 0;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .render-container {
-    position: relative;
+  position: relative;
 }
+
 .render-img {
-    width: 200px;
-    height: 200px;
-    border-radius: 10px;
-    object-fit: cover;
+  width: 200px;
+  height: 200px;
+  border-radius: 10px;
+  object-fit: cover;
 }
+
 .render-upload-input {
-    display: none;
+  display: none;
 }
-.render-upload-label, .render-delete-btn {
-    margin-top: 5px;
+
+.render-upload-label,
+.render-delete-btn {
+  margin-top: 5px;
 }
 
 #especificacionesPiezaModal .modal-dialog.modal-xl {
-  max-width: 1400px; /* O un valor en px, ej: 1300px */
+  max-width: 1400px;
+  /* O un valor en px, ej: 1300px */
   /* También podrías usar width en lugar de max-width si quieres un tamaño fijo */
-  /* width: 1300px; */ 
+  /* width: 1300px; */
 }
 
 .is-invalid-select2 .select2-selection {
   border-color: #dc3545 !important;
 }
+
 .piece-form-group {
   transition: all 0.3s ease-in-out;
 }
+
 .select2-container.is-invalid-select2 .select2-selection {
   border-color: #dc3545;
 }
 
 .td-item-ancho {
-  width: 250px; /* Ajusta este valor según sea necesario */
-  min-width: 200px; /* Opcional: para asegurar un ancho mínimo */
+  width: 250px;
+  /* Ajusta este valor según sea necesario */
+  min-width: 200px;
+  /* Opcional: para asegurar un ancho mínimo */
 }
 
 .td-item-ancho .form-control.esp-item {
-    width: 100%;
+  width: 100%;
 }
 
 .td-reproceso {
-  width: 250px; /* Ajusta este valor según sea necesario */
-  min-width: 200px; /* Opcional: para asegurar un ancho mínimo */
+  width: 250px;
+  /* Ajusta este valor según sea necesario */
+  min-width: 200px;
+  /* Opcional: para asegurar un ancho mínimo */
+}
+
+/* Ocultar flechas en campos de tipo número para Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ocultar flechas en campos de tipo número para Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

@@ -89,9 +89,8 @@
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad
             OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cantidad" id="cantidad"
-            required min="1" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+          <input class="form-control" type="number" name="cantidad" id="cantidad"
+            required min="1">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
         <div class="col-md-4">
@@ -541,14 +540,12 @@
               <tr>
                 <td><input type="text" class="form-control"
                     name="especificaciones[0][item]"></td>
-                <td><input type="text" class="form-control"
-                    name="especificaciones[0][calibre]"></td>
                 <td><input type="number" class="form-control"
-                    name="especificaciones[0][largo]" min="0" step="0.01"
-                    inputmode="decimal"></td>
+                    name="especificaciones[0][calibre]" step="any" min="0"></td>
                 <td><input type="number" class="form-control"
-                    name="especificaciones[0][ancho]" min="0" step="0.01"
-                    inputmode="decimal"></td>
+                    name="especificaciones[0][largo]" min="0" step="any"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][ancho]" min="0" step="any"></td>
                 <td class="td-unidad-ancho">
                   <select class="form-select" name="especificaciones[0][unidad]"
                     style="width: 1000px !important;">
@@ -557,18 +554,12 @@
                     <option value="pulgadas">pulgadas</option>
                   </select>
                 </td>
-                <td><input type="text" class="form-control"
-                    name="especificaciones[0][cantidad]" min="0"
-                    pattern="[0-9]*" inputmode="numeric"
-                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-                <td><input type="text" class="form-control"
-                    name="especificaciones[0][kg]" min="0" step="0.01"
-                    pattern="[0-9]*" inputmode="numeric"
-                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-                <td><input type="text" class="form-control"
-                    name="especificaciones[0][retal_kg]" min="0" step="0.01"
-                    pattern="[0-9]*" inputmode="numeric"
-                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][cantidad]" min="0"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][kg]" min="0" step="any"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][retal_kg]" min="0" step="any"></td>
                 <td><input type="text" class="form-control"
                     name="especificaciones[0][reproceso]"></td>
                 <td><button type="button"
@@ -1145,8 +1136,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
           </div>
           <div class="col-md-6 col-lg-2">
             <label for="pieza_cantidad_${pieceIdSuffix}" class="form-label">Cantidad <span class="text-danger">*</span></label>
-            <input type="text" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+            <input type="number" name="pieza_cantidad_${pieceIdSuffix}" id="pieza_cantidad_${pieceIdSuffix}" class="form-control pieza-campo pieza-cantidad" min="1" value="1">
             <div class="invalid-feedback">Cantidad > 0 requerida.</div>
           </div>
           <div class="col-md-6 col-lg-4">
@@ -1157,16 +1147,15 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         <div class="row g-3 mt-1">
               <div class="col-md-6 col-lg-1">
                   <label for="ancho_0_${pieceIdSuffix}" class="form-label">Ancho <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="0.01" required inputmode="decimal">
+                  <input type="number" class="form-control" id="ancho_0_${pieceIdSuffix}" name="ancho_pieza_${pieceIdSuffix}" min="0" step="any" required>
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="alto_0_${pieceIdSuffix}" class="form-label">Alto <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="0.01" required inputmode="decimal">
+                  <input type="number" class="form-control" id="alto_0_${pieceIdSuffix}" name="alto_pieza_${pieceIdSuffix}" min="0" step="any" required>
               </div>
               <div class="col-md-6 col-lg-1">
                   <label for="fondo_0_${pieceIdSuffix}" class="form-label">Fondo</label>
-                  <input type="text" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                  <input type="number" class="form-control" id="fondo_0_${pieceIdSuffix}" name="fondo_pieza_${pieceIdSuffix}" min="0" step="any">
               </div>
           <div class="col-md-6 col-lg-3"><label for="pieza_material_${pieceIdSuffix}" class="form-label">Material</label><input type="text" name="pieza_material_${pieceIdSuffix}" id="pieza_material_${pieceIdSuffix}" class="form-control pieza-material"></div>
           <div class="col-md-6 col-lg-3"><label for="pieza_montaje_${pieceIdSuffix}" class="form-label">Montaje</label><input type="text" name="pieza_montaje_${pieceIdSuffix}" id="pieza_montaje_${pieceIdSuffix}" class="form-control pieza-montaje"></div>
@@ -1552,8 +1541,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     return `
       <tr>
         <td class="td-item-ancho"><input type="text" class="form-control esp-item" value="${data.item || ''}"></td>
-        <td><input type="text" class="form-control esp-calibre" value="${data.calibre || ''}" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="number" class="form-control esp-calibre" value="${data.calibre || ''}" min="0" step="any"></td>
         <td><input type="number" class="form-control esp-largo" value="${data.largo || ''}" min="0" step="0.01" inputmode="decimal"></td>
         <td><input type="number" class="form-control esp-ancho" value="${data.ancho || ''}" min="0" step="0.01" inputmode="decimal"></td>
         <td>
@@ -1565,10 +1553,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         </td>
         <td><input type="text" class="form-control esp-cantidad" value="${data.cantidad_especificacion || ''}" min="0" pattern="[0-9]*" inputmode="numeric"
             onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-        <td><input type="text" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
-        <td><input type="text" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="0.01" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"></td>
+        <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="any"></td>
+        <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="any"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>

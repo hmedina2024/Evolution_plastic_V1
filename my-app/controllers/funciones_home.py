@@ -2159,7 +2159,7 @@ def sql_detalles_op_bd(id_op):
         result = db.session.query(
             OrdenProduccion,
             Clientes.nombre_cliente.label('nombre_cliente'),
-            empleado_vendedor.nombre_empleado.label('nombre_empleado_vendedor'),
+            db.func.concat(empleado_vendedor.nombre_empleado, ' ', empleado_vendedor.apellido_empleado).label('nombre_completo_vendedor'),
             db.func.concat(empleado_supervisor.nombre_empleado, ' ',
                            empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
             Users.name_surname.label('nombre_usuario_registro')
@@ -2180,7 +2180,7 @@ def sql_detalles_op_bd(id_op):
             app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
             return None
 
-        orden_obj, nombre_cliente, nombre_empleado_vendedor, nombre_supervisor, nombre_usuario_registro = result
+        orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_usuario_registro = result
 
         # 1. Procesos Globales de la Orden
         procesos_globales_nombres = []
@@ -2296,7 +2296,7 @@ def sql_detalles_op_bd(id_op):
             'referencia': orden_obj.referencia if orden_obj.referencia else '',
             'odi': orden_obj.odi if orden_obj.odi else 'Sin ODI',
             'id_empleado': orden_obj.id_empleado, # Añadido por si es útil (Vendedor)
-            'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor', # Nombre del Vendedor
+            'empleado': nombre_completo_vendedor if nombre_completo_vendedor else 'Sin vendedor', # Nombre del Vendedor
             'id_supervisor': orden_obj.id_supervisor, # Añadido por si es útil
             'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor',
             'fecha': orden_obj.fecha.strftime('%Y-%m-%d') if orden_obj.fecha else '',
@@ -2446,138 +2446,6 @@ def obtener_datos_op_para_edicion(id_op):
     except Exception as e:
         app.logger.error(f"Error al obtener datos de OP {id_op}: {str(e)}", exc_info=True)
         return {'status': 'error', 'message': 'Error al cargar los datos de la orden.'}, 500
-
-# Eliminar buscar_op_unico ya que sql_detalles_op_bd lo reemplaza
-# def buscar_op_unico(id):  # Comentar o eliminar esta función
-
-
-# def buscar_op_unico(id):
-#     try:
-#         # Crear alias para las dos instancias de Empleados
-#         empleado_vendedor = aliased(Empleados)
-#         empleado_supervisor = aliased(Empleados)
-
-#         # Consulta principal con JOINs para obtener los nombres relacionados
-#         result = db.session.query(
-#             OrdenProduccion,
-#             Clientes.id_cliente.label('id_cliente'),
-#             Clientes.nombre_cliente.label('nombre_cliente'),
-#             empleado_vendedor.id_empleado.label('id_empleado'),
-#             empleado_vendedor.nombre_empleado.label('nombre_empleado_vendedor'),
-#             empleado_supervisor.id_empleado.label('id_supervisor'),
-#             db.func.concat(empleado_supervisor.nombre_empleado, ' ',
-#             empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
-#             Users.name_surname.label('nombre_usuario_registro')
-#         ).outerjoin(
-#             Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
-#         ).outerjoin(
-#             empleado_vendedor, OrdenProduccion.id_empleado == empleado_vendedor.id_empleado
-#         ).outerjoin(
-#             empleado_supervisor, OrdenProduccion.id_supervisor == empleado_supervisor.id_empleado
-#         ).outerjoin(
-#             Users, OrdenProduccion.id_usuario_registro == Users.id
-#         ).filter(
-#             OrdenProduccion.id_op == id,
-#             OrdenProduccion.fecha_borrado.is_(None)
-#         ).first()
-
-#         if not result:
-#             return None
-
-#         orden, id_cliente, nombre_cliente, id_empleado, nombre_empleado_vendedor, id_supervisor, nombre_supervisor, nombre_usuario_registro = result
-
-#         # Consulta para renders
-#         renders = db.session.query(RendersOP.render_path).filter(
-#             RendersOP.id_op == id,
-#             RendersOP.fecha_borrado.is_(None)
-#         ).all()
-#         renders_list = [render.render_path for render in renders]
-
-#         # Consulta para documentos
-#         documentos = db.session.query(
-#             DocumentosOP.id_documento,
-#             DocumentosOP.documento_path,
-#             DocumentosOP.documento_nombre_original
-#         ).filter(
-#             DocumentosOP.id_op == id,
-#             DocumentosOP.fecha_borrado.is_(None)
-#         ).all()
-#         documentos_list = [{
-#             'id_documento': doc.id_documento,
-#             'documento_path': doc.documento_path,
-#             'documento_nombre_original': doc.documento_nombre_original
-#         } for doc in documentos]
-
-#         # Consulta para piezas
-#         piezas = db.session.query(
-#             OrdenPiezas,
-#             Piezas.nombre_pieza.label('nombre_pieza')
-#         ).join(
-#             Piezas, OrdenPiezas.id_pieza == Piezas.id_pieza
-#         ).filter(
-#             OrdenPiezas.id_op == id,
-#             OrdenPiezas.fecha_borrado.is_(None)
-#         ).all()
-
-#         piezas_list = []
-#         for pieza, nombre_pieza in piezas:
-#             # Consulta para procesos asociados a la pieza
-#             procesos = db.session.query(
-#                 Procesos.nombre_proceso
-#             ).join(
-#                 OrdenPiezasProcesos, Procesos.id_proceso == OrdenPiezasProcesos.id_proceso
-#             ).filter(
-#                 OrdenPiezasProcesos.id_orden_pieza == pieza.id_orden_pieza,
-#                 OrdenPiezasProcesos.fecha_borrado.is_(None)
-#             ).all()
-#             procesos_list = [proceso.nombre_proceso for proceso in procesos]
-
-#             piezas_list.append({
-#                 'id_orden_pieza': pieza.id_orden_pieza,
-#                 'id_pieza': pieza.id_pieza,
-#                 'nombre_pieza': nombre_pieza if nombre_pieza else 'Sin nombre',
-#                 'cantidad': pieza.cantidad if pieza.cantidad else 0,
-#                 'tamano': pieza.tamano if pieza.tamano else '',
-#                 'montaje': pieza.montaje if pieza.montaje else '',
-#                 'montaje_tamano': pieza.montaje_tamano if pieza.montaje_tamano else '',
-#                 'material': pieza.material if pieza.material else '',
-#                 'cantidad_material': pieza.cantidad_material if pieza.cantidad_material else '',
-#                 'otros_procesos': pieza.otros_procesos if pieza.otros_procesos else '',
-#                 'procesos': procesos_list,
-#                 'descripcion_general': pieza.descripcion_general if pieza.descripcion_general else ''
-#             })
-
-#         return {
-#             'id_op': orden.id_op,
-#             'codigo_op': orden.codigo_op,
-#             'id_cliente': id_cliente if id_cliente else None,
-#             'nombre_cliente': nombre_cliente if nombre_cliente else 'Desconocido',
-#             'producto': orden.producto if orden.producto else 'Sin descripción',
-#             'version': orden.version if orden.version else '',
-#             'cotizacion': orden.cotizacion if orden.cotizacion else '',
-#             'estado': orden.estado if orden.estado else 'Sin estado',
-#             'cantidad': orden.cantidad if orden.cantidad else 0,
-#             'medida': orden.medida if orden.medida else '',
-#             'referencia': orden.referencia if orden.referencia else '',
-#             'odi': orden.odi if orden.odi else 'Sin ODI',
-#             'id_empleado': id_empleado if id_empleado else None,
-#             'empleado': nombre_empleado_vendedor if nombre_empleado_vendedor else 'Sin vendedor',
-#             'id_supervisor': id_supervisor if id_supervisor else None,
-#             'nombre_supervisor': nombre_supervisor if nombre_supervisor else 'Sin supervisor',
-#             'fecha': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else '',
-#             'fecha_entrega': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else '',
-#             'descripcion_general': orden.descripcion_general if orden.descripcion_general else '',
-#             'empaque': orden.empaque if orden.empaque else '',
-#             'materiales': orden.materiales if orden.materiales else '',
-#             'fecha_registro': orden.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if orden.fecha_registro else 'Sin registro',
-#             'usuario_registro': nombre_usuario_registro if nombre_usuario_registro else 'Desconocido',
-#             'renders': renders_list,
-#             'documentos': documentos_list,
-#             'piezas': piezas_list
-#         }
-#     except Exception as e:
-#         app.logger.error(f"Ocurrió un error en def buscar_op_unico: {e}")
-#         return None
 
 
 def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
@@ -2859,7 +2727,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         orden.cotizacion = cotizacion_val
         orden.odi = odi_val
         orden.referencia = referencia_val
-        orden.descripcion_general_op = descripcion_general_op_val
+        orden.descripcion_general = descripcion_general_op_val
         orden.empaque = empaque_val
         orden.estado = estado_val
         orden.logistica = dataForm.get('logistica')
