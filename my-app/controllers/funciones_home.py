@@ -1285,7 +1285,7 @@ def buscar_operaciones_bd(empleado_filter, fecha_filter, hora_filter, start, len
         query = db.session.query(
             Operaciones.id_operacion,
             # Usa label para que puedas acceder fácilmente por nombre después
-            Empleados.nombre_empleado.label('empleado_nombre'),
+            func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).label('empleado_nombre'),
             Procesos.nombre_proceso.label('proceso_nombre'),
             Actividades.nombre_actividad.label('actividad_nombre'),
             OrdenProduccion.codigo_op.label('orden_codigo_op'),
@@ -1313,9 +1313,7 @@ def buscar_operaciones_bd(empleado_filter, fecha_filter, hora_filter, start, len
         if empleado_filter:
             # Busca de forma insensible a mayúsculas/minúsculas
             query = query.filter(
-                Empleados.nombre_empleado.ilike(f'%{empleado_filter}%'))
-            # Si quieres buscar también en apellido:
-            # query = query.filter(func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).ilike(f'%{empleado_filter}%'))
+                func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).ilike(f'%{empleado_filter}%'))
 
         if fecha_filter:
             try:
