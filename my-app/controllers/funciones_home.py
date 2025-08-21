@@ -1502,6 +1502,8 @@ def procesar_actualizacion_operacion(data):
             id_operacion=id_operacion).first()
         if operacion:
             # Obtener y validar IDs, usando valores por defecto si son None
+            operacion.id_empleado = int(data.form.get('id_empleado')) if data.form.get(
+                'id_empleado') else operacion.id_empleado
             operacion.id_proceso = int(data.form.get('id_proceso')) if data.form.get(
                 'id_proceso') else operacion.id_proceso
             operacion.id_actividad = int(data.form.get('id_actividad')) if data.form.get(

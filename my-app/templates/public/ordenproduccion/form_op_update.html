@@ -193,7 +193,7 @@
             class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN)
             <span class="text-danger">*</span></label>
           <textarea class="form-control" id="descripcion_general_op"
-            name="descripcion_general_op" rows="3" required></textarea>
+            name="descripcion_general_op" rows="3" required>{{ op_data.descripcion_general_op or '' }}</textarea>
           <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
       </div>
