@@ -146,7 +146,7 @@
     <div class="row g-4">
       {% for doc in detalle_op.documentos %}
       <div class="col-md-4">
-        <a href="{{ url_for('static', filename=doc.documento_path) }}" download="{{ doc.documento_nombre_original }}" class="btn btn-outline-primary">
+        <a href="{{ url_for('static', filename='documentos_op/' ~ doc.documento_path) }}" download="{{ doc.documento_nombre_original }}" class="btn btn-outline-primary">
           <i class="bi bi-download"></i> Descargar {{ doc.documento_nombre_original }}
         </a>
       </div>

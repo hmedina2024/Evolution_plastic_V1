@@ -1755,7 +1755,7 @@ def procesar_form_op(dataForm, files):
                 errores.append(f"Documento '{secure_filename(doc_file_storage.filename)}': {nombre_archivo_o_msg}")
             elif nombre_archivo_o_msg:
                 documentos_a_guardar.append({
-                    "path": os.path.join('static', 'documentos_op', nombre_archivo_o_msg).replace("\\", "/"),
+                    "path": os.path.basename(nombre_archivo_o_msg),
                     "nombre_original": secure_filename(doc_file_storage.filename)
                 })
 
