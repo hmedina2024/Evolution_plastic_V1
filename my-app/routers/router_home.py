@@ -31,7 +31,8 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
-                                        obtener_datos_op_para_edicion # Importar la nueva función
+                                        obtener_datos_op_para_edicion, # Importar la nueva función
+                                        get_all_empleados
                                         )
 
 PATH_URL = "public/empleados"
@@ -1089,6 +1090,14 @@ def api_empleados():
     ]
     more = (page * per_page) < total_empleados
     return jsonify({'empleados': empleados_data, 'pagination': {'more': more}, 'total': total_empleados})
+
+
+@app.route('/api/empleados/all', methods=['GET'])
+def api_all_empleados():
+    if 'conectado' in session:
+        empleados = get_all_empleados()
+        return jsonify(empleados)
+    return jsonify({"error": "No autorizado"}), 401
 
 
 @app.route('/api/supervisores', methods=['GET'])

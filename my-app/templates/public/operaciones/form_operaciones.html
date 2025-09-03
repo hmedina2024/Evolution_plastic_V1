@@ -58,17 +58,51 @@
       </div>
       <!-- Campo oculto para action -->
       <input type="hidden" name="action" id="action" value="save">
+      <input type="hidden" name="destinatarios" id="destinatarios">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn" disabled>
           Guardar Registro <i class="bi bi-save ms-2"></i>
         </button>
         <br>
         </br>
-        <button type="submit" class="btn btn-success rounded-pill px-4" id="submitNotifyBtn" disabled>
+        <button type="button" class="btn btn-success rounded-pill px-4" id="submitNotifyBtn" disabled>
           Guardar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal para seleccionar destinatarios -->
+<div class="modal fade" id="modalDestinatarios" tabindex="-1" aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar Destinatarios</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="seleccionar-todos"></th>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody id="lista-empleados-modal">
+              <!-- Los empleados se cargarán aquí dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="guardar-destinatarios">Guardar y Enviar</button>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -241,36 +275,75 @@ $(document).ready(function () {
     horaFinInput.on('change', validateDates);
 
     submitBtn.on('click', function () {
-        console.log("Botón Guardar Registro clickeado");
         actionInput.val('save');
+        $('#registroForm').submit();
     });
 
-    submitNotifyBtn.on('click', function () {
-        console.log("Botón Guardar y Notificar clickeado");
+    submitNotifyBtn.on('click', function (e) {
+        e.preventDefault();
+        validateDates();
+        if (submitNotifyBtn.prop('disabled')) {
+            return;
+        }
+
+        $.ajax({
+            url: '/api/empleados/all',
+            method: 'GET',
+            success: function(data) {
+                const listaEmpleados = $('#lista-empleados-modal');
+                listaEmpleados.empty();
+                data.forEach(empleado => {
+                    listaEmpleados.append(`
+                        <tr>
+                            <td><input type="checkbox" class="destinatario-check" value="${empleado.id_empleado}"></td>
+                            <td>${empleado.nombre_empleado} ${empleado.apellido_empleado || ''}</td>
+                            <td>${empleado.cargo || 'N/A'}</td>
+                            <td>${empleado.email_empleado || 'N/A'}</td>
+                        </tr>
+                    `);
+                });
+                $('#modalDestinatarios').modal('show');
+            },
+            error: function() {
+                alert('Error al cargar la lista de empleados.');
+            }
+        });
+    });
+
+    $('#seleccionar-todos').on('click', function() {
+        $('.destinatario-check').prop('checked', $(this).prop('checked'));
+    });
+
+    $('#guardar-destinatarios').on('click', function() {
+        const destinatariosIds = [];
+        $('.destinatario-check:checked').each(function() {
+            destinatariosIds.push($(this).val());
+        });
+
+        if (destinatariosIds.length === 0) {
+            alert('Debe seleccionar al menos un destinatario.');
+            return;
+        }
+
+        $('#destinatarios').val(destinatariosIds.join(','));
         actionInput.val('save_and_notify');
+        $('#registroForm').submit();
     });
 
     let isSubmitting = false;
-
     $('#registroForm').on('submit', function (e) {
-        e.preventDefault();
-
         if (isSubmitting) {
-            console.log("Formulario ya está siendo enviado, evitando envío duplicado");
-            return false;
+            e.preventDefault();
+            return;
         }
-
         validateDates();
-        if (!submitBtn.prop('disabled') && !submitNotifyBtn.prop('disabled')) {
-            isSubmitting = true;
-            submitBtn.prop('disabled', true).text('Guardando...');
-            submitNotifyBtn.prop('disabled', true).text('Guardando...');
-
-            console.log("Enviando formulario...");
-            this.submit();
-        } else {
-            console.log("Validación fallida, no se envía el formulario");
+        if (submitBtn.prop('disabled') && (actionInput.val() === 'save' || $('#destinatarios').val() === '')) {
+             e.preventDefault();
+             return;
         }
+        isSubmitting = true;
+        submitBtn.prop('disabled', true).text('Guardando...');
+        submitNotifyBtn.prop('disabled', true).text('Guardando...');
     });
 });
 </script>

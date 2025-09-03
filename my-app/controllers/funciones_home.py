@@ -1164,53 +1164,63 @@ def procesar_form_operacion(dataForm):
         if action == 'save_and_notify':
             app.logger.debug("Entrando al bloque de envío de correo...")
             try:
-                admins = db.session.query(Users).filter_by(
-                    rol='administrador').all()
-                if not admins:
-                    app.logger.warning(
-                        'No se encontraron usuarios con rol administrador.')
+                destinatarios_ids_str = dataForm.get('destinatarios')
+                if not destinatarios_ids_str:
+                    app.logger.warning('No se seleccionaron destinatarios.')
                 else:
+                    destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
+                    destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    
                     app.logger.debug(
-                        f"Se encontraron {len(admins)} administradores: {[admin.email_user for admin in admins]}")
+                        f"Se encontraron {len(destinatarios)} destinatarios.")
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
                     subject = 'Confirmación: Finalización de Actividad'
+                    
+                    # Obtener los nombres del proceso y actividad
+                    proceso = db.session.query(Procesos).filter_by(id_proceso=id_proceso).first()
+                    actividad = db.session.query(Actividades).filter_by(id_actividad=id_actividad).first()
+                    nombre_proceso = proceso.nombre_proceso if proceso else f"ID Proceso no encontrado ({id_proceso})"
+                    nombre_actividad = actividad.nombre_actividad if actividad else f"ID Actividad no encontrado ({id_actividad})"
 
                     orden_produccion = OrdenProduccion.query.get(id_op)
                     codigo_op_a_mostrar = orden_produccion.codigo_op if orden_produccion else id_op
 
-                    for admin in admins:
-                        email_receiver = admin.email_user
-                        body = f"""
-                        Se ha registrado una nueva operación diaria:
+                    for destinatario in destinatarios:
+                        if destinatario.email_user:
+                            email_receiver = destinatario.email_user
+                            body = f"""
+                            Se ha registrado una nueva operación diaria:
 
-                        - Empleado: {empleado.nombre_empleado} {empleado.apellido_empleado or ''}
-                        - Proceso: {id_proceso}  # Ajusta según el modelo
-                        - Actividad: {id_actividad}  # Ajusta según el modelo
-                        - Orden de Producción: {codigo_op_a_mostrar}
-                        - Cantidad Realizada: {cantidad}
-                        - Fecha y Hora Inicio: {fecha_hora_inicio}
-                        - Fecha y Hora Fin: {fecha_hora_fin}
-                        - Pieza Realizada: {pieza_realizada if pieza_realizada else 'No especificada'}
-                        - Novedades: {novedad if novedad else 'Sin novedades'}
-                        - Registrado por: {session.get('name_surname', 'Usuario desconocido')}
+                            - Empleado: {empleado.nombre_empleado} {empleado.apellido_empleado or ''}
+                            - Proceso: {nombre_proceso} 
+                            - Actividad: {nombre_actividad} 
+                            - Orden de Producción: {codigo_op_a_mostrar}
+                            - Cantidad Realizada: {cantidad}
+                            - Fecha y Hora Inicio: {fecha_hora_inicio}
+                            - Fecha y Hora Fin: {fecha_hora_fin}
+                            - Pieza Realizada: {pieza_realizada if pieza_realizada else 'No especificada'}
+                            - Novedades: {novedad if novedad else 'Sin novedades'}
+                            - Registrado por: {session.get('name_surname', 'Usuario desconocido')}
 
-                        Este es un mensaje automático. Por favor, no respondas a este correo.
-                        """
+                            Este es un mensaje automático. Por favor, no respondas a este correo.
+                            """
 
-                        em = EmailMessage()
-                        em['From'] = email_sender
-                        em['To'] = email_receiver
-                        em['Subject'] = subject
-                        em.set_content(body)
+                            em = EmailMessage()
+                            em['From'] = email_sender
+                            em['To'] = email_receiver
+                            em['Subject'] = subject
+                            em.set_content(body)
 
-                        context = ssl.create_default_context()
-                        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-                            smtp.login(email_sender, email_password)
-                            smtp.sendmail(
-                                email_sender, email_receiver, em.as_string())
-                            app.logger.info(
-                                f'Correo enviado a {email_receiver}')
+                            context = ssl.create_default_context()
+                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                                smtp.login(email_sender, email_password)
+                                smtp.sendmail(
+                                    email_sender, email_receiver, em.as_string())
+                                app.logger.info(
+                                    f'Correo enviado a {email_receiver}')
+                        else:
+                            app.logger.warning(f"El empleado {destinatario.nombre_empleado} no tiene un correo electrónico registrado.")
             except Exception as e:
                 app.logger.error(
                     f'Error al enviar correo de notificación: {str(e)}')
@@ -4204,3 +4214,20 @@ def get_detalles_pieza_maestra_options(grupo_detalles_pieza_param):
         return [] # Devolver lista vacía en caso de error
 
 
+
+
+def get_all_empleados():
+    """
+    Obtiene todos los usuarios activos.
+    """
+    try:
+        empleados = db.session.query(Users).filter(Users.fecha_borrado.is_(None),Users.rol == 'Administrador').order_by(Users.name_surname.asc()).all()
+        return [{
+            'id_empleado': e.id,
+            'nombre_empleado': e.name_surname,
+            'email_empleado': e.email_user,
+            'cargo': e.rol
+        } for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_all_empleados: {e}", exc_info=True)
+        return []
