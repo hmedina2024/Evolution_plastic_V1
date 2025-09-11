@@ -48,8 +48,8 @@
         </div>
         <div class="col-md-2">
           <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado</label>
-          <input type="text" name="tipo_empleado_display" id="tipo_empleado" value="{{ respuestaEmpleado.tipo_empleado or '' }}" class="form-control" readonly required />
-          <input type="hidden" name="tipo_empleado" id="tipo_empleado_value" value="{{ respuestaEmpleado.tipo_empleado or '' }}" />
+          <input type="text" name="tipo_empleado_display" id="tipo_empleado_display" value="{{ respuestaEmpleado.tipo_empleado or '' }}" class="form-control" readonly required />
+          <input type="hidden" name="id_tipo_empleado" id="id_tipo_empleado" value="{{ respuestaEmpleado.id_tipo_empleado or '' }}" />
         </div>
         <div class="col-md-2">
           <label for="id_empleado" class="form-label fw-bold text-primary">ID</label>
@@ -125,100 +125,62 @@
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
-    // Configuración de Select2 para empresas
-    function setupSelect2(selectId, url, placeholder, dataKey) {
-        const $select = $(`#${selectId}`);
-        $select.select2({
-            placeholder: placeholder,
-            allowClear: true,
-            minimumInputLength: 0,
-            dropdownAutoWidth: true,
-            ajax: {
-                url: url,
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {
-                        search: params.term || '',
-                        page: params.page || 1,
-                        per_page: 10
-                    };
-                },
-                processResults: function (data) {
-                    return {
-                        results: data[dataKey].map(item => ({
-                            id: item.id_empresa,
-                            text: item.nombre_empresa
-                        })),
-                        pagination: { more: data[dataKey].length === 10 }
-                    };
-                },
-                cache: true
+    const $selectEmpresa = $('#id_empresa');
+    const $tipoEmpleadoDisplay = $('#tipo_empleado_display');
+    const $tipoEmpleadoValue = $('#id_tipo_empleado');
+
+    $selectEmpresa.select2({
+        placeholder: 'Seleccionar empresa...',
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+            url: '/api/empresas',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    search: params.term || '',
+                    page: params.page || 1,
+                    per_page: 10
+                };
             },
-            templateResult: function (data) {
-                return data.text;
+            processResults: function (data) {
+                return {
+                    results: data.map(item => ({
+                        id: item.id_empresa,
+                        text: item.nombre_empresa,
+                        tipo_empresa: item.tipo_empresa,
+                        id_tipo_empleado: item.id_tipo_empleado
+                    })),
+                    pagination: { more: data.length === 10 }
+                };
             },
-            templateSelection: function (data) {
-                return data.text || data.id;
-            }
-        }).on('select2:open', function () {
-            setTimeout(() => {
-                document.querySelector('.select2-search__field').focus();
-            }, 50);
-        });
-
-        // Si hay un valor preseleccionado, cargarlo
-        if ($select.val()) {
-            const value = $select.val();
-            $.ajax({
-                url: url,
-                data: { id: value },
-                dataType: 'json'
-            }).then(data => {
-                const optionData = data[dataKey].find(item => item.id_empresa == value);
-                if (optionData) {
-                    const option = new Option(optionData.nombre_empresa, optionData.id_empresa, true, true);
-                    $select.append(option).trigger('change');
-                }
-            });
-        }
-    }
-
-    // Configurar Select2 para empresas
-    setupSelect2('id_empresa', '/api/empresas', 'Seleccionar empresa...', 'empresas');
-
-    // Llenar automáticamente tipo_empleado según la empresa seleccionada
-    $('#id_empresa').on('change', function () {
-        const idEmpresa = $(this).val();
-        const $tipoEmpleado = $('#tipo_empleado');
-        const $tipoEmpleadoValue = $('#tipo_empleado_value');
-
-        if (idEmpresa) {
-            $.ajax({
-                url: '/api/empresas',
-                data: { id: idEmpresa },
-                dataType: 'json',
-                success: function (data) {
-                    const empresa = data.empresas.find(item => item.id_empresa == idEmpresa);
-                    if (empresa && empresa.tipo_empresa) {
-                        $tipoEmpleado.val(empresa.tipo_empresa);
-                        $tipoEmpleadoValue.val(empresa.tipo_empresa);
-                    } else {
-                        $tipoEmpleado.val('');
-                        $tipoEmpleadoValue.val('');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error al obtener el tipo de empresa:', error);
-                    $tipoEmpleado.val('');
-                    $tipoEmpleadoValue.val('');
-                }
-            });
-        } else {
-            $tipoEmpleado.val('');
-            $tipoEmpleadoValue.val('');
+            cache: true
         }
     });
+
+    // Evento que se dispara cuando se selecciona una empresa
+    $selectEmpresa.on('select2:select', function (e) {
+        const data = e.params.data;
+        $tipoEmpleadoDisplay.val(data.tipo_empresa || '');
+        $tipoEmpleadoValue.val(data.id_tipo_empleado || '');
+    });
+
+    // Cargar datos iniciales del empleado
+    const initialEmpresaId = "{{ respuestaEmpleado.id_empresa }}";
+    const initialEmpresaNombre = "{{ respuestaEmpleado.nombre_empresa }}";
+    
+    if (initialEmpresaId && initialEmpresaNombre) {
+        // Crear la opción inicial y seleccionarla
+        const initialOption = new Option(initialEmpresaNombre, initialEmpresaId, true, true);
+        $selectEmpresa.append(initialOption).trigger('change');
+
+        // Asegurarse de que los datos del tipo de empleado también se cargan
+        $tipoEmpleadoDisplay.val("{{ respuestaEmpleado.tipo_empleado or '' }}");
+        $tipoEmpleadoValue.val("{{ respuestaEmpleado.id_tipo_empleado or '' }}");
+    }
+
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
@@ -226,20 +188,17 @@ $(document).ready(function () {
 
     // Manejar el envío del formulario
     $('#updateForm').on('submit', function (e) {
-        e.preventDefault();
-
+        if (!$tipoEmpleadoValue.val()) {
+            e.preventDefault();
+            alert('Error: El tipo de empleado no se ha cargado correctamente. Por favor, vuelva a seleccionar una empresa.');
+            return;
+        }
         if (isSubmitting) {
-            return false;
+            e.preventDefault();
+            return;
         }
-
-        const form = this;
-        if (form.checkValidity()) {
-            isSubmitting = true;
-            submitBtn.prop('disabled', true).text('Actualizando...');
-            form.submit();
-        } else {
-            form.reportValidity();
-        }
+        isSubmitting = true;
+        submitBtn.prop('disabled', true).text('Actualizando...');
     });
 
     // Validar documento del empleado

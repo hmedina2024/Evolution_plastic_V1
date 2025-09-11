@@ -223,7 +223,8 @@ def viewEditarEmpleado(id):
     if 'conectado' in session:
         respuestaEmpleado = buscar_empleado_unico(id)
         if respuestaEmpleado:
-            return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado)
+            tipos_empleado = obtener_tipo_empleado()
+            return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado, tipos_empleado=tipos_empleado)
         else:
             flash('El empleado no existe.', 'error')
             return redirect(url_for('inicio'))
@@ -1236,7 +1237,7 @@ def api_empresas():
     app.logger.debug(
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id={id_empresa}")
     empresas = get_empresas_paginadas(page, per_page, search, id_empresa)
-    return jsonify({'empresas': empresas})
+    return jsonify(empresas)
 
 
 @app.route('/api/tipos-empleado', methods=['GET'])

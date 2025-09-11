@@ -331,6 +331,8 @@ def procesar_actualizacion_form(data_request):
             return False, "Debe seleccionar una empresa."
 
         id_tipo_empleado_str = data_request.form.get('id_tipo_empleado')
+        app.logger.debug(f"Valor de id_tipo_empleado_str: {id_tipo_empleado_str}")
+        print('tipo empleado', id_tipo_empleado_str)
         if not id_tipo_empleado_str or not id_tipo_empleado_str.isdigit():
             return False, "Debe seleccionar un tipo de empleado."
 
@@ -4163,7 +4165,16 @@ def get_empresas_paginadas(page, per_page, search, id=None):
         query = query.order_by(Empresa.nombre_empresa.asc())
         empresas = query.paginate(
             page=page, per_page=per_page, error_out=False).items
-        return [{"id_empresa": e.id_empresa, "nombre_empresa": e.nombre_empresa, "tipo_empresa": e.tipo_empresa} for e in empresas]
+        resultados = []
+        for e in empresas:
+            tipo_empleado_obj = Tipo_Empleado.query.filter(func.lower(Tipo_Empleado.tipo_empleado) == func.lower(e.tipo_empresa)).first()
+            resultados.append({
+                "id_empresa": e.id_empresa,
+                "nombre_empresa": e.nombre_empresa,
+                "tipo_empresa": e.tipo_empresa,
+                "id_tipo_empleado": tipo_empleado_obj.id_tipo_empleado if tipo_empleado_obj else None
+            })
+        return resultados
     except Exception as e:
         app.logger.error(f"Error en get_empresas_paginadas: {str(e)}")
         return []
