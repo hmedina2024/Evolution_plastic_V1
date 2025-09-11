@@ -1106,6 +1106,7 @@ def procesar_form_operacion(dataForm):
         fecha_hora_inicio = dataForm.get('fecha_hora_inicio')
         fecha_hora_fin = dataForm.get('fecha_hora_fin')
         action = dataForm.get('action')
+        mensaje_personalizado = dataForm.get('mensaje_personalizado')
 
         app.logger.debug(f"Valor de action recibido: {action}")
 
@@ -1204,7 +1205,10 @@ def procesar_form_operacion(dataForm):
                             - Pieza Realizada: {pieza_realizada if pieza_realizada else 'No especificada'}
                             - Novedades: {novedad if novedad else 'Sin novedades'}
                             - Registrado por: {session.get('name_surname', 'Usuario desconocido')}
-
+    
+                            Descripción:
+                            {mensaje_personalizado if mensaje_personalizado else 'No se ha incluido un mensaje adicional.'}
+    
                             Este es un mensaje automático. Por favor, no respondas a este correo.
                             """
 

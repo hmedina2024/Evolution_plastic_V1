@@ -59,6 +59,7 @@
       <!-- Campo oculto para action -->
       <input type="hidden" name="action" id="action" value="save">
       <input type="hidden" name="destinatarios" id="destinatarios">
+      <input type="hidden" name="mensaje_personalizado" id="mensaje_personalizado">
       <div class="text-center mt-5">
         <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn" disabled>
           Guardar Registro <i class="bi bi-save ms-2"></i>
@@ -82,6 +83,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+            <label for="mensaje-modal" class="form-label">Descripción:</label>
+            <textarea class="form-control" id="mensaje-modal" rows="3"></textarea>
+        </div>
         <div class="table-responsive">
           <table class="table table-striped">
             <thead>
@@ -326,6 +331,7 @@ $(document).ready(function () {
         }
 
         $('#destinatarios').val(destinatariosIds.join(','));
+        $('#mensaje_personalizado').val($('#mensaje-modal').val());
         actionInput.val('save_and_notify');
         $('#registroForm').submit();
     });
