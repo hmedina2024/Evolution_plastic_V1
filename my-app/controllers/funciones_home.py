@@ -131,7 +131,7 @@ def obtener_tipo_empleado():
 
 def sql_lista_empleadosBD():
     try:
-        return db.session.query(Empleados, Empresa).join(Empresa, Empleados.id_empresa == Empresa.id_empresa).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.nombre_empleado.asc()).all()
+        return db.session.query(Empleados, Empresa).join(Empresa, Empleados.id_empresa == Empresa.id_empresa).filter(Empleados.fecha_borrado.is_(None)).order_by(Empleados.fecha_registro.desc()).all()
     except Exception as e:
         app.logger.error(f"Error al listar empleados: {str(e)}", exc_info=True)
         return []
@@ -4167,8 +4167,8 @@ def get_empresas_paginadas(page, per_page, search, id=None):
                 (Empresa.nombre_empresa.ilike(search))
             )
         query = query.order_by(Empresa.nombre_empresa.asc())
-        empresas = query.paginate(
-            page=page, per_page=per_page, error_out=False).items
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        empresas = pagination.items
         resultados = []
         for e in empresas:
             tipo_empleado_obj = Tipo_Empleado.query.filter(func.lower(Tipo_Empleado.tipo_empleado) == func.lower(e.tipo_empresa)).first()
@@ -4178,10 +4178,15 @@ def get_empresas_paginadas(page, per_page, search, id=None):
                 "tipo_empresa": e.tipo_empresa,
                 "id_tipo_empleado": tipo_empleado_obj.id_tipo_empleado if tipo_empleado_obj else None
             })
-        return resultados
+        return {
+            'empresas': resultados,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page
+        }
     except Exception as e:
         app.logger.error(f"Error en get_empresas_paginadas: {str(e)}")
-        return []
+        return {'empresas': [], 'total': 0, 'page': page, 'per_page': per_page}
 
 
 def get_tipos_empleado_paginados(page, per_page, search, id_empresa):

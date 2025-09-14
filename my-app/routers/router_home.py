@@ -144,7 +144,8 @@ def buscando_empleados():
             4: Empresa.tipo_empresa,
             5: Empresa.nombre_empresa,
             6: Empleados.cargo,
-            7: None  # Columna "Acción" (no se ordena)
+            7: Empleados.fecha_registro,
+            8: None  # Columna "Acción" (no se ordena)
         }
 
         # Construir la consulta
@@ -187,6 +188,7 @@ def buscando_empleados():
                 'tipo_empresa': empresa.tipo_empresa,
                 'nombre_empresa': empresa.nombre_empresa,
                 'cargo': empleado.cargo,
+                'fecha_registro': empleado.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if empleado.fecha_registro else None,
                 'foto_empleado': empleado.foto_empleado if empleado.foto_empleado else ''
             })
 
@@ -1234,10 +1236,9 @@ def api_empresas():
     per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
     id_empresa = request.args.get('id', None, type=int)
-    app.logger.debug(
-        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id={id_empresa}")
-    empresas = get_empresas_paginadas(page, per_page, search, id_empresa)
-    return jsonify(empresas)
+    app.logger.debug(f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}, id={id_empresa}")
+    empresas_data = get_empresas_paginadas(page, per_page, search, id_empresa)
+    return jsonify(empresas_data)
 
 
 @app.route('/api/tipos-empleado', methods=['GET'])
