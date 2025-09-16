@@ -3,8 +3,11 @@
 {% block title %}Registrar Orden de Producción{% endblock %}
 
 {% block customCSS %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
 {% block body %}
@@ -13,138 +16,203 @@
     <h3 class="fw-bold">REGISTRAR NUEVA ORDEN DE PRODUCCIÓN</h3>
   </div>
   <div class="card-body p-4">
-    <form class="form-horizontal mx-auto needs-validation" method="POST" action="/form-registrar-op" autocomplete="off" enctype="multipart/form-data" id="registroForm" novalidate> {# Actualiza action a tu ruta correcta #}
+    <form class="form-horizontal mx-auto needs-validation" method="POST"
+      action="/form-registrar-op" autocomplete="off"
+      enctype="multipart/form-data" id="registroForm" novalidate> {# Actualiza
+      action a tu ruta correcta #}
       <div class="row g-4">
         <div class="col-md-2 position-relative">
-          <label for="fecha" class="form-label fw-bold text-primary">Fecha Creación: <span class="text-danger">*</span></label>
-          <input class="form-control" type="date" name="fecha" id="fecha" required>
+          <label for="fecha" class="form-label fw-bold text-primary">Fecha
+            Creación: <span class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha" id="fecha"
+            required>
           <div class="invalid-feedback">Por favor, ingrese la fecha.</div>
         </div>
         <div class="col-md-2 position-relative">
-          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA DE ENTREGA <span class="text-danger">*</span></label>
-          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega" required>
-          <div class="invalid-feedback">Por favor, ingrese la fecha de entrega.</div>
+          <label for="fecha_entrega"
+            class="form-label fw-bold text-primary">FECHA DE ENTREGA <span
+              class="text-danger">*</span></label>
+          <input class="form-control" type="date" name="fecha_entrega"
+            id="fecha_entrega" required>
+          <div class="invalid-feedback">Por favor, ingrese la fecha de
+            entrega.</div>
         </div>
         <!-- <div class="col-md-2">
           <label for="cod_op" class="form-label fw-bold text-primary">COD. OP <span class="text-danger">*</span></label>
           <input class="form-control" type="text" name="cod_op" id="cod_op" value="{{ codigo_op }}" readonly required>
           <div class="invalid-feedback">Código OP es requerido y generado.</div>
         </div> -->
-        <div class="col-md-4" style="display: none;"> {/* Campo versión oculto por defecto */}
-          <label for="version" class="form-label fw-bold text-primary">VERSIÓN OP</label>
-          <input type="text" name="version" id="version" class="form-control" value="1">
+        <div class="col-md-4" style="display: none;"> {/* Campo versión oculto
+          por defecto */}
+          <label for="version" class="form-label fw-bold text-primary">VERSIÓN
+            OP</label>
+          <input type="text" name="version" id="version" class="form-control"
+            value="1">
         </div>
         <div class="col-md-2">
-          <label for="cotizacion" class="form-label fw-bold text-primary">COTIZACIÓN: <span class="text-danger">*</span></label>
-          <input type="text" name="cotizacion" id="cotizacion" class="form-control" required>
+          <label for="cotizacion"
+            class="form-label fw-bold text-primary">COTIZACIÓN: <span
+              class="text-danger">*</span></label>
+          <input type="text" name="cotizacion" id="cotizacion"
+            class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese la cotización.</div>
         </div>
         <div class="col-md-2">
-          <label for="odi" class="form-label fw-bold text-primary">ODI <span class="text-danger">*</span></label>
+          <label for="odi" class="form-label fw-bold text-primary">ODI <span
+              class="text-danger">*</span></label>
           <input type="text" name="odi" id="odi" class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese el ODI.</div>
         </div>
         <div class="col-md-4">
-          <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE CLIENTE <span class="text-danger">*</span></label>
-          <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
+          <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE
+            CLIENTE <span class="text-danger">*</span></label>
+          <select name="id_cliente" id="id_cliente" class="form-control select2"
+            required></select>
           <div class="invalid-feedback">Por favor, seleccione un cliente.</div>
         </div>
         <div class="col-md-4">
-          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO <span class="text-danger">*</span></label>
-          <input type="text" name="producto" id="producto" class="form-control" required>
-          <div class="invalid-feedback">Por favor, ingrese el nombre del producto.</div>
+          <label for="producto" class="form-label fw-bold text-primary">PRODUCTO
+            <span class="text-danger">*</span></label>
+          <input type="text" name="producto" id="producto" class="form-control"
+            required>
+          <div class="invalid-feedback">Por favor, ingrese el nombre del
+            producto.</div>
         </div>
         <div class="col-md-2">
-          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cantidad" id="cantidad" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad
+            OP<span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="cantidad" id="cantidad"
+            required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
         <div class="col-md-6">
-          <label for="referencia" class="form-label fw-bold text-primary">REFERENCIA</label>
-          <input type="text" name="referencia" id="referencia" class="form-control">
-        </div>        
+          <label for="referencia"
+            class="form-label fw-bold text-primary">REFERENCIA</label>
+          <input type="text" name="referencia" id="referencia"
+            class="form-control">
+        </div>
         <div class="col-md-4">
-          <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Vendedor <span class="text-danger">*</span></label>
-          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
+          <label for="id_empleado"
+            class="form-label fw-bold text-primary">Nombre Vendedor <span
+              class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado"
+            class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
         </div>
         <div class="col-md-3">
-          <label for="logistica" class="form-label fw-bold text-primary">LOGÍSTICA</label>
-          <select name="logistica" id="logistica" class="form-control select2" >
-            <option value="" disabled selected>Seleccionar Logística</option>
-            <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option value="INSTALACIÓN">INSTALACIÓN</option>
+          <label for="logistica"
+            class="form-label fw-bold text-primary">LOGÍSTICA</label>
+          <select name="logistica" id="logistica" class="form-control select2">
+            <option value disabled selected>Seleccionar Logística</option>
+            <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option
+              value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option
+              value="INSTALACIÓN">INSTALACIÓN</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
         <div class="col-md-2">
-          <label for="instructivo" class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO <span class="text-danger">*</span></label>
-          <select name="instructivo" id="instructivo" class="form-control select2" required>
-            <option value="" disabled selected>Requiere Instructivo</option>
+          <label for="instructivo"
+            class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO <span
+              class="text-danger">*</span></label>
+          <select name="instructivo" id="instructivo"
+            class="form-control select2" required>
+            <option value disabled selected>Requiere Instructivo</option>
             <option value="SI">SI</option><option value="NO">NO</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado proyecto</label>
-          <select name="estado_proyecto" id="estado_proyecto" class="form-control select2">
-            <option value="" selected>Seleccionar Estado del Proyecto</option>
+          <label for="estado_proyecto"
+            class="form-label fw-bold text-primary">Estado proyecto</label>
+          <select name="estado_proyecto" id="estado_proyecto"
+            class="form-control select2">
+            <option value selected>Seleccionar Estado del Proyecto</option>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
-            <option value="Validar con prototipo aprobado">Validar con prototipo aprobado</option>
-            <option value="Validar con cabeza de serie">Validar con cabeza de serie</option>
+            <option value="Validar con prototipo aprobado">Validar con prototipo
+              aprobado</option>
+            <option value="Validar con cabeza de serie">Validar con cabeza de
+              serie</option>
           </select>
         </div>
       </div>
-      <div class="row g-4 mt-3">        
+      <div class="row g-4 mt-3">
         <div class="col-md-4">
-          <label for="render" class="form-label fw-bold text-primary">RENDER APROBADO</label>
-          {% set url_render = url_for('static', filename='assets/img/Prototipo.png') %}
-          <div class="render-upload-container" id="imagePreview" style="background-image: url('{{ url_render }}');">
-            <input type="file" id="imageUpload" name="render" accept=".png, .jpg, .jpeg" class="render-upload-input">
-            <label for="imageUpload" class="render-upload-label"><i class="bi bi-upload"></i> Cambiar</label>
-            <button type="button" class="render-delete-btn" id="deleteImageBtn" style="display: none;"><i class="bi bi-x-circle"></i> Quitar</button>
+          <label for="render" class="form-label fw-bold text-primary">RENDER
+            APROBADO</label>
+          {% set url_render = url_for('static',
+          filename='assets/img/Prototipo.png') %}
+          <div class="render-upload-container" id="imagePreview"
+            style="background-image: url('{{ url_render }}');">
+            <input type="file" id="imageUpload" name="render"
+              accept=".png, .jpg, .jpeg" class="render-upload-input">
+            <label for="imageUpload" class="render-upload-label"><i
+                class="bi bi-upload"></i> Cambiar</label>
+            <button type="button" class="render-delete-btn" id="deleteImageBtn"
+              style="display: none;"><i class="bi bi-x-circle"></i>
+              Quitar</button>
           </div>
         </div>
         <div class="col-md-4">
-          <label for="documentos" class="form-label fw-bold text-primary">Cargar Documentos</label>
-          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple>
+          <label for="documentos" class="form-label fw-bold text-primary">Cargar
+            Documentos</label>
+          <input class="form-control" type="file" name="documentos"
+            id="documentos" accept="*" multiple>
           <ul class="list-group mt-2" id="fileList"></ul>
         </div>
-         <div class="col-md-4">
-            <label class="form-label">CARGAR URL</label>
-            <div id="url_container">
-                <div class="dynamic-url-container d-flex align-items-center">
-                    <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
-                    <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
-                </div>
+        <div class="col-md-4">
+          <label class="form-label">CARGAR URL</label>
+          <div id="url_container">
+            <div class="dynamic-url-container d-flex align-items-center">
+              <input type="url" class="form-control" name="urls[]"
+                placeholder="Ingrese una URL">
+              <button type="button"
+                class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
             </div>
-            <button type="button" class="btn btn-primary mt-2" id="add_url_btn">Agregar otra URL</button>
+          </div>
+          <button type="button" class="btn btn-primary mt-2"
+            id="add_url_btn">Agregar otra URL</button>
         </div>
         <div class="col-md-12">
-          <label for="descripcion_general_op" class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN) <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="descripcion_general_op" name="descripcion_general_op" rows="3" required></textarea>
+          <label for="descripcion_general_op"
+            class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN)
+            <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="descripcion_general_op"
+            name="descripcion_general_op" rows="3" required></textarea>
           <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
       </div>
 
       <hr class="my-4">
-      <h4 class="text-primary mb-3">Procesos Generales de la Orden de Producción</h4>
+      <h4 class="text-primary mb-3">Procesos Generales de la Orden de
+        Producción</h4>
       <div class="row g-3">
         <div class="col-md-6">
-            <label for="op_ids_procesos" class="form-label fw-bold text-primary">Proceso(s) de la OP <span class="text-danger">*</span></label>
-            <select name="op_ids_procesos" id="op_ids_procesos" class="form-control select2" multiple="multiple" style="width:100%;"></select>
-            <div class="invalid-feedback">Seleccione al menos un proceso para la OP.</div>
+          <label for="op_ids_procesos"
+            class="form-label fw-bold text-primary">Proceso(s) de la OP <span
+              class="text-danger">*</span></label>
+          <select name="op_ids_procesos" id="op_ids_procesos"
+            class="form-control select2" multiple="multiple"
+            style="width:100%;"></select>
+          <div class="invalid-feedback">Seleccione al menos un proceso para la
+            OP.</div>
         </div>
-        <div class="col-md-6" id="op_otro_proceso_container" style="display:none;">
-            <label for="op_otro_proceso" class="form-label fw-bold text-primary">Otro Proceso (especificar) <span class="text-danger">*</span></label>
-            <input type="text" name="op_otro_proceso" id="op_otro_proceso" class="form-control">
-            <div class="invalid-feedback">Especifique el nombre del nuevo proceso.</div>
+        <div class="col-md-6" id="op_otro_proceso_container"
+          style="display:none;">
+          <label for="op_otro_proceso"
+            class="form-label fw-bold text-primary">Otro Proceso (especificar)
+            <span class="text-danger">*</span></label>
+          <input type="text" name="op_otro_proceso" id="op_otro_proceso"
+            class="form-control">
+          <div class="invalid-feedback">Especifique el nombre del nuevo
+            proceso.</div>
         </div>
       </div>
-      
+
       <hr class="my-4">
-      <h4 class="text-primary mb-3">Piezas de la Orden de Producción (Opcional)</h4>
+      <h4 class="text-primary mb-3">Piezas de la Orden de Producción
+        (Opcional)</h4>
       <div id="dynamicFormsContainer">
-        </div>
+      </div>
       <button type="button" id="addPieceBtn" class="btn btn-primary mt-2 mb-3">
         <i class="bi bi-plus-circle me-1"></i> Agregar Pieza
       </button>
@@ -152,28 +220,47 @@
 
       <div class="row mt-2 g-4">
         <div class="col-md-5">
-          <label for="empaque" class="form-label fw-bold text-primary">EMPAQUE</label>
+          <label for="empaque"
+            class="form-label fw-bold text-primary">EMPAQUE</label>
           <input type="text" name="empaque" id="empaque" class="form-control">
         </div>
         <div class="col-md-4">
-          <label for="id_supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-          <select name="id_supervisor" id="id_supervisor" class="form-control select2"></select>
+          <label for="id_supervisor"
+            class="form-label fw-bold text-primary">Supervisor</label>
+          <select name="id_supervisor" id="id_supervisor"
+            class="form-control select2"></select>
         </div>
         <div class="col-md-3">
-          <label for="estado" class="form-label fw-bold text-primary">ESTADO <span class="text-danger">*</span></label>
-          <select name="estado" id="estado" class="form-control select2" required>
-            <option value="" disabled selected>Seleccionar Estado</option>
-            <option value="ANULA">ANULA</option><option value="FACTU">FACTU</option><option value="CRUCE">CRUCE</option>
-            <option value="INV">INV</option><option value="LP">LP</option><option value="NC">NC</option>
-            <option value="PR">PR</option><option value="PR CR">PR CR</option><option value="TER">TER</option>
+          <label for="estado" class="form-label fw-bold text-primary">ESTADO
+            <span class="text-danger">*</span></label>
+          <select name="estado" id="estado" class="form-control select2"
+            required>
+            <option value disabled selected>Seleccionar Estado</option>
+            <option value="ANULA">ANULA</option><option
+              value="FACTU">FACTU</option><option value="CRUCE">CRUCE</option>
+            <option value="INV">INV</option><option
+              value="LP">LP</option><option value="NC">NC</option>
+            <option value="PR">PR</option><option value="PR CR">PR
+              CR</option><option value="TER">TER</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
       </div>
       <input type="hidden" id="piezas" name="piezas">
+      <input type="hidden" name="submit_action" id="submit_action" value="save">
+      <input type="hidden" name="destinatarios" id="destinatarios">
+      <input type="hidden" name="mensaje_personalizado"
+        id="mensaje_personalizado">
+
       <div class="text-center mt-5">
-        <button type="submit" class="btn btn-primary rounded-pill px-4">
+        <button type="button" class="btn btn-primary rounded-pill px-4"
+          id="submitBtn">
           Guardar Registro <i class="bi bi-save ms-2"></i>
+        </button>
+        <br><br>
+        <button type="button" class="btn btn-success rounded-pill px-4"
+          id="submitNotifyBtn">
+          Guardar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
     </form>
@@ -181,157 +268,235 @@
 </div>
 
 <!-- Modal para Detalles Adicionales de Pieza -->
-<div class="modal fade" id="piezaDetallesModal" tabindex="-1" aria-labelledby="piezaDetallesModalLabel" aria-hidden="true">
+<div class="modal fade" id="piezaDetallesModal" tabindex="-1"
+  aria-labelledby="piezaDetallesModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="piezaDetallesModalLabel">Detalles Adicionales de Pieza</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="piezaDetallesModalLabel">Detalles
+          Adicionales de Pieza</h5>
+        <button type="button" class="btn-close btn-close-white"
+          data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="formPiezaDetalles">
-          <input type="hidden" id="modalPieceIdSuffix" name="modalPieceIdSuffix">
-          <div class="row g-3">           
+          <input type="hidden" id="modalPieceIdSuffix"
+            name="modalPieceIdSuffix">
+          <div class="row g-3">
             <div class="col-md-5">
-              <label for="modal_cant_impresiones" class="form-label">CANT. IMPRESIONES</label>
-              <input class="form-control modal-input-dinamico" id="modal_cant_impresiones" data-grupo-input="CANT. IMPRESIONES">
+              <label for="modal_cant_impresiones" class="form-label">CANT.
+                IMPRESIONES</label>
+              <input class="form-control modal-input-dinamico"
+                id="modal_cant_impresiones"
+                data-grupo-input="CANT. IMPRESIONES">
             </div>
             <div class="col-md-5">
-              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS POR MONTAJE</label>
-              <input class="form-control modal-input-dinamico" id="modal_piezas_por_montaje" data-grupo-input="PIEZAS POR MONTAJE">
+              <label for="modal_piezas_por_montaje" class="form-label">PIEZAS
+                POR MONTAJE</label>
+              <input class="form-control modal-input-dinamico"
+                id="modal_piezas_por_montaje"
+                data-grupo-input="PIEZAS POR MONTAJE">
             </div>
             <div class="col-md-2">
-              <label for="modal_maculatura" class="form-label">MACULATURA</label>
-              <input type="text" class="form-control modal-input-dinamico" id="modal_maculatura" name="maculatura" style="width: 100%; " min="0" data-grupo-input="MACULATURA" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+              <label for="modal_maculatura"
+                class="form-label">MACULATURA</label>
+              <input type="text" class="form-control modal-input-dinamico"
+                id="modal_maculatura" name="maculatura" style="width: 100%; "
+                min="0" data-grupo-input="MACULATURA" pattern="[0-9]*"
+                inputmode="numeric"
+                onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-8">
-              <label for="modal_tamano_montaje" class="form-label">TAMAÑO DEL MONTAJE</label>
-              <input type="text"  class="form-control modal-input-dinamico" id="modal_tamano_montaje" data-grupo-input="TAMAÑO DEL MONTAJE" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-            </div>
-            <div class="col-md-4">
-                <label for="modal_unidad_medida_otro" class="form-label">UNIDAD MEDIDA</label>
-                <input type="text" class="form-control modal-input-dinamico" id="modal_unidad_medida_otro" name="modal_unidad_medida_otro" data-grupo-input="UNIDAD MEDIDA">
-              </div>
-            </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-              <div class="col-md-6">
-              <label for="modal_formato" class="form-label">FORMATO</label>
-              <select class="form-control modal-select-dinamico" id="modal_formato" data-grupo="FORMATO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="modal_formato_otro" class="form-label">Otro (Formato)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="modal_formato_otro" name="modal_formato_otro" data-grupo-input="FORMATO">
-              </div>
-              </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_adhesivo" class="form-label">MATERIAL ADHESIVO</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_adhesivo" class="form-label">Otro (Mate. Adhesivo)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_adhesivo" name="otro_material_adhesivo" data-grupo-input="MATERIAL ADHESIVO">
-              </div>
+                <div class="col-md-8">
+                  <label for="modal_tamano_montaje" class="form-label">TAMAÑO
+                    DEL MONTAJE</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_tamano_montaje"
+                    data-grupo-input="TAMAÑO DEL MONTAJE" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-4">
+                  <label for="modal_unidad_medida_otro"
+                    class="form-label">UNIDAD MEDIDA</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_unidad_medida_otro"
+                    name="modal_unidad_medida_otro"
+                    data-grupo-input="UNIDAD MEDIDA">
+                </div>
               </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_papel" class="form-label">MATERIAL PAPEL</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_papel" data-grupo="MATERIAL PAPEL" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_papel" class="form-label">Otro (Material Papel)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_papel" name="otro_material_papel" data-grupo-input="MATERIAL PAPEL">
-              </div>
-              </div>
-            </div>
-            <div class="col-md-6 border p-3 mb-3">
-              <div class="row">
-            <div class="col-md-6">
-              <label for="modal_material_rigido" class="form-label">MATERIAL RÍGIDO</label>
-              <select class="form-control modal-select-dinamico" id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-6">
-                <label for="otro_material_rigido" class="form-label">Otro (Mate. Rígido)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_material_rigido" name="otro_material_rigido" data-grupo-input="MATERIAL RÍGIDO">
-              </div>
+                <div class="col-md-6">
+                  <label for="modal_formato" class="form-label">FORMATO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_formato" data-grupo="FORMATO" multiple="multiple"
+                    style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="modal_formato_otro" class="form-label">Otro
+                    (Formato)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="modal_formato_otro" name="modal_formato_otro"
+                    data-grupo-input="FORMATO">
+                </div>
               </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-8">
-              <label for="modal_tipo_impresion" class="form-label">TIPO IMPRESIÓN</label>
-              <select class="form-control modal-select-dinamico" id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <!-- Cantidad de Tintas -->
-            <div class="col-md-4">
-                <label for="cantidad_tintas" class="form-label">CANT. TINTAS</label>
-                <input type="text" class="form-control modal-input-dinamico" id="cantidad_tintas" name="cantidad_tintas" min="0" data-grupo-input="CANIDAD TINTAS" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-            </div>
-            </div>
+                <div class="col-md-6">
+                  <label for="modal_material_adhesivo"
+                    class="form-label">MATERIAL ADHESIVO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_adhesivo" data-grupo="MATERIAL ADHESIVO"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_adhesivo" class="form-label">Otro
+                    (Mate. Adhesivo)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_adhesivo" name="otro_material_adhesivo"
+                    data-grupo-input="MATERIAL ADHESIVO">
+                </div>
+              </div>
             </div>
             <div class="col-md-6 border p-3 mb-3">
               <div class="row">
-            <div class="col-md-6">
-              <label for="modal_acabado" class="form-label">ACABADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_acabado" data-grupo="ACABADO" multiple="multiple" style="width: 100%;"></select>
+                <div class="col-md-6">
+                  <label for="modal_material_papel" class="form-label">MATERIAL
+                    PAPEL</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_papel" data-grupo="MATERIAL PAPEL"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_papel" class="form-label">Otro
+                    (Material Papel)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_papel" name="otro_material_papel"
+                    data-grupo-input="MATERIAL PAPEL">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="modal_material_rigido" class="form-label">MATERIAL
+                    RÍGIDO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_material_rigido" data-grupo="MATERIAL RÍGIDO"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_material_rigido" class="form-label">Otro
+                    (Mate. Rígido)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_material_rigido" name="otro_material_rigido"
+                    data-grupo-input="MATERIAL RÍGIDO">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-8">
+                  <label for="modal_tipo_impresion" class="form-label">TIPO
+                    IMPRESIÓN</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_tipo_impresion" data-grupo="TIPO IMPRESIÓN"
+                    multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <!-- Cantidad de Tintas -->
+                <div class="col-md-4">
+                  <label for="cantidad_tintas" class="form-label">CANT.
+                    TINTAS</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="cantidad_tintas" name="cantidad_tintas" min="0"
+                    data-grupo-input="CANIDAD TINTAS" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 border p-3 mb-3">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="modal_acabado" class="form-label">ACABADO</label>
+                  <select class="form-control modal-select-dinamico"
+                    id="modal_acabado" data-grupo="ACABADO" multiple="multiple"
+                    style="width: 100%;"></select>
+                </div>
+                <div class="col-md-6">
+                  <label for="otro_acabado" class="form-label">Otro
+                    (acabado)</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="otro_acabado" name="otro_acabado"
+                    data-grupo-input="ACABADO">
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-                <label for="otro_acabado" class="form-label">Otro (acabado)</label>
-                <input type="text" class="form-control modal-input-dinamico" id="otro_acabado" name="otro_acabado" data-grupo-input="ACABADO">
+              <label for="modal_finalizado"
+                class="form-label">FINALIZADO</label>
+              <select class="form-control modal-select-dinamico"
+                id="modal_finalizado" data-grupo="FINALIZADO"
+                multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label for="troquelado" class="form-label">TROQUELADO</label>
+              <div class="row">
+                <div class="col-md-2">
+                  <label for="numero_cavidades" class="form-label">#
+                    cavidades</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="numero_cavidades" min="0"
+                    data-grupo-input="NUMERO CAVIDADES" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="numero_golpes" class="form-label"># golpes</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="troquelado_total" class="form-label">troq.
+                    total</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="troquelado_total" min="0"
+                    data-grupo-input="TROQUELADO TOTAL" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="troquelado_parcial" class="form-label">troq.
+                    parcial</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="troquelado_parcial" min="0"
+                    data-grupo-input="TROQUELADO PARCIAL" pattern="[0-9]*"
+                    inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="col-md-2">
+                  <label for="grafado" class="form-label">grafado</label>
+                  <input type="text" class="form-control modal-input-dinamico"
+                    id="grafado" min="0" data-grupo-input="GRAFADO"
+                    pattern="[0-9]*" inputmode="numeric"
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
               </div>
             </div>
-            </div>
-            <div class="col-md-6">
-              <label for="modal_finalizado" class="form-label">FINALIZADO</label>
-              <select class="form-control modal-select-dinamico" id="modal_finalizado" data-grupo="FINALIZADO" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div> 
-            <label for="troquelado" class="form-label">TROQUELADO</label>
-            <div class="row">
-              <div class="col-md-2">
-                <label for="numero_cavidades" class="form-label"># cavidades</label>
-                <input type="text" class="form-control modal-input-dinamico" id="numero_cavidades" min="0" data-grupo-input="NUMERO CAVIDADES" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              </div>
-              <div class="col-md-2">
-                <label for="numero_golpes" class="form-label"># golpes</label>
-                <input type="text" class="form-control modal-input-dinamico" id="numero_golpes" min="0" data-grupo-input="NUMERO GOLPES" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              </div>
-              <div class="col-md-2">
-                <label for="troquelado_total" class="form-label">troq. total</label>
-                <input type="text" class="form-control modal-input-dinamico" id="troquelado_total" min="0" data-grupo-input="TROQUELADO TOTAL" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              </div>
-              <div class="col-md-2">
-                <label for="troquelado_parcial" class="form-label">troq. parcial</label>
-                <input type="text" class="form-control modal-input-dinamico" id="troquelado_parcial" min="0" data-grupo-input="TROQUELADO PARCIAL" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              </div>
-              <div class="col-md-2">
-                <label for="grafado" class="form-label">grafado</label>
-                <input type="text" class="form-control modal-input-dinamico" id="grafado" min="0" data-grupo-input="GRAFADO" pattern="[0-9]*" inputmode="numeric"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              </div>
-            </div>
-          </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" id="guardarDetallesPiezaModal">Guardar Detalles</button>
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="guardarDetallesPiezaModal">Guardar Detalles</button>
       </div>
     </div>
   </div>
@@ -339,68 +504,130 @@
 <!-- Fin Modal -->
 
 <!-- Modal Especificaciones de Pieza -->
-<div class="modal fade" id="especificacionesPiezaModal" tabindex="-1" aria-labelledby="especificacionesPiezaModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="especificacionesPiezaModalLabel">Especificaciones de Pieza</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered piece-table">
-                    <thead>
-                        <tr>
-                            <th>ITEM</th>
-                            <th>CALIBRE</th>
-                            <th>LARGO</th>                            
-                            <th>ANCHO</th>
-                            <th>UNIDAD</th>
-                            <th>CANTIDAD</th>
-                            <th>KG</th>
-                            <th>RETAL (kg)</th>
-                            <th>REPROCESO</th>
-                            <th>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody id="especificaciones_table_body">
-                        <tr>
-                            <td><input type="text" class="form-control" name="especificaciones[0][item]"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][calibre]" min="0" step="any"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][largo]" min="0" step="any"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][ancho]" min="0" step="any"></td>
-                            <td class="td-unidad-ancho">
-                                <select class="form-select" name="especificaciones[0][unidad]" style="width: 1000px !important;">
-                                    <option value="cm">cm</option>
-                                    <option value="mts">mts</option>
-                                    <option value="pulgadas">pulgadas</option>
-                                </select>
-                            </td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][cantidad]" min="0"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][kg]" min="0" step="any"></td>
-                            <td><input type="number" class="form-control" name="especificaciones[0][retal_kg]" min="0" step="any"></td>
-                            <td><input type="text" class="form-control" name="especificaciones[0][reproceso]"></td>
-                            <td><button type="button" class="btn btn-danger remove-row-btn">Eliminar</button></td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
-                <button type="button" class="btn btn-primary" id="add_especificacion_btn">Agregar Fila</button>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" id="save_especificaciones_btn">Guardar Especificaciones</button>
-            </div>
+<div class="modal fade" id="especificacionesPiezaModal" tabindex="-1"
+  aria-labelledby="especificacionesPiezaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"
+          id="especificacionesPiezaModalLabel">Especificaciones de Pieza</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+          aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-bordered piece-table">
+            <thead>
+              <tr>
+                <th>ITEM</th>
+                <th>CALIBRE</th>
+                <th>LARGO</th>
+                <th>ANCHO</th>
+                <th>UNIDAD</th>
+                <th>CANTIDAD</th>
+                <th>KG</th>
+                <th>RETAL (kg)</th>
+                <th>REPROCESO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="especificaciones_table_body">
+              <tr>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][item]"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][calibre]" min="0" step="any"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][largo]" min="0" step="any"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][ancho]" min="0" step="any"></td>
+                <td class="td-unidad-ancho">
+                  <select class="form-select" name="especificaciones[0][unidad]"
+                    style="width: 1000px !important;">
+                    <option value="cm">cm</option>
+                    <option value="mts">mts</option>
+                    <option value="pulgadas">pulgadas</option>
+                  </select>
+                </td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][cantidad]" min="0"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][kg]" min="0" step="any"></td>
+                <td><input type="number" class="form-control"
+                    name="especificaciones[0][retal_kg]" min="0"
+                    step="any"></td>
+                <td><input type="text" class="form-control"
+                    name="especificaciones[0][reproceso]"></td>
+                <td><button type="button"
+                    class="btn btn-danger remove-row-btn">Eliminar</button></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <button type="button" class="btn btn-primary"
+          id="add_especificacion_btn">Agregar Fila</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="save_especificaciones_btn">Guardar Especificaciones</button>
+      </div>
     </div>
-</div>  
+  </div>
+</div>
+
+<!-- Modal para envio de correos -->
+<div class="modal fade" id="modalDestinatarios" tabindex="-1"
+  aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar
+          Destinatarios</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+          aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="mensaje-modal" class="form-label">Añadir descripción o
+            mensaje al correo:</label>
+          <textarea class="form-control" id="mensaje-modal" rows="3"
+            placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="seleccionar-todos"></th>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody id="lista-empleados-modal">
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="guardar-destinatarios">Guardar y Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 $(document).ready(function () {
@@ -1063,10 +1290,82 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   let isSubmitting = false;
   const submitBtn = $('#registroForm button[type="submit"]');
 
+  // --- INICIO: Lógica para Botones de Guardar y Notificar ---
+  const actionInput = $('#submit_action');
+
+  // Botón para solo guardar
+  $('#submitBtn').on('click', function() {
+    actionInput.val('save'); // <-- CORREGIDO
+    $('#registroForm').submit(); // Dispara el evento submit del formulario
+  });
+
+  // Botón para guardar y notificar
+  $('#submitNotifyBtn').on('click', function(e) {
+    e.preventDefault();
+    
+    if (!$('#registroForm')[0].checkValidity()) {
+        $('#registroForm').addClass('was-validated');
+        alert('Por favor, complete todos los campos obligatorios antes de notificar.');
+        return;
+    }
+
+    // Llamada AJAX para obtener la lista de empleados/usuarios para el modal
+    $.ajax({
+        url: '/api/empleados/all',
+        method: 'GET',
+        success: function(data) {
+            const listaEmpleados = $('#lista-empleados-modal');
+            listaEmpleados.empty();
+            data.forEach(empleado => {
+                listaEmpleados.append(`
+                    <tr>
+                        <td><input type="checkbox" class="destinatario-check" value="${empleado.id_empleado}"></td>
+                        <td>${empleado.nombre_empleado} ${empleado.apellido_empleado || ''}</td>
+                        <td>${empleado.cargo || 'N/A'}</td>
+                        <td>${empleado.email_empleado || 'N/A'}</td>
+                    </tr>
+                `);
+            });
+            $('#modalDestinatarios').modal('show');
+        },
+        error: function() {
+            alert('Error al cargar la lista de empleados para notificar.');
+        }
+    });
+  });
+
+  $('#seleccionar-todos').on('click', function() {
+    $('.destinatario-check').prop('checked', $(this).prop('checked'));
+  });
+
+  $('#guardar-destinatarios').on('click', function() {
+    const destinatariosIds = [];
+    $('.destinatario-check:checked').each(function() {
+        destinatariosIds.push($(this).val());
+    });
+
+    // --- LÍNEA DE DEPURACIÓN AÑADIDA ---
+    alert("IDs de destinatarios seleccionados: " + destinatariosIds.join(', '));
+    // ------------------------------------
+
+    if (destinatariosIds.length === 0) {
+        alert('Debe seleccionar al menos un destinatario.');
+        return;
+    }
+
+    $('#destinatarios').val(destinatariosIds.join(','));
+    $('#mensaje_personalizado').val($('#mensaje-modal').val());
+    actionInput.val('save_and_notify'); // <-- CORREGIDO
+    
+    $('#modalDestinatarios').modal('hide');
+    $('#registroForm').submit(); 
+  });
+  // --- FIN: Lógica para Botones de Guardar y Notificar ---
+
   $('#registroForm').on('submit', function (e) {
     e.preventDefault(); 
     const form = this;
-    let formValido = form.checkValidity(); 
+    let formValido = form.checkValidity();  
 
     $('.select2[required]').each(function() {
         const $select = $(this);
@@ -1215,8 +1514,11 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         formData.append('documentos', file, file.name); // El tercer argumento (filename) es importante
       });
     }
-    // Si no hay archivos en selectedFiles, no se añadirá el campo 'documentos' al FormData,
-    // lo cual es correcto si no se seleccionó ninguno. El backend maneja esto.
+    
+    // --- CORRECCIÓN APLICADA AQUÍ ---
+    formData.append('submit_action', $('#submit_action').val());
+    formData.append('destinatarios', $('#destinatarios').val());
+    formData.append('mensaje_personalizado', $('#mensaje_personalizado').val());
 
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,

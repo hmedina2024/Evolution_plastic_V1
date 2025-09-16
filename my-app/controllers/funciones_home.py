@@ -1652,19 +1652,11 @@ def procesar_form_op(dataForm, files):
     instructivo_val = dataForm.get('instructivo') 
     estado_proyecto_val = dataForm.get('estado_proyecto')
     urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
-    # materiales_op_val = dataForm.get('materiales_op') # Eliminado
- 
-    # Validaciones y Conversiones
-    # La validación de codigo_op_str ya no es necesaria aquí
-    # if not codigo_op_str or not codigo_op_str.strip():
-    #     errores.append("El Código OP es requerido.")
-    #     codigo_op_val = None
-    # else:
-    #     try:
-    #         codigo_op_val = int(codigo_op_str)
-    #     except ValueError:
-    #         errores.append("Código OP debe ser un número entero válido.")
-    #         codigo_op_val = None
+    
+    # --- Obtener campos para la notificación ---
+    action = dataForm.get('submit_action', 'save') # Por defecto es 'save'
+    destinatarios_ids_str = dataForm.get('destinatarios')
+    mensaje_personalizado = dataForm.get('mensaje_personalizado', '')
 
     if not id_cliente_str or not id_cliente_str.strip():
         errores.append("El Cliente es requerido.")
@@ -1918,7 +1910,7 @@ def procesar_form_op(dataForm, files):
         app.logger.info(f"Nuevo Código OP generado: {nuevo_codigo_op_generado}")
 
         orden = OrdenProduccion(
-            codigo_op=nuevo_codigo_op_generado, # Usar el código generado
+            codigo_op=nuevo_codigo_op_generado,
             id_cliente=id_cliente_val,
             producto=producto_val,
             version=version_val,
@@ -1932,12 +1924,11 @@ def procesar_form_op(dataForm, files):
             id_supervisor=id_supervisor_val,
             fecha=fecha_val,
             fecha_entrega=fecha_entrega_val,
-            descripcion_general=descripcion_general_op_val,
+            descripcion_general=descripcion_general_op_val, # Punto común de error, verificar este nombre
             empaque=empaque_val,
-            logistica=logistica_val, # Añadir logística
-            instructivo=instructivo_val, # Añadir logística
+            logistica=logistica_val,
+            instructivo=instructivo_val,
             estado_proyecto=estado_proyecto_val,
-            # materiales=materiales_op_val, # Eliminado
             id_usuario_registro=id_usuario_registro
         )
         db.session.add(orden)
@@ -2054,13 +2045,73 @@ def procesar_form_op(dataForm, files):
         
         db.session.commit()
         app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente, incluyendo procesos globales y piezas.")
+        
+        
+        # --- INICIO: LÓGICA DE NOTIFICACIÓN (SIN CAMBIOS) ---
+        if action == 'save_and_notify':
+            app.logger.info(f"Iniciando notificación por correo para OP {orden.codigo_op}.")
+            if not destinatarios_ids_str:
+                app.logger.warning('Acción "save_and_notify" pero no se proporcionaron destinatarios.')
+            else:
+                try:
+                    destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
+                    destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    vendedor = db.session.query(Empleados).get(orden.id_empleado)
+                    supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
+                    email_sender = 'evolutioncontrolweb@gmail.com'
+                    email_password = 'qsmr ccyb yzjd gzkm'
+
+                    for destinatario in destinatarios:
+                        # Usamos el campo 'email_user' de tu modelo Users
+                        if destinatario.email_user: 
+                            subject = f'Nueva Orden de Producción Registrada: {orden.codigo_op}'
+                            body = f"""
+                            Hola {destinatario.name_surname},
+
+                            Se ha registrado una nueva Orden de Producción:
+
+                            - Número de OP: {orden.codigo_op}
+                            - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
+                            - ODI: {orden.odi}
+                            - Cotización: {orden.cotizacion}
+                            - Vendedor: {vendedor.nombre_empleado if vendedor else 'N/A'}
+                            - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+
+                            Descripción:
+                            {orden.descripcion_general}
+
+                            ---
+                            Mensaje Adicional:
+                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                            ---
+
+                            Este es un mensaje automático.
+                            """
+                            em = EmailMessage()
+                            em['From'] = email_sender
+                            em['To'] = destinatario.email_user   # <-- CORREGIDO
+                            em['Subject'] = subject
+                            em.set_content(body)
+
+                            context = ssl.create_default_context()
+                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                                smtp.login(email_sender, email_password)
+                                smtp.send_message(em)
+                            
+                            # Logueamos el correo correcto al que se envió
+                            app.logger.info(f'Correo de OP {orden.codigo_op} notificado a {destinatario.email_user}')
+                except Exception as e:
+                    app.logger.error(f"FALLO al enviar correos de notificación para OP {orden.codigo_op}: {str(e)}")
+        # --- FIN: LÓGICA DE NOTIFICACIÓN ---
+        
+        
         mensaje_exito = f"Se creó el número de OP {orden.codigo_op} exitosamente."
         return jsonify({'status': 'success', 'message': mensaje_exito, 'id_op': orden.id_op, 'redirect_url': url_for('lista_op', id_op=orden.id_op)}), 200
 
     except IntegrityError as ie:
         db.session.rollback()
         app.logger.error(f"Error de Integridad de BD en procesar_form_op: {str(ie)}", exc_info=True)
-        error_message = "Error de base de datos. Es posible que un valor único (como Código OP) ya exista."
+        error_message = "Error de base de datos. Es posible que un valor único ya exista."
         return jsonify({'status': 'error', 'message': error_message}), 409
 
     except SQLAlchemyError as e_sql:
@@ -2068,19 +2119,12 @@ def procesar_form_op(dataForm, files):
         app.logger.error(f"Error de SQLAlchemy en procesar_form_op: {str(e_sql)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Error al interactuar con la base de datos.'}), 500
 
-    except ValueError as ve:
-        db.session.rollback()
-        app.logger.warning(f"Error de Valor en procesar_form_op (etapa final): {str(ve)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': str(ve)}), 400
-
     except Exception as e_inesperado:
         db.session.rollback()
+        # MEJORA: Este log ahora te mostrará el error exacto en la consola de Flask
         app.logger.error(f"Error inesperado en procesar_form_op: {str(e_inesperado)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': 'Ocurrió un error inesperado al procesar la orden.'}), 500
-    # El finally no es estrictamente necesario aquí si no hay recursos externos que cerrar siempre
-    # y si la respuesta JSON ya se ha enviado.
-    # Si se llega aquí sin un return explícito, es un error de lógica en los try/except.
-    # No debería ser necesario un return None al final si todos los caminos están cubiertos.
+        # MEJORA: Devolvemos el error específico para poder depurar mejor desde el frontend si es necesario
+        return jsonify({'status': 'error', 'message': f'Ocurrió un error inesperado en el servidor: {str(e_inesperado)}'}), 500
 
 
 def validar_cod_op(codigo_op):
