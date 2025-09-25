@@ -1251,6 +1251,16 @@ def api_tipos_empleado():
         return jsonify({'tipos_empleado': []})
 
 
+@app.route('/api/users/all', methods=['GET'])
+def api_all_users():
+    if 'conectado' in session:
+        users = get_all_empleados()
+        return jsonify(users)
+    # Si no está conectado, la redirección (302) puede ocurrir por un decorador
+    # o una configuración de la app. Devolver un 401 es más apropiado para APIs.
+    return jsonify({"error": "No autorizado"}), 401
+
+
 # EMPRESAS
 
 @app.route('/registrar-empresa', methods=['GET'])
@@ -1408,5 +1418,7 @@ def buscando_empresas_route():
             "fin": 0,
             "error": "No autorizado"
         })
+
+
 
 

@@ -151,7 +151,7 @@ $(document).ready(function () {
     const fechaLlegadaInput = document.querySelector('input[name="fecha_hora_llegada"]');
     const hoy = new Date();
     const cincoDiasAtras = new Date();
-    cincoDiasAtras.setDate(hoy.getDate() - 5);
+    cincoDiasAtras.setDate(hoy.getDate() - 9);
 
     // Formatear fechas a YYYY-MM-DDTHH:mm (ISO 8601)
     const hoyISO = hoy.toISOString().slice(0, 16);

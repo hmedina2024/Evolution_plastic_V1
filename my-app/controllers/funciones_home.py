@@ -2665,6 +2665,12 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
             eliminar_render_actual = True
             app.logger.debug(f"Nuevo render '{nombre_render_original_para_guardar}' validado. Servidor: '{nombre_render_servidor_para_guardar}'.")
     
+    # --- Obtener campos para la notificación ---
+    action = dataForm.get('submit_action', 'save')
+    destinatarios_ids_str = dataForm.get('destinatarios')
+    mensaje_personalizado = dataForm.get('mensaje_personalizado', '')
+    
+    
     # --- Documentos (Validación y preparación) ---
     app.logger.info(f"OP ID {id_op}: Iniciando validación de documentos a eliminar.") # NUEVO LOG
     ids_documentos_a_eliminar_validados = []
@@ -2755,6 +2761,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         except json.JSONDecodeError:
             errores.append("Error al decodificar los datos de las piezas (JSON inválido).")
 
+       
     # --- Si hay errores de validación, retornar y limpiar archivos subidos ---
     if errores:
         archivos_subidos_para_limpiar = []
@@ -2991,8 +2998,68 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         
         db.session.commit()
         app.logger.info(f"Orden de Producción ID {id_op} (Código: {orden.codigo_op}) actualizada exitosamente por usuario ID {id_usuario_registro}.")
-        return {'status': 'success', 'message': f'Orden de Producción {orden.codigo_op} actualizada correctamente.', 'id_op': orden.id_op, 'redirect_url': url_for('detalle_op', id_op=id_op)} # Corregido: endpoint 'detalle_op'
+        
+        # --- INICIO: LÓGICA DE NOTIFICACIÓN PARA ACTUALIZACIÓN ---
+        if action == 'save_and_notify':
+            app.logger.info(f"Iniciando notificación por correo para la ACTUALIZACIÓN de OP {orden.codigo_op}.")
+            if not destinatarios_ids_str:
+                app.logger.warning('Acción "save_and_notify" pero no se proporcionaron destinatarios.')
+            else:
+                try:
+                    destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
+                    destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    
+                    vendedor = db.session.query(Empleados).get(orden.id_empleado)
+                    supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
+                    
+                    email_sender = 'evolutioncontrolweb@gmail.com'
+                    email_password = 'qsmr ccyb yzjd gzkm'
 
+                    for destinatario in destinatarios:
+                        if destinatario.email_user: 
+                            subject = f'Actualización en Orden de Producción: {orden.codigo_op}'
+                            body = f"""
+                            Hola {destinatario.name_surname},
+
+                            Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:
+
+                            - Número de OP: {orden.codigo_op}
+                            - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
+                            - ODI: {orden.odi}
+                            - Cotización: {orden.cotizacion}
+                            - Vendedor: {vendedor.nombre_empleado if vendedor else 'N/A'}
+                            - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+                            - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
+
+                            Descripción:
+                            {orden.descripcion_general}
+
+                            ---
+                            Mensaje Adicional:
+                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                            ---
+
+                            Este es un mensaje automático.
+                            """
+                            em = EmailMessage()
+                            em['From'] = email_sender
+                            em['To'] = destinatario.email_user
+                            em['Subject'] = subject
+                            em.set_content(body)
+
+                            context = ssl.create_default_context()
+                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                                smtp.login(email_sender, email_password)
+                                smtp.send_message(em)
+                            
+                            app.logger.info(f'Correo de actualización de OP {orden.codigo_op} notificado a {destinatario.email_user}')
+                
+                except Exception as e:
+                    app.logger.error(f"FALLO al enviar correos de notificación para la ACTUALIZACIÓN de OP {orden.codigo_op}: {str(e)}", exc_info=True)
+        # --- FIN: LÓGICA DE NOTIFICACIÓN ---
+        
+        return {'status': 'success', 'message': f'Orden de Producción {orden.codigo_op} actualizada correctamente.', 'id_op': orden.id_op, 'redirect_url': url_for('detalle_op', id_op=id_op)} # Corregido: endpoint 'detalle_op'
+    
     except IntegrityError as ie_db_val:
         db.session.rollback()
         app.logger.error(f"Error de integridad al actualizar OP ID {id_op}: {ie_db_val}", exc_info=True)
@@ -4295,3 +4362,5 @@ def get_all_empleados():
     except Exception as e:
         app.logger.error(f"Error en get_all_empleados: {e}", exc_info=True)
         return []
+    
+

@@ -263,9 +263,17 @@
         </div>
       </div>
       <input type="hidden" id="piezas" name="piezas">
+      <input type="hidden" name="submit_action" id="submit_action" value="save">
+      <input type="hidden" name="destinatarios" id="destinatarios">
+      <input type="hidden" name="mensaje_personalizado" id="mensaje_personalizado">
+
       <div class="text-center mt-5">
-        <button type="submit" class="btn btn-primary rounded-pill px-4">
+        <button type="button" class="btn btn-primary rounded-pill px-4" id="submitUpdateBtn">
           Actualizar Orden <i class="bi bi-save ms-2"></i>
+        </button>
+        <br><br>
+        <button type="button" class="btn btn-success rounded-pill px-4" id="submitNotifyBtn">
+          Actualizar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
     </form>
@@ -576,6 +584,40 @@
           data-bs-dismiss="modal">Cerrar</button>
         <button type="button" class="btn btn-primary"
           id="save_especificaciones_btn">Guardar Especificaciones</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="modalDestinatarios" tabindex="-1" aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar Destinatarios</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="mensaje-modal" class="form-label">Añadir descripción o mensaje al correo:</label>
+          <textarea class="form-control" id="mensaje-modal" rows="3" placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="seleccionar-todos"></th>
+                <th>Nombre</th>
+                <th>Rol</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody id="lista-empleados-modal">
+              </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="guardar-destinatarios">Guardar y Enviar</button>
       </div>
     </div>
   </div>
@@ -1634,6 +1676,76 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   // --- Lógica de Validación y Envío del Formulario Principal ---
   let isSubmitting = false;
   const submitBtn = $('#actualizarOpForm button[type="submit"]'); // Cambiado ID
+
+  // --- INICIO: Lógica para Botones de Actualizar y Notificar ---
+  const actionInput = $('#submit_action');
+
+  // Botón para solo actualizar
+  $('#submitUpdateBtn').on('click', function() {
+    actionInput.val('save');
+    $('#actualizarOpForm').submit();
+  });
+
+  // Botón para actualizar y notificar
+  $('#submitNotifyBtn').on('click', function(e) {
+    e.preventDefault();
+    
+    if (!$('#actualizarOpForm')[0].checkValidity()) {
+        $('#actualizarOpForm').addClass('was-validated');
+        alert('Por favor, complete todos los campos obligatorios antes de notificar.');
+        return;
+    }
+
+    // Usamos la API de usuarios que ya corregimos
+    $.ajax({
+        url: '/api/empleados/all',
+        method: 'GET',
+        success: function(data) {
+            const listaEmpleados = $('#lista-empleados-modal');
+            listaEmpleados.empty();
+            data.forEach(empleado => {
+                listaEmpleados.append(`
+                    <tr>
+                        <td><input type="checkbox" class="destinatario-check" value="${empleado.id_empleado}"></td>
+                        <td>${empleado.nombre_empleado} ${empleado.apellido_empleado || ''}</td>
+                        <td>${empleado.cargo || 'N/A'}</td>
+                        <td>${empleado.email_empleado || 'N/A'}</td>
+                    </tr>
+                `);
+            });
+            $('#modalDestinatarios').modal('show');
+        },
+        error: function() {
+            alert('Error al cargar la lista de empleados para notificar.');
+        }
+    });
+  });
+
+  // Checkbox para seleccionar todos
+  $('#seleccionar-todos').on('click', function() {
+    $('.destinatario-check').prop('checked', $(this).prop('checked'));
+  });
+
+  // Botón "Guardar y Enviar" DENTRO del modal
+  $('#guardar-destinatarios').on('click', function() {
+    const destinatariosIds = [];
+    $('.destinatario-check:checked').each(function() {
+        destinatariosIds.push($(this).val());
+    });
+
+    if (destinatariosIds.length === 0) {
+        alert('Debe seleccionar al menos un destinatario.');
+        return;
+    }
+
+    $('#destinatarios').val(destinatariosIds.join(','));
+    $('#mensaje_personalizado').val($('#mensaje-modal').val());
+    actionInput.val('save_and_notify');
+    
+    $('#modalDestinatarios').modal('hide');
+    $('#actualizarOpForm').submit(); 
+  });
+  // --- FIN: Lógica para Botones ---
 
   $('#actualizarOpForm').on('submit', function (e) { // Cambiado ID
     e.preventDefault();
