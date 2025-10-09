@@ -117,7 +117,7 @@ def loginCliente():
         pass_user = str(request.form['pass_user'])
 
         try:
-            user = Users.query.filter_by(email_user=email_user).first()
+            user = Users.query.filter_by(email_user=email_user, fecha_borrado=None).first()
             if user and check_password_hash(user.pass_user, pass_user):
                 # Crear datos de sesión
                 session['user_id'] = user.id  # Usa solo 'user_id' como clave principal
