@@ -2,8 +2,9 @@ from flask_sqlalchemy import SQLAlchemy
 from app import db  # Importa db desde app.py, donde se inicializa
 # Quitamos import datetime ya que no se usa directamente aquí
 from sqlalchemy.sql import func  # Importa func para usar func.now()
-from sqlalchemy import Enum # Para el Enum de Empresa
+from sqlalchemy import Enum,Column, Integer, Text, DateTime, ForeignKey # Para el Enum de Empresa
 from datetime import datetime
+from sqlalchemy.orm import relationship
 
 # --- Modelo Empresa ---
 # Definido antes porque otros modelos dependen de él
@@ -61,6 +62,7 @@ class Users(db.Model):
     rol = db.Column(db.String(45), nullable=False) # Ej. 'Admin', 'Supervisor', 'Operario'
     created_user = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime)
+    op_logs = relationship("OPLog", back_populates="usuario", foreign_keys="[OPLog.id_usuario_update]")
     # Relaciones inversas definidas en otros modelos:
     # operaciones_registradas, ordenes_produccion_registradas, jornadas_registradas, empresas_registradas
 
@@ -237,6 +239,7 @@ class OrdenProduccion(db.Model):
                                         backref=db.backref('ordenes_produccion_asociadas', lazy='select'),
                                         lazy='select')
     urls_op = db.relationship('OrdenProduccionURLs', backref='orden', lazy=True, cascade="all, delete-orphan")
+    logs = relationship("OPLog", back_populates="orden", foreign_keys="[OPLog.id_op]")  # Relación corregida
 
 class DocumentosOP(db.Model):
     __tablename__ = 'tbl_documentos_op'
@@ -384,3 +387,18 @@ class OrdenProduccionURLs(db.Model):
 
     def __repr__(self):
         return f"<OrdenProduccionURLs OP_ID:{self.id_op} URL:{self.url[:50]}>"
+    
+    
+class OPLog(db.Model):
+    __tablename__ = 'tbl_op_logs'
+
+    id_log = Column(Integer, primary_key=True, autoincrement=True)
+    id_op = Column(Integer, ForeignKey('tbl_ordenproduccion.id_op'), nullable=False)
+    version_number = Column(Integer, nullable=False)
+    cambios = Column(Text)  # Almacena JSON
+    id_usuario_update = Column(Integer, ForeignKey('users.id'), nullable=False)
+    fecha_update = Column(DateTime, server_default=db.func.current_timestamp())
+
+    # Relación opcional con OrdenProduccion y Users (si necesitas acceder a los objetos)
+    orden = relationship("OrdenProduccion", back_populates="logs")
+    usuario = relationship("Users", back_populates="op_logs")

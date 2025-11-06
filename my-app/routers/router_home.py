@@ -10,7 +10,7 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
-from conexion.models import db, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
+from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
 from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
@@ -806,35 +806,35 @@ def lista_op():
         return redirect(url_for('inicio'))
 
 
-@app.route("/detalles-op/<int:id_op>", methods=['GET'])
-def detalle_op(id_op=None):
+@app.route("/detalles-op/<string:codigo_op>", methods=['GET'])
+def detalle_op(codigo_op=None):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-    if id_op is None:
-        flash('ID de orden no proporcionado.', 'error')
+    if codigo_op is None:
+        flash('Código de orden no proporcionado.', 'error')
         return redirect(url_for('inicio'))
 
-    app.logger.debug(f"Obteniendo detalles para id_op: {id_op}")
-    detalle_op = sql_detalles_op_bd(id_op)
+    app.logger.debug(f"Obteniendo detalles para codigo_op: {codigo_op}")
+    detalle_op = sql_detalles_op_bd(codigo_op)
     return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
 
 
-@app.route("/editar-op/<int:id_op>", methods=['GET'])
-def viewEditarop(id_op=None): # Esta será la única función para esta ruta
+@app.route("/editar-op/<string:codigo_op>", methods=['GET'])
+def viewEditarop(codigo_op=None): # Esta será la única función para esta ruta
     if 'conectado' not in session or not session.get('conectado'):
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
 
-    if id_op is None:
-        flash('ID de orden no proporcionado.', 'error')
+    if codigo_op is None:
+        flash('Código de orden no proporcionado.', 'error')
         return redirect(url_for('inicio'))
 
-    app.logger.debug(f"Accediendo a editar OP con id_op: {id_op}")
+    app.logger.debug(f"Accediendo a editar OP con codigo_op: {codigo_op}")
     # Asegúrate de que la función obtener_datos_op_para_edicion esté importada correctamente al inicio del archivo.
     # from controllers.funciones_home import obtener_datos_op_para_edicion
-    resultado_carga = obtener_datos_op_para_edicion(id_op)
+    resultado_carga = obtener_datos_op_para_edicion(codigo_op)
     
     datos_op = None
     if isinstance(resultado_carga, tuple) and len(resultado_carga) == 2:
@@ -863,10 +863,10 @@ def viewEditarop(id_op=None): # Esta será la única función para esta ruta
                            op_data=datos_op, # Cambiado de datos_op a op_data
                            page_title=page_title)
  
-@app.route('/actualizar-op/<int:id_op>', methods=['POST'])
-def actualizar_op(id_op):
-    # Pasar id_op a la función de procesamiento
-    result_data = procesar_actualizar_form_op(id_op, request.form, request.files)
+@app.route('/actualizar-op/<string:codigo_op>', methods=['POST'])
+def actualizar_op(codigo_op):
+    # Pasar codigo_op a la función de procesamiento
+    result_data = procesar_actualizar_form_op(codigo_op, request.form, request.files)
     if isinstance(result_data, dict):
         return jsonify(result_data)
     else:
@@ -1420,5 +1420,20 @@ def buscando_empresas_route():
         })
 
 
-
+@app.route('/versions-op/<int:id_op>', methods=['GET'])
+def versions_op(id_op):
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+    # Consultar la orden para verificar existencia
+    orden = OrdenProduccion.query.filter_by(id_op=id_op, fecha_borrado=None).first()
+    if not orden:
+        flash(f'Orden de Producción con ID {id_op} no encontrada.', 'error')
+        return redirect(url_for('lista_op'))
+    
+    # Consultar los logs para esta OP
+    logs = OPLog.query.filter_by(id_op=id_op).order_by(OPLog.version_number.desc()).all()
+    
+    return render_template('public/ordenproduccion/versions_op.html', logs=logs, id_op=id_op, orden=orden)
 

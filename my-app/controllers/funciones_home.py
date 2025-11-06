@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
+from conexion.models import db, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -24,6 +24,7 @@ import ssl
 from email.message import EmailMessage
 from sqlalchemy.orm import aliased
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.sql import text
 
 magic.Magic(mime=True)
 
@@ -2056,6 +2057,7 @@ def procesar_form_op(dataForm, files):
                 try:
                     destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
                     destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     email_sender = 'evolutioncontrolweb@gmail.com'
@@ -2071,11 +2073,14 @@ def procesar_form_op(dataForm, files):
                             Se ha registrado una nueva Orden de Producción:
 
                             - Número de OP: {orden.codigo_op}
+                            - Cliente: {cliente.nombre_cliente}
+                            - Producto: {orden.producto}
                             - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
                             - ODI: {orden.odi}
                             - Cotización: {orden.cotizacion}
-                            - Vendedor: {vendedor.nombre_empleado if vendedor else 'N/A'}
+                            - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+                            - Version : {orden.version}
 
                             Descripción:
                             {orden.descripcion_general}
@@ -2209,7 +2214,7 @@ def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fe
         }
 
 
-def sql_detalles_op_bd(id_op):
+def sql_detalles_op_bd(codigo_op):
     try:
         # Crear alias para las dos instancias de Empleados
         empleado_vendedor = aliased(Empleados)
@@ -2232,7 +2237,7 @@ def sql_detalles_op_bd(id_op):
         ).outerjoin(
             Users, OrdenProduccion.id_usuario_registro == Users.id
         ).filter(
-            OrdenProduccion.id_op == id_op,
+            OrdenProduccion.codigo_op == codigo_op,
             OrdenProduccion.fecha_borrado.is_(None)
         ).first()
 
@@ -2384,7 +2389,7 @@ def sql_detalles_op_bd(id_op):
         app.logger.error(f"Error en la función sql_detalles_op_bd para id_op={id_op}: {str(e)}", exc_info=True) # exc_info=True para traceback completo
         return None
 
-def obtener_datos_op_para_edicion(id_op):
+def obtener_datos_op_para_edicion(codigo_op):
     try:
         # Obtener la OP con todas las relaciones necesarias
         orden = OrdenProduccion.query.options(
@@ -2400,10 +2405,10 @@ def obtener_datos_op_para_edicion(id_op):
                 joinedload(OrdenPiezas.actividades),
                 joinedload(OrdenPiezas.especificaciones) # Cargar especificaciones
             )
-        ).filter_by(id_op=id_op, fecha_borrado=None).first()
+        ).filter_by(codigo_op=codigo_op, fecha_borrado=None).first()
 
         if not orden:
-            app.logger.warning(f"Orden de Producción con ID {id_op} no encontrada.")
+            app.logger.warning(f"Orden de Producción con código {codigo_op} no encontrada.")
             return {'status': 'error', 'message': 'Orden de Producción no encontrada.'}, 404
 
         # Formatear datos para la plantilla
@@ -2500,20 +2505,20 @@ def obtener_datos_op_para_edicion(id_op):
             ]
         }
 
-        app.logger.debug(f"Datos de OP {id_op} para edición: {op_data}")
+        app.logger.debug(f"Datos de OP {codigo_op} para edición: {op_data}")
         return op_data, 200
 
     except Exception as e:
-        app.logger.error(f"Error al obtener datos de OP {id_op}: {str(e)}", exc_info=True)
+        app.logger.error(f"Error al obtener datos de OP {codigo_op}: {str(e)}", exc_info=True)
         return {'status': 'error', 'message': 'Error al cargar los datos de la orden.'}, 500
 
 
-def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
-    app.logger.info(f"OP ID {id_op}: ENTRANDO A procesar_actualizar_form_op.") # LOG MOVIDO AL INICIO ABSOLUTO
+def procesar_actualizar_form_op(codigo_op, dataForm, files):
+    app.logger.info(f"OP Código {codigo_op}: ENTRANDO A procesar_actualizar_form_op.")
     errores = []
     id_usuario_registro = session.get('user_id')
-    app.logger.info(f"OP ID {id_op}: Valor de id_usuario_registro obtenido de la sesión: {id_usuario_registro}")
-    app.logger.debug(f"Iniciando procesar_actualizar_form_op para OP ID: {id_op}")
+    app.logger.info(f"OP Código {codigo_op}: Valor de id_usuario_registro obtenido de la sesión: {id_usuario_registro}")
+    app.logger.debug(f"Iniciando procesar_actualizar_form_op para OP Código: {codigo_op}")
     app.logger.debug(f"dataForm recibido: {dataForm}")
     app.logger.debug(f"files recibidos (Werkzeug MultiDict): {files}")
 
@@ -2521,18 +2526,18 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         app.logger.warning("Intento de actualizar OP sin usuario autenticado.")
         return {'status': 'error', 'message': "Usuario no autenticado. Por favor, inicie sesión."}, 401
 
-    if not id_op:
-        app.logger.error("procesar_actualizar_form_op fue llamado sin un id_op.")
-        return {'status': 'error', 'message': "ID de Orden de Producción no proporcionado."}, 400
+    if not codigo_op:
+        app.logger.error("procesar_actualizar_form_op fue llamado sin un codigo_op.")
+        return {'status': 'error', 'message': "Código de Orden de Producción no proporcionado."}, 400
         
     # Cargar la orden con sus relaciones de render y documentos para optimizar
     orden = db.session.query(OrdenProduccion).options(
         joinedload(OrdenProduccion.renders), # Corregido: usar el nombre de la relación del modelo 'renders'
         joinedload(OrdenProduccion.documentos) # Corregido: usar el nombre de la relación del modelo 'documentos'
-    ).filter_by(id_op=id_op, fecha_borrado=None).first()
+    ).filter_by(codigo_op=codigo_op, fecha_borrado=None).first()
     
     if not orden:
-        return {'status': 'error', 'message': f'Orden de Producción con ID {id_op} no encontrada o ya fue eliminada.'}, 404
+        return {'status': 'error', 'message': f'Orden de Producción con Código {codigo_op} no encontrada o ya fue eliminada.'}, 404
 
     # --- Fase de Validación ---
     # Obtener todos los datos del formulario primero
@@ -2613,7 +2618,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
     
     if not op_ids_procesos_form and not op_otro_proceso_form:
         # Si no se envía nada y la OP ya tiene procesos, no es un error. Si no tiene, sí.
-        if not OrdenProduccionProcesos.query.filter_by(id_op=id_op).first():
+        if not OrdenProduccionProcesos.query.filter_by(id_op=orden.id_op).first():
              errores.append("Debe seleccionar al menos un proceso para la OP o especificar uno nuevo.")
     else:
         for id_proc_str_form_g in op_ids_procesos_form:
@@ -2641,19 +2646,10 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
     if dataForm.get('existing_render_path') == '' and orden.renders: # Corregido: usar 'orden.renders'
         eliminar_render_actual = True
         # Acceder al primer render si es una lista, o directamente si es one-to-one y se espera un solo objeto.
-        # Asumiendo que RendersOP es una relación one-to-one o many-to-one (un solo render por OP)
-        # Si 'renders' es una lista (one-to-many), necesitarías orden.renders[0] o similar si aplica.
         # Por el uso posterior de orden.render_op, parece que se espera una relación que devuelva un solo objeto o None.
-        # Si la relación 'renders' devuelve una lista, el acceso orden.render_op.id_render_op fallará.
-        # Vamos a asumir que, aunque la relación se llame 'renders', funcionalmente se trata como un one-to-one
-        # y el código posterior espera acceder a un único objeto render a través de un atributo como 'orden.render_op_instance'
-        # o que 'orden.renders' (si es lista) se maneje adecuadamente.
-        # Por ahora, mantendremos la lógica de 'eliminar_render_actual', pero el acceso al ID necesita ser consistente.
-        # Si 'renders' es una lista, el logger necesitaría cambiar.
         # Para simplificar y ser consistente con el modelo que define 'renders' como una lista:
         current_render_for_log = orden.renders[0] if orden.renders else None
         app.logger.debug(f"Render existente (ID: {current_render_for_log.id_render if current_render_for_log else 'N/A'}) marcado para eliminación por frontend.")
-
 
     if render_file_storage and render_file_storage.filename:
         valido_r, nombre_r_o_msg = procesar_imagen_perfil(render_file_storage, 'render_op', ALLOWED_RENDER_EXTENSIONS)
@@ -2672,16 +2668,16 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
     
     
     # --- Documentos (Validación y preparación) ---
-    app.logger.info(f"OP ID {id_op}: Iniciando validación de documentos a eliminar.") # NUEVO LOG
+    app.logger.info(f"OP Código {codigo_op}: Iniciando validación de documentos a eliminar.") # NUEVO LOG
     ids_documentos_a_eliminar_validados = []
     for doc_id_del_str in dataForm.getlist('deleted_documentos[]'):  # Cambiado de 'documentos_a_eliminar_ids[]'
         if doc_id_del_str.isdigit():
             doc_id_int = int(doc_id_del_str)
-            doc_obj_check = DocumentosOP.query.filter_by(id_documento=doc_id_int, id_op=id_op).first()
+            doc_obj_check = DocumentosOP.query.filter_by(id_documento=doc_id_int, id_op=orden.id_op).first()
             if doc_obj_check:
                 ids_documentos_a_eliminar_validados.append(doc_id_int)
             else:
-                app.logger.warning(f"Se intentó marcar para eliminar un DocumentoOP ID {doc_id_int} que no pertenece a OP {id_op} o no existe.")
+                app.logger.warning(f"Se intentó marcar para eliminar un DocumentoOP ID {doc_id_int} que no pertenece a OP {codigo_op} o no existe.")
         # No añadir error si el ID no es dígito, simplemente se ignora. El frontend debería enviar solo dígitos.
 
     nuevos_documentos_storage_list = files.getlist('documentos_nuevos[]')
@@ -2761,7 +2757,6 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         except json.JSONDecodeError:
             errores.append("Error al decodificar los datos de las piezas (JSON inválido).")
 
-       
     # --- Si hay errores de validación, retornar y limpiar archivos subidos ---
     if errores:
         archivos_subidos_para_limpiar = []
@@ -2778,11 +2773,66 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 except Exception as e_clean_up:
                     app.logger.error(f"Error limpiando archivo subido '{path_archivo_err_clean}': {e_clean_up}")
             
-        app.logger.warning(f"Errores de validación al actualizar OP {id_op}: {errores}")
+        app.logger.warning(f"Errores de validación al actualizar OP {codigo_op}: {errores}")
         return {'status': 'error', 'message': "Errores de validación: " + "; ".join(errores)}, 400
 
     # --- Fase de Actualización en Base de Datos (si no hay errores de validación) ---
     try:
+        # Calcular el siguiente número de versión
+        last_version = db.session.query(func.max(OPLog.version_number)).filter_by(id_op=orden.id_op).scalar() or 0
+        new_version_number = last_version + 1
+
+        # Crear JSON de cambios
+        cambios = {}
+        if fecha_str and orden.fecha != datetime.strptime(fecha_str, '%Y-%m-%d').date():
+            cambios['fecha'] = {'anterior': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else None, 'nuevo': fecha_str}
+        if fecha_entrega_str and orden.fecha_entrega != datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date():
+            cambios['fecha_entrega'] = {'anterior': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else None, 'nuevo': fecha_entrega_str}
+        if id_cliente_str and orden.id_cliente != int(id_cliente_str):
+            cambios['id_cliente'] = {'anterior': orden.id_cliente, 'nuevo': int(id_cliente_str)}
+        if producto_op_val and orden.producto != producto_op_val:
+            cambios['producto'] = {'anterior': orden.producto, 'nuevo': producto_op_val}
+        if cantidad_op_str and orden.cantidad != int(cantidad_op_str):
+            cambios['cantidad'] = {'anterior': orden.cantidad, 'nuevo': int(cantidad_op_str)}
+        if id_empleado_str and orden.id_empleado != int(id_empleado_str):
+            cambios['id_empleado'] = {'anterior': orden.id_empleado, 'nuevo': int(id_empleado_str)}
+        if id_supervisor_str and orden.id_supervisor != (int(id_supervisor_str) if id_supervisor_str else None):
+            cambios['id_supervisor'] = {'anterior': orden.id_supervisor, 'nuevo': int(id_supervisor_str) if id_supervisor_str else None}
+        if cotizacion_val and orden.cotizacion != cotizacion_val:
+            cambios['cotizacion'] = {'anterior': orden.cotizacion, 'nuevo': cotizacion_val}
+        if odi_val and orden.odi != odi_val:
+            cambios['odi'] = {'anterior': orden.odi, 'nuevo': odi_val}
+        if referencia_val != orden.referencia:
+            cambios['referencia'] = {'anterior': orden.referencia, 'nuevo': referencia_val}
+        if descripcion_general_op_val and orden.descripcion_general != descripcion_general_op_val:
+            cambios['descripcion_general'] = {'anterior': orden.descripcion_general, 'nuevo': descripcion_general_op_val}
+        if empaque_val != orden.empaque:
+            cambios['empaque'] = {'anterior': orden.empaque, 'nuevo': empaque_val}
+        if estado_val and orden.estado != estado_val:
+            cambios['estado'] = {'anterior': orden.estado, 'nuevo': estado_val}
+        if logistica_val != orden.logistica:
+            cambios['logistica'] = {'anterior': orden.logistica, 'nuevo': logistica_val}
+        if instructivo_val != orden.instructivo:
+            cambios['instructivo'] = {'anterior': orden.instructivo, 'nuevo': instructivo_val}
+        if dataForm.get('estado_proyecto') != orden.estado_proyecto:
+            cambios['estado_proyecto'] = {'anterior': orden.estado_proyecto, 'nuevo': dataForm.get('estado_proyecto')}
+            
+
+        # Si hay cambios, insertar el log
+        if cambios:
+            db.session.execute(
+                text("""
+                    INSERT INTO tbl_op_logs (id_op, version_number, cambios, id_usuario_update)
+                    VALUES (:id_op, :version_number, :cambios, :id_usuario_update)
+                """),
+                {
+                    'id_op': orden.id_op,
+                    'version_number': new_version_number,
+                    'cambios': json.dumps(cambios),
+                    'id_usuario_update': id_usuario_registro
+                }
+            )
+
         # Campos simples de OrdenProduccion
         orden.fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         orden.fecha_entrega = datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date()
@@ -2804,7 +2854,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         try:
             current_version_ord_db_val = int(orden.version) if orden.version and orden.version.isdigit() else 0
             orden.version = str(current_version_ord_db_val + 1)
-        except: orden.version = "1" # Fallback
+        except: orden.version = "1"  # Fallback
         
         orden.id_usuario_actualizacion = id_usuario_registro
         orden.fecha_actualizacion = datetime.now(LOCAL_TIMEZONE)
@@ -2903,7 +2953,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
         # Procesos Globales de la OP
         OrdenProduccionProcesos.query.filter_by(id_op=orden.id_op).delete()
         for id_proc_v_db_val in ids_procesos_validados_global:
-            # Corregido: Se elimina id_usuario_registro ya que no existe en el modelo OrdenProduccionProcesos
+            # Corregido: Se elimina id_usuario_registro para OrdenProduccionProcesos
             db.session.add(OrdenProduccionProcesos(id_op=orden.id_op, id_proceso=id_proc_v_db_val))
         
         if 'otro' in op_ids_procesos_form and op_otro_proceso_form: # Si se especificó "otro"
@@ -2918,7 +2968,6 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 )
                 db.session.add(nuevo_proceso_otro_obj_db_val)
                 db.session.flush()
-                # Asociarlo a la OP si no se añadió ya a través de ids_procesos_validados_global
                 if nuevo_proceso_otro_obj_db_val.id_proceso not in ids_procesos_validados_global:
                     # Corregido: Se elimina id_usuario_registro para OrdenProduccionProcesos
                     db.session.add(OrdenProduccionProcesos(id_op=orden.id_op, id_proceso=nuevo_proceso_otro_obj_db_val.id_proceso))
@@ -2997,7 +3046,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 ))
         
         db.session.commit()
-        app.logger.info(f"Orden de Producción ID {id_op} (Código: {orden.codigo_op}) actualizada exitosamente por usuario ID {id_usuario_registro}.")
+        app.logger.info(f"Orden de Producción Código {codigo_op} (ID: {orden.id_op}) actualizada exitosamente por usuario ID {id_usuario_registro}.")
         
         # --- INICIO: LÓGICA DE NOTIFICACIÓN PARA ACTUALIZACIÓN ---
         if action == 'save_and_notify':
@@ -3008,7 +3057,7 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                 try:
                     destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
                     destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
-                    
+                    cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     
@@ -3024,12 +3073,15 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                             Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:
 
                             - Número de OP: {orden.codigo_op}
+                            - Cliente: {cliente.nombre_cliente}
+                            - Producto: {orden.producto}
                             - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
                             - ODI: {orden.odi}
                             - Cotización: {orden.cotizacion}
-                            - Vendedor: {vendedor.nombre_empleado if vendedor else 'N/A'}
+                            - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
                             - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
+                            - Version : {orden.version}
 
                             Descripción:
                             {orden.descripcion_general}
@@ -3058,319 +3110,23 @@ def procesar_actualizar_form_op(id_op, dataForm, files): # Firma corregida
                     app.logger.error(f"FALLO al enviar correos de notificación para la ACTUALIZACIÓN de OP {orden.codigo_op}: {str(e)}", exc_info=True)
         # --- FIN: LÓGICA DE NOTIFICACIÓN ---
         
-        return {'status': 'success', 'message': f'Orden de Producción {orden.codigo_op} actualizada correctamente.', 'id_op': orden.id_op, 'redirect_url': url_for('detalle_op', id_op=id_op)} # Corregido: endpoint 'detalle_op'
+        return {'status': 'success', 'message': f'Orden de Producción {orden.codigo_op} actualizada correctamente.', 'codigo_op': orden.codigo_op, 'redirect_url': url_for('detalle_op', codigo_op=orden.codigo_op)} # Corregido: endpoint 'detalle_op'
     
     except IntegrityError as ie_db_val:
         db.session.rollback()
-        app.logger.error(f"Error de integridad al actualizar OP ID {id_op}: {ie_db_val}", exc_info=True)
+        app.logger.error(f"Error de integridad al actualizar OP Código {codigo_op}: {ie_db_val}", exc_info=True)
         return {'status': 'error', 'message': 'Error de integridad de datos. Verifique que no haya duplicados o datos incorrectos.'}, 409
     except SQLAlchemyError as sae_db_val:
         db.session.rollback()
-        app.logger.error(f"Error de SQLAlchemy al actualizar OP ID {id_op}: {sae_db_val}", exc_info=True)
+        app.logger.error(f"Error de SQLAlchemy al actualizar OP Código {codigo_op}: {sae_db_val}", exc_info=True)
         return {'status': 'error', 'message': 'Error de base de datos al actualizar la orden.'}, 500
     except Exception as e_db_val:
         db.session.rollback()
-        app.logger.error(f"Error inesperado al actualizar OP ID {id_op} en BD: {e_db_val}", exc_info=True)
+        app.logger.error(f"Error inesperado al actualizar OP Código {codigo_op} en BD: {e_db_val}", exc_info=True)
         return {'status': 'error', 'message': f'Se produjo un error inesperado durante la actualización en BD: {str(e_db_val)}'}, 500
 
-    if not id_cliente_str:
-        errores.append("El Cliente es requerido.")
-    else:
-        try:
-            id_cliente_val = int(id_cliente_str)
-            if not Clientes.query.filter_by(id_cliente=id_cliente_val, fecha_borrado=None).first():
-                errores.append(f"Cliente con ID '{id_cliente_val}' no encontrado.")
-        except ValueError:
-            errores.append("ID Cliente inválido.")
-
-    if not cantidad_op_str:
-        errores.append("La Cantidad es requerida.")
-    else:
-        try:
-            cantidad_op_val = int(cantidad_op_str)
-            if cantidad_op_val <= 0:
-                errores.append("La Cantidad debe ser positiva.")
-        except ValueError:
-            errores.append("Cantidad inválida.")
-
-    if not id_empleado_str:
-        errores.append("El Vendedor es requerido.")
-    else:
-        try:
-            id_empleado_val = int(id_empleado_str)
-            if not Empleados.query.filter_by(id_empleado=id_empleado_val, fecha_borrado=None).first():
-                errores.append(f"Vendedor con ID '{id_empleado_val}' no encontrado.")
-        except ValueError:
-            errores.append("ID Vendedor inválido.")
-
-    id_supervisor_val = None
-    if id_supervisor_str:
-        try:
-            id_supervisor_val = int(id_supervisor_str)
-            if not Empleados.query.filter_by(id_empleado=id_supervisor_val, fecha_borrado=None).first():
-                errores.append(f"Supervisor con ID '{id_supervisor_val}' no encontrado.")
-        except ValueError:
-            errores.append("ID Supervisor inválido.")
-
-    try:
-        fecha_val = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else None
-        if not fecha_val:
-            errores.append("La Fecha es requerida.")
-    except ValueError:
-        errores.append("Formato de Fecha inválido.")
-
-    try:
-        fecha_entrega_val = datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date() if fecha_entrega_str else None
-        if not fecha_entrega_val:
-            errores.append("La Fecha de Entrega es requerida.")
-    except ValueError:
-        errores.append("Formato de Fecha de Entrega inválido.")
-
-    if fecha_val and fecha_entrega_val and fecha_entrega_val < fecha_val:
-        errores.append("La Fecha de Entrega no puede ser anterior a la Fecha.")
-
-    if not producto_val:
-        errores.append("El Producto es requerido.")
-    if not estado_val:
-        errores.append("El Estado es requerido.")
-    if not odi_val:
-        errores.append("El ODI es requerido.")
-    if not descripcion_general_op_val:
-        errores.append("La Descripción General es requerida.")
-
-    # Validar procesos globales
-    op_ids_procesos_form = dataForm.getlist('op_ids_procesos')
-    op_otro_proceso_val = dataForm.get('op_otro_proceso', '').strip()
-    ids_procesos_a_asociar = []
-    
-    if not op_ids_procesos_form and not op_otro_proceso_val:
-        errores.append("Debe seleccionar al menos un proceso global o especificar uno nuevo.")
-    else:
-        for id_proc_str in op_ids_procesos_form:
-            if id_proc_str == 'otro_proceso_custom_op':
-                if not op_otro_proceso_val:
-                    errores.append("Seleccionó 'Otro Proceso' pero no especificó el nombre.")
-                else:
-                    proceso_existente = Procesos.query.filter(func.lower(Procesos.nombre_proceso) == func.lower(op_otro_proceso_val), Procesos.fecha_borrado.is_(None)).first()
-                    if proceso_existente:
-                        ids_procesos_a_asociar.append(proceso_existente.id_proceso)
-                    else:
-                        try:
-                            codigo_nuevo_proceso = f"OTRO_{uuid.uuid4().hex[:8].upper()}"
-                            nuevo_proceso = Procesos(
-                                codigo_proceso=codigo_nuevo_proceso,
-                                nombre_proceso=op_otro_proceso_val,
-                                descripcion_proceso=f"Proceso '{op_otro_proceso_val}' creado desde OP."
-                            )
-                            db.session.add(nuevo_proceso)
-                            db.session.flush()
-                            ids_procesos_a_asociar.append(nuevo_proceso.id_proceso)
-                        except IntegrityError:
-                            db.session.rollback()
-                            errores.append(f"Error al crear el proceso '{op_otro_proceso_val}'.")
-            else:
-                try:
-                    id_proc = int(id_proc_str)
-                    if Procesos.query.filter_by(id_proceso=id_proc, fecha_borrado=None).first():
-                        ids_procesos_a_asociar.append(id_proc)
-                    else:
-                        errores.append(f"Proceso con ID '{id_proc}' no encontrado.")
-                except ValueError:
-                    errores.append(f"ID de proceso inválido: '{id_proc_str}'.")
-
-    # Validar archivos
-    basepath = os.path.abspath(os.path.dirname(__file__))
-    static_base_path = os.path.normpath(os.path.join(basepath, '../static'))
-    render_dir_abs = os.path.join(static_base_path, 'render_op')
-    documentos_dir_abs = os.path.join(static_base_path, 'documentos_op')
-    os.makedirs(render_dir_abs, exist_ok=True)
-    os.makedirs(documentos_dir_abs, exist_ok=True)
-
-    render_file_storage = files.get('render')
-    path_render_a_guardar = None
-    if render_file_storage and render_file_storage.filename:
-        valido, nombre_archivo_o_msg = procesar_imagen_perfil(render_file_storage, 'render_op', ALLOWED_RENDER_EXTENSIONS)
-        if not valido:
-            errores.append(f"Render: {nombre_archivo_o_msg}")
-        else:
-            path_render_a_guardar = os.path.join('static', 'render_op', nombre_archivo_o_msg).replace("\\", "/")
-
-    documentos_a_guardar = []
-    documentos_adjuntos_files = files.getlist('documentos')
-    for doc_file_storage in documentos_adjuntos_files:
-        if doc_file_storage and doc_file_storage.filename:
-            valido, nombre_archivo_o_msg = procesar_imagen_perfil(doc_file_storage, 'documentos_op', ALLOWED_DOC_EXTENSIONS)
-            if not valido:
-                errores.append(f"Documento '{secure_filename(doc_file_storage.filename)}': {nombre_archivo_o_msg}")
-            else:
-                documentos_a_guardar.append({
-                    "path": os.path.join('static', 'documentos_op', nombre_archivo_o_msg).replace("\\", "/"),
-                    "nombre_original": secure_filename(doc_file_storage.filename)
-                })
-
-    # Validar piezas
-    piezas_lista_form = []
-    piezas_json_str = dataForm.get('piezas') # Usar dataForm
-    if piezas_json_str and piezas_json_str.strip() and piezas_json_str.lower() not in ('undefined', 'null'):
-        try:
-            piezas_lista_form = json.loads(piezas_json_str)
-            if not isinstance(piezas_lista_form, list):
-                errores.append("El formato de los datos de piezas no es una lista.")
-        except json.JSONDecodeError:
-            errores.append("Error al decodificar los datos de las piezas (formato JSON inválido).")
-    
-    if piezas_lista_form:
-        for idx, pieza_data_form in enumerate(piezas_lista_form, 1):
-            id_pieza_maestra = pieza_data_form.get('id_pieza_maestra')
-            cantidad_pieza_str = str(pieza_data_form.get('cantidad', ''))
-            id_actividades = pieza_data_form.get('id_actividad', [])
-            nombre_pieza_val = pieza_data_form.get('nombre_pieza', 'N/A')
-
-            if not id_pieza_maestra:
-                errores.append(f"Pieza #{idx}: El ID de la pieza maestra es requerido.")
-            else:
-                try:
-                    id_pieza_maestra = int(id_pieza_maestra)
-                    pieza_db = Piezas.query.filter_by(id_pieza=id_pieza_maestra, fecha_borrado=None).first()
-                    if not pieza_db:
-                        errores.append(f"Pieza #{idx}: ID de pieza maestra '{id_pieza_maestra}' no encontrado.")
-                    else:
-                        nombre_pieza_val = pieza_db.nombre_pieza
-                except ValueError:
-                    errores.append(f"Pieza #{idx}: ID de pieza maestra inválido.")
-
-            if not cantidad_pieza_str.isdigit() or int(cantidad_pieza_str) <= 0:
-                errores.append(f"Pieza #{idx} ('{nombre_pieza_val}'): Cantidad es requerida y debe ser positiva.")
-
-    if errores:
-        return {'success': False, 'message': ". ".join(errores) + "."}, 400
-
-    try:
-        # Actualizar OrdenProduccion
-        orden.id_cliente = id_cliente_val
-        orden.producto = producto_val
-        orden.cotizacion = cotizacion_val
-        orden.estado = estado_val
-        orden.cantidad = cantidad_op_val
-        orden.medida = medida_val
-        orden.referencia = referencia_val
-        orden.odi = odi_val
-        orden.id_empleado = id_empleado_val
-        orden.id_supervisor = id_supervisor_val
-        orden.fecha = fecha_val
-        orden.fecha_entrega = fecha_entrega_val
-        orden.descripcion_general = descripcion_general_op_val
-        orden.empaque = empaque_val
-        try:
-            orden.version = str(int(orden.version) + 1) if orden.version.isdigit() else "1"
-        except AttributeError:
-            orden.version = "1"
-
-        # Actualizar procesos globales
-        OrdenProduccionProcesos.query.filter_by(id_op=id_op).delete()
-        for id_proc in ids_procesos_a_asociar:
-            db.session.add(OrdenProduccionProcesos(id_op=id_op, id_proceso=id_proc))
-
-        # Manejar renders
-        delete_renders = data.form.getlist('delete_renders[]')
-        for render_id in delete_renders:
-            if render_id:
-                render = RendersOP.query.get(int(render_id))
-                if render:
-                    file_path = os.path.join(static_base_path, render.render_path.replace('static/', ''))
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    db.session.delete(render)
-
-        if path_render_a_guardar:
-            db.session.add(RendersOP(id_op=id_op, render_path=path_render_a_guardar))
-
-        # Manejar documentos
-        delete_docs = data.form.getlist('delete_docs[]')
-        for doc_id in delete_docs:
-            if doc_id:
-                doc = DocumentosOP.query.get(int(doc_id))
-                if doc:
-                    file_path = os.path.join(static_base_path, doc.documento_path.replace('static/', ''))
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    db.session.delete(doc)
-
-        for doc_info in documentos_a_guardar:
-            db.session.add(DocumentosOP(
-                id_op=id_op,
-                documento_path=doc_info["path"],
-                documento_nombre_original=doc_info["nombre_original"]
-            ))
-
-        # Actualizar piezas
-        OrdenPiezas.query.filter_by(id_op=id_op).delete()
-        for pieza_data_form in piezas_lista_form:
-            id_pieza_maestra = int(pieza_data_form.get('id_pieza_maestra'))
-            cantidad_pieza_val = int(pieza_data_form.get('cantidad'))
-            id_actividades = pieza_data_form.get('id_actividad', [])
-            valores_configuracion = pieza_data_form.get('valores_configuracion', [])
-
-            orden_pieza = OrdenPiezas(
-                id_op=id_op,
-                id_pieza=id_pieza_maestra,
-                nombre_pieza_op=pieza_data_form.get('nombre_pieza', 'N/A'),
-                cantidad=cantidad_pieza_val,
-                tamano=pieza_data_form.get('tamano'),
-                montaje=pieza_data_form.get('montaje'),
-                montaje_tamano=pieza_data_form.get('tamano_montaje'),
-                material=pieza_data_form.get('material'),
-                cantidad_material=pieza_data_form.get('cantidad_material'),
-                descripcion_pieza=pieza_data_form.get('descripcion_pieza')
-            )
-            db.session.add(orden_pieza)
-            db.session.flush()
-
-            for id_actividad in id_actividades:
-                try:
-                    id_actividad_int = int(id_actividad)
-                    actividad = Actividades.query.filter_by(id_actividad=id_actividad_int, fecha_borrado=None).first()
-                    if actividad:
-                        db.session.add(OrdenPiezasActividades(
-                            id_orden_pieza=orden_pieza.id_orden_pieza,
-                            id_actividad=id_actividad_int
-                        ))
-                    else:
-                        app.logger.warning(f"Actividad con ID '{id_actividad_int}' no encontrada.")
-                except ValueError:
-                    app.logger.warning(f"ID de actividad inválido '{id_actividad}'.")
-
-            if isinstance(valores_configuracion, list):
-                for config_item in valores_configuracion:
-                    grupo = config_item.get('grupo_configuracion')
-                    valor = config_item.get('valor_configuracion')
-                    if grupo and valor is not None:
-                        db.session.add(OrdenPiezaValoresDetalle(
-                            id_orden_pieza=orden_pieza.id_orden_pieza,
-                            grupo_configuracion=grupo,
-                            valor_configuracion=str(valor)
-                        ))
-
-        db.session.commit()
-        app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {id_op}) actualizada exitosamente.")
-        return {'success': True, 'message': f"Orden de Producción {orden.codigo_op} actualizada exitosamente.", 'redirect_url': url_for('lista_op')}, 200
-
-    except IntegrityError as ie:
-        db.session.rollback()
-        app.logger.error(f"Error de Integridad en actualizar OP {id_op}: {str(ie)}", exc_info=True)
-        return {'success': False, 'message': "Error de base de datos. Posible duplicado."}, 409
-    except SQLAlchemyError as e_sql:
-        db.session.rollback()
-        app.logger.error(f"Error de SQLAlchemy en actualizar OP {id_op}: {str(e_sql)}", exc_info=True)
-        return {'success': False, 'message': "Error al interactuar con la base de datos."}, 500
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error inesperado en actualizar OP {id_op}: {str(e)}", exc_info=True)
-        return {'success': False, 'message': "Ocurrió un error inesperado."}, 500
 
 # Eliminar Orden de Producción
-
-
 def eliminar_op(id_op):
     try:
         # Buscar la orden
@@ -4362,5 +4118,3 @@ def get_all_empleados():
     except Exception as e:
         app.logger.error(f"Error en get_all_empleados: {e}", exc_info=True)
         return []
-    
-

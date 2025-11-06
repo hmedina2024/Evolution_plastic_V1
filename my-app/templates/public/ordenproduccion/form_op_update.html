@@ -24,10 +24,9 @@
     {# Asumimos que op_data.id_op estará disponible en el contexto de la
     plantilla #}
     <form class="form-horizontal mx-auto needs-validation" method="POST"
-      action="{{ url_for('actualizar_op', id_op=op_data.id_op) }}"
+      action="{{ url_for('actualizar_op', codigo_op=op_data.codigo_op) }}"
       autocomplete="off" enctype="multipart/form-data" id="actualizarOpForm"
       novalidate>
-      <input type="hidden" name="id_op" value="{{ op_data.id_op }}">
       <div class="row g-4">
         <div class="col-md-2 position-relative">
           <label for="fecha" class="form-label fw-bold text-primary">Fecha
@@ -268,11 +267,11 @@
       <input type="hidden" name="mensaje_personalizado" id="mensaje_personalizado">
 
       <div class="text-center mt-5">
-        <button type="button" class="btn btn-primary rounded-pill px-4" id="submitUpdateBtn">
+        <!-- <button type="button" class="btn btn-primary rounded-pill px-4" id="submitUpdateBtn">
           Actualizar Orden <i class="bi bi-save ms-2"></i>
         </button>
-        <br><br>
-        <button type="button" class="btn btn-success rounded-pill px-4" id="submitNotifyBtn">
+        <br><br> -->
+        <button type="button" class="btn btn-primary rounded-pill px-4" id="submitNotifyBtn">
           Actualizar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
