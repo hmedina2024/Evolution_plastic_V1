@@ -1189,18 +1189,23 @@ def procesar_form_operacion(dataForm):
 
                     orden_produccion = OrdenProduccion.query.get(id_op)
                     codigo_op_a_mostrar = orden_produccion.codigo_op if orden_produccion else id_op
+                    op = db.session.query(OrdenProduccion).filter_by(codigo_op=codigo_op_a_mostrar).first()
+                    cliente = db.session.query(Clientes).get(orden_produccion.id_cliente) if orden_produccion else None
+                    nombre_cliente = cliente.nombre_cliente if cliente else "Cliente no encontrado"
 
                     for destinatario in destinatarios:
                         if destinatario.email_user:
                             email_receiver = destinatario.email_user
                             body = f"""
                             Se ha registrado una nueva operación diaria:
-
+                            
+                            - Cliente: {nombre_cliente}
                             - Empleado: {empleado.nombre_empleado} {empleado.apellido_empleado or ''}
                             - Proceso: {nombre_proceso} 
                             - Actividad: {nombre_actividad} 
                             - Orden de Producción: {codigo_op_a_mostrar}
                             - Cantidad Realizada: {cantidad}
+                            - Producto: {op.producto}
                             - Fecha y Hora Inicio: {fecha_hora_inicio}
                             - Fecha y Hora Fin: {fecha_hora_fin}
                             - Pieza Realizada: {pieza_realizada if pieza_realizada else 'No especificada'}
@@ -2075,6 +2080,7 @@ def procesar_form_op(dataForm, files):
                             - Número de OP: {orden.codigo_op}
                             - Cliente: {cliente.nombre_cliente}
                             - Producto: {orden.producto}
+                            - Cantidad: {orden.cantidad}
                             - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
                             - ODI: {orden.odi}
                             - Cotización: {orden.cotizacion}
@@ -3078,6 +3084,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             - Fecha de Entrega: {orden.fecha_entrega.strftime('%d de %B de %Y')}
                             - ODI: {orden.odi}
                             - Cotización: {orden.cotizacion}
+                            - Cantidad: {orden.cantidad}
                             - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
                             - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
