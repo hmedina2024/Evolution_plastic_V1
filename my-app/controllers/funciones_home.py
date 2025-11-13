@@ -4112,10 +4112,14 @@ def get_detalles_pieza_maestra_options(grupo_detalles_pieza_param):
 
 def get_all_empleados():
     """
-    Obtiene todos los usuarios activos.
+    Obtiene todos los usuarios activos que sean Administrador o Supervisor.
     """
     try:
-        empleados = db.session.query(Users).filter(Users.fecha_borrado.is_(None),Users.rol == 'Administrador').order_by(Users.name_surname.asc()).all()
+        empleados = db.session.query(Users).filter(
+            Users.fecha_borrado.is_(None),
+            Users.rol.in_(['Administrador', 'Supervisor'])
+        ).order_by(Users.name_surname.asc()).all()
+        
         return [{
             'id_empleado': e.id,
             'nombre_empleado': e.name_surname,
