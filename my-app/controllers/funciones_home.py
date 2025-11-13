@@ -2315,7 +2315,7 @@ def sql_detalles_op_bd(codigo_op):
             # Determinar el nombre de la pieza a mostrar
             # Priorizar el nombre específico de la OP, luego el de la pieza maestra si existe.
             nombre_a_mostrar = pieza_orden_obj.nombre_pieza_op # Nombre específico guardado con la pieza de la OP
-            if not nombre_a_mostrar and nombre_pieza_maestra_val:
+            if (not nombre_a_mostrar or nombre_a_mostrar == "N/A") and nombre_pieza_maestra_val:
                  nombre_a_mostrar = nombre_pieza_maestra_val
             elif not nombre_a_mostrar:
                  nombre_a_mostrar = "Pieza sin nombre específico"
