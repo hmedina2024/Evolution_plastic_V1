@@ -46,7 +46,7 @@
                 <i class="bi bi-pass-fill me-2"></i> Lista de Operaciones
               </a>
             </li>
-            {% if session['rol'] == 'Administrador' %}
+            {% if session['rol'] == 'Administrador' or session['rol'] == 'Supervisor' %}
             <li>
               <a
                 href="{{ url_for('viewFormOp') }}"
@@ -83,7 +83,7 @@
           </ul>
         </div>
       </li>
-      {% if session['rol'] == 'Administrador' %}
+      {% if session['rol'] == 'Administrador' or session['rol'] == 'Supervisor' %}
       <li class="mb-1">
         <button
           class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
@@ -95,6 +95,7 @@
         </button>
         <div class="collapse" id="administrar-collapse">
           <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+            {% if session['rol'] == 'Administrador' %}
             <li>
               <a
                 href="{{ url_for('viewFormEmpleado') }}"
@@ -103,6 +104,7 @@
                 <i class="bi bi-person-bounding-box me-2"></i> Registrar Empleado
               </a>
             </li>
+            {% endif %}
             <li>
               <a
                 href="/lista-de-empleados"
@@ -111,6 +113,7 @@
                 <i class="bi bi-person-lines-fill me-2"></i> Lista de Empleados
               </a>
             </li>
+            {% if session['rol'] == 'Administrador' %}
             <li>
               <a
                 href="{{ url_for('viewFormProceso') }}"
@@ -119,6 +122,7 @@
                 <i class="bi bi-gear me-2"></i> Registrar Proceso
               </a>
             </li>
+            {% endif%}
             <li>
               <a
                 href="/lista-de-procesos"
@@ -127,6 +131,8 @@
                 <i class="bi bi-gear-fill me-2"></i> Lista de Procesos
               </a>
             </li>
+            {% if session['rol'] == 'Administrador' %}
+
             <li>
               <a
                 href="{{ url_for('viewFormCliente') }}"
@@ -135,6 +141,7 @@
                 <i class="bi bi-person-vcard me-2"></i> Registrar Cliente
               </a>
             </li>
+            {% endif%}
             <li>
               <a
                 href="/lista-de-clientes"
@@ -143,6 +150,7 @@
                 <i class="bi bi-person-vcard-fill me-2"></i> Lista de Clientes
               </a>
             </li>
+            {% if session['rol'] == 'Administrador' %}
             <li>
               <a
                 href="{{ url_for('viewFormActividad') }}"
@@ -151,6 +159,7 @@
                 <i class="bi bi-universal-access-circle me-2"></i> Registrar Actividad
               </a>
             </li>
+            {% endif%}
             <li>
               <a
                 href="/lista-de-actividades"
@@ -159,6 +168,7 @@
                 <i class="bi bi-universal-access me-2"></i> Lista de Actividades
               </a>
             </li>
+            {% if session['rol'] == 'Administrador' %}
             <li>
               <a
                 href="{{ url_for('viewFormEmpresa') }}"
@@ -168,6 +178,8 @@
               </a>
               
             </li>
+            {% endif%}
+
             <li>
               <a
                 href="/lista-de-empresas"
@@ -200,6 +212,7 @@
       </button>
       <div class="collapse" id="usuarios-collapse">
         <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+          {% if session['rol'] == 'Administrador' %}
           <li>
             <a
               href="/register-user"
@@ -208,6 +221,7 @@
               <i class="bi bi-key me-2"></i> Crear Usuario
             </a>
           </li>
+          {% endif%}
           <li>
             <a
               href="/lista-de-usuarios"
