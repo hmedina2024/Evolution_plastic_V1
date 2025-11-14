@@ -141,7 +141,7 @@ $(document).ready(function() {
                 var acciones = `<a href="/detalles-operacion/${row.id_operacion}" class="btn btn-info btn-sm" title="Ver detalles"><i class="bi bi-eye"></i></a>`;
                  // Solo añadir botones de editar/eliminar si el rol es Administrador
                  // Asegúrate que la variable de sesión 'rol' esté disponible y sea correcta
-                if ('{{ session["rol"] }}' === 'Administrador') {
+                if ('{{ session["rol"] }}' === 'Administrador' || '{{ session["rol"] }}' === 'Supervisor') {
                   acciones += ` <a href="/editar-operacion/${row.id_operacion}" class="btn btn-success btn-sm" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></a>`;
                   acciones += ` <a href="#" onclick="eliminarOperacion('${row.id_operacion}');" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash3"></i></a>`;
                 }
