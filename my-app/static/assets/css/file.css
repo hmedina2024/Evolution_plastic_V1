@@ -483,3 +483,13 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+.auto-adjust {
+    field-sizing: content; /* La magia: se ajusta al contenido */
+    min-height: 80px;      /* Altura mínima estética */
+  }
+
+  .auto-adjust {
+    field-sizing: content; /* La magia: se ajusta al contenido */
+    min-height: 80px;      /* Altura mínima estética */
+  }

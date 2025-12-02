@@ -2089,7 +2089,7 @@ def procesar_form_op(dataForm, files):
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
-                    disenador_indutrial = db.session.query(Empleados).get(orden.id_disenador_indutrial) if orden.id_disenador_indutrial else None
+                    disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
 
@@ -3147,8 +3147,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
-                    disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_indstrial else None
-                    
+                    disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
 
@@ -3169,9 +3168,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             - Cantidad: {orden.cantidad}
                             - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
-                            - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
-                            - Diseñador Grafico: {disenador_grafico.nombre_empleado if disenador_grafico else 'No asignado'}
-                            - Diseñador Industrial: {disenador_industrial.nombre_empleado if disenador_industrial else 'No asignado'}
+                            - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
+                            - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
                             - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
                             - Version : {orden.version}
 
