@@ -14,7 +14,7 @@ from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo
 from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
-from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,
+from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,get_disenadores_graficos_paginados,get_disenadores_industriales_paginados,
                                         procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil, procesar_actualizar_empresa, obtener_tipo_empleado, buscar_ordenes_produccion_bd,
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
                                         buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
@@ -1112,6 +1112,27 @@ def api_supervisores():
         f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
     supervisores = get_supervisores_paginados(page, per_page, search)
     return jsonify({'supervisores': supervisores})
+
+
+@app.route('/api/disenadores_graficos', methods=['GET'])
+def api_disenadores_graficos():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(
+        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    disenadores_graficos = get_disenadores_graficos_paginados(page, per_page, search)
+    return jsonify({'disenadores_graficos': disenadores_graficos})
+
+@app.route('/api/disenadores_industriales', methods=['GET'])
+def api_disenadores_industriales():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    app.logger.debug(
+        f"Parámetros recibidos: page={page}, per_page={per_page}, search={search}")
+    disenadores_industriales = get_disenadores_industriales_paginados(page, per_page, search)
+    return jsonify({'disenadores_industriales': disenadores_industriales})
 
 
 @app.route('/api/procesos', methods=['GET'])

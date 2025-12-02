@@ -106,6 +106,18 @@
             class="form-control select2" required></select>
           <div class="invalid-feedback">Por favor, seleccione un vendedor.</div>
         </div>
+        <div class="col-md-4">
+          <label for="id_disenador_grafico"
+            class="form-label fw-bold text-primary">Diseñador Grafico</label>
+          <select name="id_disenador_grafico" id="id_disenador_grafico"
+            class="form-control select2"></select>
+        </div>
+        <div class="col-md-4">
+          <label for="id_disenador_industrial"
+            class="form-label fw-bold text-primary">Diseñador Industrial</label>
+          <select name="id_disenador_industrial" id="id_disenador_industrial"
+            class="form-control select2"></select>
+        </div>
         <div class="col-md-3">
           <label for="logistica"
             class="form-label fw-bold text-primary">LOGÍSTICA</label>
@@ -860,6 +872,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   setupSelect2('#id_cliente', "{{ url_for('api_clientes') }}", 'Seleccionar Cliente', 'clientes', 'id_cliente', 'nombre_cliente');
   setupSelect2('#id_empleado', "{{ url_for('api_empleados') }}", 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
+  setupSelect2('#id_disenador_grafico', "{{ url_for('api_disenadores_graficos') }}", 'Seleccionar Diseñador Grafico', 'disenadores_graficos', 'id_empleado', 'nombre_empleado', false, false, true);
+  setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
@@ -898,6 +912,22 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       }
       var supervisorOption = new Option(nombreCompletoSupervisor.trim(), datosOpExistente.id_supervisor, true, true);
       $('#id_supervisor').append(supervisorOption).trigger('change');
+    }
+    if (datosOpExistente.id_disenador_grafico && datosOpExistente.disenador_grafico) {
+      let nombreCompletoDisenadorGrafico = datosOpExistente.disenador_grafico.nombre_empleado || '';
+      if (datosOpExistente.disenador_grafico.apellido_empleado) {
+        nombreCompletoDisenadorGrafico += ' ' + datosOpExistente.disenador_grafico.apellido_empleado;
+      }
+      var disenadorGraficoOption = new Option(nombreCompletoDisenadorGrafico.trim(), datosOpExistente.id_disenador_grafico, true, true);
+      $('#id_disenador_grafico').append(disenadorGraficoOption).trigger('change');
+    }
+    if (datosOpExistente.id_disenador_industrial && datosOpExistente.disenador_industrial) {
+      let nombreCompletoDisenadorIndustrial = datosOpExistente.disenador_industrial.nombre_empleado || '';
+      if (datosOpExistente.disenador_industrial.apellido_empleado) {
+        nombreCompletoDisenadorIndustrial += ' ' + datosOpExistente.disenador_industrial.apellido_empleado;
+      }
+      var disenadorIndustrialOption = new Option(nombreCompletoDisenadorIndustrial.trim(), datosOpExistente.id_disenador_industrial, true, true);
+      $('#id_disenador_industrial').append(disenadorIndustrialOption).trigger('change');
     }
 
     // Para Select2 estáticos: Estado, Logística

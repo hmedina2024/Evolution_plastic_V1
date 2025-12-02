@@ -225,11 +225,15 @@ class OrdenProduccion(db.Model):
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
+    id_disenador_grafico = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    id_disenador_industrial = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
 
     # Relaciones existentes
     cliente = db.relationship('Clientes', backref='ordenes', lazy=True)
     empleado = db.relationship('Empleados', foreign_keys=[id_empleado], backref='ordenes_empleado', lazy=True)
     supervisor = db.relationship('Empleados', foreign_keys=[id_supervisor], backref='ordenes_supervisor', lazy=True)
+    disenador_grafico = db.relationship('Empleados', foreign_keys=[id_disenador_grafico], backref='ordenes_disenador_grafico', lazy=True)
+    disenador_industrial = db.relationship('Empleados', foreign_keys=[id_disenador_industrial], backref='ordenes_disenador_industrial', lazy=True)
     usuario_registro = db.relationship('Users', backref='ordenes_registradas', lazy=True)
     documentos = db.relationship('DocumentosOP', backref='orden', lazy=True, cascade="all, delete-orphan")
     renders = db.relationship('RendersOP', backref='orden', lazy=True, cascade="all, delete-orphan")

@@ -1658,6 +1658,9 @@ def procesar_form_op(dataForm, files):
     instructivo_val = dataForm.get('instructivo') 
     estado_proyecto_val = dataForm.get('estado_proyecto')
     urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
+    id_disenador_grafico_str = dataForm.get('id_disenador_grafico')
+    id_disenador_industrial_str = dataForm.get('id_disenador_industrial')
+    app.logger.debug(f"Valor recibido para id_disenador_grafico: '{id_disenador_grafico_str}'")
     
     # --- Obtener campos para la notificación ---
     action = dataForm.get('submit_action', 'save') # Por defecto es 'save'
@@ -1708,6 +1711,24 @@ def procesar_form_op(dataForm, files):
                 errores.append(f"Supervisor con ID '{id_supervisor_val}' no encontrado o fue eliminado.")
         except ValueError:
             errores.append("ID Supervisor debe ser un número entero válido.")
+            
+    id_disenador_grafico_val = None
+    if id_disenador_grafico_str and id_disenador_grafico_str.strip():
+        try:
+            id_disenador_grafico_val = int(id_disenador_grafico_str)
+            if not Empleados.query.filter_by(id_empleado=id_disenador_grafico_val, fecha_borrado=None).first():
+                errores.append(f"Disenador Grafico con ID '{id_disenador_grafico_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            errores.append("ID Diseñador Gráfico debe ser un número entero válido.")
+            
+    id_disenador_industrial_val = None
+    if id_disenador_industrial_str and id_disenador_industrial_str.strip():
+        try:
+            id_disenador_industrial_val = int(id_disenador_industrial_str)
+            if not Empleados.query.filter_by(id_empleado=id_disenador_industrial_val, fecha_borrado=None).first():
+                errores.append(f"Disenador Industrial con ID '{id_disenador_industrial_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            errores.append("ID Diseñador Industrial debe ser un número entero válido.")
 
     fecha_val = None
     if not fecha_str or not fecha_str.strip():
@@ -1935,7 +1956,9 @@ def procesar_form_op(dataForm, files):
             logistica=logistica_val,
             instructivo=instructivo_val,
             estado_proyecto=estado_proyecto_val,
-            id_usuario_registro=id_usuario_registro
+            id_usuario_registro=id_usuario_registro,
+            id_disenador_grafico=id_disenador_grafico_val,
+            id_disenador_industrial=id_disenador_industrial_val
         )
         db.session.add(orden)
         db.session.flush()
@@ -2065,6 +2088,8 @@ def procesar_form_op(dataForm, files):
                     cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
+                    disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
+                    disenador_indutrial = db.session.query(Empleados).get(orden.id_disenador_indutrial) if orden.id_disenador_indutrial else None
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
 
@@ -2086,6 +2111,8 @@ def procesar_form_op(dataForm, files):
                             - Cotización: {orden.cotizacion}
                             - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+                            - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
+                            - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
                             - Version : {orden.version}
 
                             Descripción:
@@ -2225,6 +2252,8 @@ def sql_detalles_op_bd(codigo_op):
         # Crear alias para las dos instancias de Empleados
         empleado_vendedor = aliased(Empleados)
         empleado_supervisor = aliased(Empleados)
+        empleado_disenador_grafico = aliased(Empleados)
+        empleado_disenador_industrial = aliased(Empleados)
 
         # Consulta con JOINs para obtener los nombres relacionados
         result = db.session.query(
@@ -2233,6 +2262,10 @@ def sql_detalles_op_bd(codigo_op):
             db.func.concat(empleado_vendedor.nombre_empleado, ' ', empleado_vendedor.apellido_empleado).label('nombre_completo_vendedor'),
             db.func.concat(empleado_supervisor.nombre_empleado, ' ',
                            empleado_supervisor.apellido_empleado).label('nombre_supervisor'),
+            db.func.concat(empleado_disenador_grafico.nombre_empleado, ' ',
+                           empleado_disenador_grafico.apellido_empleado).label('nombre_disenador_grafico'),
+            db.func.concat(empleado_disenador_industrial.nombre_empleado, ' ',
+                           empleado_disenador_industrial.apellido_empleado).label('nombre_disenador_industrial'),
             Users.name_surname.label('nombre_usuario_registro')
         ).outerjoin(
             Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
@@ -2240,6 +2273,10 @@ def sql_detalles_op_bd(codigo_op):
             empleado_vendedor, OrdenProduccion.id_empleado == empleado_vendedor.id_empleado
         ).outerjoin(
             empleado_supervisor, OrdenProduccion.id_supervisor == empleado_supervisor.id_empleado
+        ).outerjoin(
+            empleado_disenador_grafico, OrdenProduccion.id_disenador_grafico == empleado_disenador_grafico.id_empleado
+        ).outerjoin(
+            empleado_disenador_industrial, OrdenProduccion.id_disenador_industrial == empleado_disenador_industrial.id_empleado
         ).outerjoin(
             Users, OrdenProduccion.id_usuario_registro == Users.id
         ).filter(
@@ -2251,7 +2288,7 @@ def sql_detalles_op_bd(codigo_op):
             app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
             return None
 
-        orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_usuario_registro = result
+        orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_disenador_grafico, nombre_disenador_industrial, nombre_usuario_registro = result
 
         # 1. Procesos Globales de la Orden
         procesos_globales_nombres = []
@@ -2386,7 +2423,11 @@ def sql_detalles_op_bd(codigo_op):
             'documentos': documentos,
             'urls_op': urls_op_list, # Nuevo
             'procesos': procesos_globales_nombres if procesos_globales_nombres else ['s'], # Clave 'procesos' para el template
-            'piezas': piezas_list
+            'piezas': piezas_list,
+            'id_disenador_grafico': orden_obj.id_disenador_grafico, # Añadido por si es útil
+            'nombre_disenador_grafico': nombre_disenador_grafico if nombre_disenador_grafico else 'Sin Disenador Grafico',
+            'id_disenador_industrial': orden_obj.id_disenador_industrial, # Añadido por si es útil
+            'nombre_disenador_industrial': nombre_disenador_industrial if nombre_disenador_industrial else 'Sin Disenador Industrial',
         }
         app.logger.debug(f"Detalles de la orden a retornar: {detalle_op_data}")
         return detalle_op_data
@@ -2402,6 +2443,8 @@ def obtener_datos_op_para_edicion(codigo_op):
             joinedload(OrdenProduccion.cliente),
             joinedload(OrdenProduccion.empleado),
             joinedload(OrdenProduccion.supervisor),
+            joinedload(OrdenProduccion.disenador_grafico),
+            joinedload(OrdenProduccion.disenador_industrial),
             joinedload(OrdenProduccion.procesos_globales),
             joinedload(OrdenProduccion.renders),
             joinedload(OrdenProduccion.documentos),
@@ -2442,6 +2485,16 @@ def obtener_datos_op_para_edicion(codigo_op):
             'supervisor': {
                 'nombre_empleado': orden.supervisor.nombre_empleado if orden.supervisor else '',
                 'apellido_empleado': orden.supervisor.apellido_empleado if orden.supervisor else ''
+            },
+            'id_disenador_grafico': orden.id_disenador_grafico,
+            'disenador_grafico': {
+                'nombre_empleado': orden.disenador_grafico.nombre_empleado if orden.disenador_grafico else '',
+                'apellido_empleado': orden.disenador_grafico.apellido_empleado if orden.disenador_grafico else ''
+            },
+            'id_disenador_industrial': orden.id_disenador_industrial,
+            'disenador_industrial': {
+                'nombre_empleado': orden.disenador_industrial.nombre_empleado if orden.disenador_industrial else '',
+                'apellido_empleado': orden.disenador_industrial.apellido_empleado if orden.disenador_industrial else ''
             },
             'fecha': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else '',
             'fecha_entrega': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else '',
@@ -2554,6 +2607,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     cantidad_op_str = dataForm.get('cantidad')
     id_empleado_str = dataForm.get('id_empleado') # Vendedor
     id_supervisor_str = dataForm.get('id_supervisor')
+    id_disenador_grafico_str = dataForm.get('id_disenador_grafico')
+    id_disenador_industrial_str = dataForm.get('id_disenador_industrial')
     cotizacion_val = dataForm.get('cotizacion')
     odi_val = dataForm.get('odi')
     referencia_val = dataForm.get('referencia')
@@ -2610,6 +2665,25 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             id_supervisor_val = int(id_supervisor_str) # Guardar para uso posterior
             if not Empleados.query.filter_by(id_empleado=id_supervisor_val, fecha_borrado=None).first():
                 errores.append(f"Supervisor con ID '{id_supervisor_val}' no encontrado.")
+    
+    id_disenador_grafico_val = None # Es opcional
+    if id_disenador_grafico_str:
+        if not id_disenador_grafico_str.isdigit():
+            errores.append("ID Diseñador Grafico inválido.")
+        else:
+            id_disenador_grafico_val = int(id_disenador_grafico_str) # Guardar para uso posterior
+            if not Empleados.query.filter_by(id_empleado=id_disenador_grafico_val, fecha_borrado=None).first():
+                errores.append(f"Disenador Grafico con ID '{id_disenador_grafico_val}' no encontrado.")
+                
+    id_disenador_industrial_val = None # Es opcional
+    if id_disenador_industrial_str:
+        if not id_disenador_industrial_str.isdigit():
+            errores.append("ID Diseñador Industrial inválido.")
+        else:
+            id_disenador_industrial_val = int(id_disenador_industrial_str) # Guardar para uso posterior
+            if not Empleados.query.filter_by(id_empleado=id_disenador_industrial_val, fecha_borrado=None).first():
+                errores.append(f"Disenador Industrial con ID '{id_disenador_industrial_val}' no encontrado.")
+    
     
     if not cotizacion_val: errores.append("Cotización es requerida.")
     if not odi_val: errores.append("ODI es requerido.")
@@ -2804,6 +2878,10 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             cambios['id_empleado'] = {'anterior': orden.id_empleado, 'nuevo': int(id_empleado_str)}
         if id_supervisor_str and orden.id_supervisor != (int(id_supervisor_str) if id_supervisor_str else None):
             cambios['id_supervisor'] = {'anterior': orden.id_supervisor, 'nuevo': int(id_supervisor_str) if id_supervisor_str else None}
+        if id_disenador_grafico_str and orden.id_disenador_grafico != (int(id_disenador_grafico_str) if id_disenador_grafico_str else None):
+            cambios['id_disenador_grafico'] = {'anterior': orden.id_disenador_grafico, 'nuevo': int(id_disenador_grafico_str) if id_disenador_grafico_str else None}    
+        if id_disenador_industrial_str and orden.id_disenador_industrial != (int(id_disenador_industrial_str) if id_disenador_industrial_str else None):
+            cambios['id_disenador_industrial'] = {'anterior': orden.id_disenador_industrial, 'nuevo': int(id_disenador_industrial_str) if id_disenador_industrial_str else None}
         if cotizacion_val and orden.cotizacion != cotizacion_val:
             cambios['cotizacion'] = {'anterior': orden.cotizacion, 'nuevo': cotizacion_val}
         if odi_val and orden.odi != odi_val:
@@ -2847,6 +2925,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         orden.cantidad = cantidad_op_val
         orden.id_empleado = int(id_empleado_str)
         orden.id_supervisor = id_supervisor_val
+        orden.id_disenador_grafico = id_disenador_grafico_val
+        orden.id_disenador_industrial = id_disenador_industrial_val
         orden.cotizacion = cotizacion_val
         orden.odi = odi_val
         orden.referencia = referencia_val
@@ -3066,6 +3146,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
+                    disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
+                    disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_indstrial else None
                     
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
@@ -3087,6 +3169,9 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             - Cantidad: {orden.cantidad}
                             - Vendedor: {vendedor.nombre_empleado +' '+ vendedor.apellido_empleado if vendedor else 'N/A'}
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+                            - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
+                            - Diseñador Grafico: {disenador_grafico.nombre_empleado if disenador_grafico else 'No asignado'}
+                            - Diseñador Industrial: {disenador_industrial.nombre_empleado if disenador_industrial else 'No asignado'}
                             - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
                             - Version : {orden.version}
 
@@ -3674,6 +3759,56 @@ def get_supervisores_paginados(page, per_page, search=None):
         return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
     except Exception as e:
         app.logger.error(f"Error en get_supervisores_paginados: {e}")
+        return []
+    
+def get_disenadores_graficos_paginados(page, per_page, search=None):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Empleados).options(db.joinedload(Empleados.empresa), db.joinedload(Empleados.tipo_empleado_ref)).filter(
+            Empleados.fecha_borrado.is_(None),
+            # Filtrar por cargo
+            Empleados.cargo.in_(['DISEÑADOR GRAFICO', 'DISEÑADORA GRAFICA','Diseñador Grafico '])
+        ).order_by(Empleados.id_empleado.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search),
+                    Empleados.apellido_empleado.like(search),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(
+                        search=search)
+                )
+            )
+        empleados = query.paginate(
+            page=page, per_page=per_page, error_out=False).items
+        return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_disenadores_graficos_paginados: {e}")
+        return []
+
+def get_disenadores_industriales_paginados(page, per_page, search=None):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Empleados).options(db.joinedload(Empleados.empresa), db.joinedload(Empleados.tipo_empleado_ref)).filter(
+            Empleados.fecha_borrado.is_(None),
+            # Filtrar por cargo
+            Empleados.cargo.in_(['DISEÑADOR INDUSTRIAL', 'DISEÑADORA INDUSTRIAL'])
+        ).order_by(Empleados.id_empleado.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search),
+                    Empleados.apellido_empleado.like(search),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(
+                        search=search)
+                )
+            )
+        empleados = query.paginate(
+            page=page, per_page=per_page, error_out=False).items
+        return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_disenadores_industriales_paginados: {e}")
         return []
 
 

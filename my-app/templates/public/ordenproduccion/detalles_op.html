@@ -65,6 +65,14 @@
         <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
       </div>
       <div class="col-md-3">
+        <label for="disenador_grafico" class="form-label fw-bold text-primary">Diseñador Grafico</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_disenador_grafico }}</div>
+      </div>
+      <div class="col-md-3">
+        <label for="disenador_industrial" class="form-label fw-bold text-primary">Diseñador Industrial</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_disenador_industrial }}</div>
+      </div>
+      <div class="col-md-3">
         <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
         <div class="form-control" readonly>{{ detalle_op.nombre_supervisor }}</div>
       </div>
@@ -307,8 +315,8 @@
     {% endif %}
 
     <!-- Sección de Acciones -->
-    <h4 class="fw-bold text-primary mt-5 mb-4">Acciones</h4>
-    <!-- <div class="row g-4">
+    <!-- <h4 class="fw-bold text-primary mt-5 mb-4">Acciones</h4>
+    <div class="row g-4">
       <div class="col-md-12 text-center">
         <a href="{{ url_for('versions_op', id_op=detalle_op.id_op) }}" class="btn btn-secondary">
           <i class="bi bi-clock-history"></i> Ver Historial de Versiones
