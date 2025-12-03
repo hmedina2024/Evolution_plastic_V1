@@ -191,7 +191,7 @@
           <label for="descripcion_general_op"
             class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN)
             <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="descripcion_general_op"
+          <textarea class="form-control auto-adjust" id="descripcion_general_op"
             name="descripcion_general_op" rows="3" required></textarea>
           <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
@@ -328,9 +328,7 @@
                     DEL MONTAJE</label>
                   <input type="text" class="form-control modal-input-dinamico"
                     id="modal_tamano_montaje"
-                    data-grupo-input="TAMAÑO DEL MONTAJE" pattern="[0-9]*"
-                    inputmode="numeric"
-                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                    data-grupo-input="TAMAÑO DEL MONTAJE">
                 </div>
                 <div class="col-md-4">
                   <label for="modal_unidad_medida_otro"
@@ -954,7 +952,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           <div class="col-md-2"><label for="pieza_cantidad_material_${pieceIdSuffix}" class="form-label">Cant. Material</label><input type="text" name="pieza_cantidad_material_${pieceIdSuffix}" id="pieza_cantidad_material_${pieceIdSuffix}" class="form-control pieza-cantidad-material"></div>
           <div class="col-md-4"><label for="tipo_molde_${pieceIdSuffix}" class="form-label">Tipo de molde<span class="text-danger">*</span></label><input required type="text" name="tipo_molde_${pieceIdSuffix}" id="tipo_molde_${pieceIdSuffix}" class="form-control tipo-molde" rows="1"></input></div>
           <div class="col-md-4"><label for="proveedor_externo_${pieceIdSuffix}" class="form-label">Proveedor Externo</label><input type="text" name="proveedor_externo_${pieceIdSuffix}" id="proveedor_externo_${pieceIdSuffix}" class="form-control proveedor-externo"></div>
-          <div class="col-md-12"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion" rows="3"></textarea></div>
+          <div class="col-md-12"><label for="pieza_descripcion_${pieceIdSuffix}" class="form-label">Desc. Pieza</label><textarea name="pieza_descripcion_${pieceIdSuffix}" id="pieza_descripcion_${pieceIdSuffix}" class="form-control pieza-descripcion auto-adjust" ></textarea></div>
           </div>
         <div class="row g-3 mt-2">
           <div class="col-12 text-end">

@@ -99,7 +99,7 @@ $(document).ready(function() {
                 return `
                     <a href="/detalles-op/${row.codigo_op}" class="btn btn-info btn-sm"><i class="bi bi-eye"></i> Ver detalles</a>
                     <a href="/editar-op/${row.codigo_op}" class="btn btn-success btn-sm"><i class="bi bi-arrow-clockwise"></i> Actualizar</a>
-                    <a href="#" onclick="eliminarOp('${row.id_op}');" class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Eliminar</a>
+                    {% if session['rol'] == 'Administrador' %} <a href="#" onclick="eliminarOp('${row.id_op}');" class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Eliminar</a> {% endif%}
                 `;
             }, "orderable": false }
         ],
