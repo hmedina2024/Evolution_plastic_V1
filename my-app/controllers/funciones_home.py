@@ -34,7 +34,7 @@ LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
 # Definiciones de extensiones permitidas
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 ALLOWED_DOC_EXTENSIONS = {'pdf', 'doc', 'docx',
-                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv'}
+                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv','dxf','ai'}
 
 
 # --- Funciones de Empleados ---
@@ -1581,7 +1581,7 @@ def eliminar_operacion(id_operacion):
 
 # Constantes de configuración
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg','pdf', 'doc', 'docx', 'xls', 'xlsx'}
+ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg','pdf', 'doc', 'docx', 'xls', 'xlsx','dxf','ai'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_MIME_TYPES = {
     'image/png', 'image/jpeg',
