@@ -181,7 +181,6 @@
     {% else %}
     <p class="text-muted">No hay URLs asociadas.</p>
     {% endif %}
- 
     <!-- Piezas -->
     <h4 class="fw-bold text-primary mt-5 mb-4">Piezas Asociadas</h4>
     {% if detalle_op.piezas %}
@@ -334,6 +333,48 @@
     <h2>No existe la Operación 😭</h2>
     <hr />
   </div>
+</div>
+{% endif %}
+{% if detalle_op.piezas and detalle_op.piezas|length > 0 %}
+<h4 class="fw-bold text-primary mt-5 mb-4">Resumen General de Especificaciones</h4>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-sm">
+        <thead class="table-light">
+            <tr>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Pieza</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Item</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Calibre</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Largo</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Ancho</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Unidad</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">KG</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Retal (kg)</th>
+                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Reproceso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pieza in detalle_op.piezas %}
+                {% if pieza.especificaciones %}
+                    {% for esp in pieza.especificaciones %}
+                    <tr>
+                        <td>{{ pieza.nombre_pieza }}</td>
+                        <td>{{ esp.item | default('N/A') }}</td>
+                        <td>{{ esp.calibre | default('N/A') }}</td>
+                        <td>{{ esp.largo | default('N/A') }}</td>
+                        <td>{{ esp.ancho | default('N/A') }}</td>
+                        <td>{{ esp.unidad | default('N/A') }}</td>
+                        <td>{{ esp.cantidad_especificacion | default('N/A') }}</td>
+                        <td>{{ esp.kg | default('N/A') }}</td>
+                        <td>{{ esp.retal_kg | default('N/A') }}</td>
+                        <td>{{ esp.reproceso | default('N/A') }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endif %}
 {% endblock %}
