@@ -2,7 +2,8 @@
 {% block title %}Detalles de Orden de Producción{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/file.css') }}" />
 {% endblock %}
 
 {% block body %}
@@ -21,37 +22,45 @@
     <h4 class="fw-bold text-primary mb-4">Detalles Generales</h4>
     <div class="row g-4">
       <div class="col-md-2">
-        <label for="id_op" class="form-label fw-bold text-primary">Código OP</label>
+        <label for="id_op" class="form-label fw-bold text-primary">Código
+          OP</label>
         <div class="form-control" readonly>{{ detalle_op.codigo_op }}</div>
       </div>
       <div class="col-md-3">
-        <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre Cliente</label>
+        <label for="nombre_cliente"
+          class="form-label fw-bold text-primary">Nombre Cliente</label>
         <div class="form-control" readonly>{{ detalle_op.nombre_cliente }}</div>
       </div>
       <div class="col-md-7">
-        <label for="producto" class="form-label fw-bold text-primary">Producto</label>
+        <label for="producto"
+          class="form-label fw-bold text-primary">Producto</label>
         <div class="form-control" readonly>{{ detalle_op.producto }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-2">
-        <label for="version" class="form-label fw-bold text-primary">Versión</label>
+        <label for="version"
+          class="form-label fw-bold text-primary">Versión</label>
         <div class="form-control" readonly>{{ detalle_op.version }}</div>
       </div>
       <div class="col-md-2">
-        <label for="cotizacion" class="form-label fw-bold text-primary">Cotización</label>
+        <label for="cotizacion"
+          class="form-label fw-bold text-primary">Cotización</label>
         <div class="form-control" readonly>{{ detalle_op.cotizacion }}</div>
       </div>
       <div class="col-md-2">
-        <label for="estado" class="form-label fw-bold text-primary">Estado</label>
+        <label for="estado"
+          class="form-label fw-bold text-primary">Estado</label>
         <div class="form-control" readonly>{{ detalle_op.estado }}</div>
       </div>
       <div class="col-md-2">
-        <label for="cantidad" class="form-label fw-bold text-primary">Cantidad</label>
+        <label for="cantidad"
+          class="form-label fw-bold text-primary">Cantidad</label>
         <div class="form-control" readonly>{{ detalle_op.cantidad }}</div>
       </div>
       <div class="col-md-4">
-        <label for="referencia" class="form-label fw-bold text-primary">Referencia</label>
+        <label for="referencia"
+          class="form-label fw-bold text-primary">Referencia</label>
         <div class="form-control" readonly>{{ detalle_op.referencia }}</div>
       </div>
     </div>
@@ -61,62 +70,83 @@
         <div class="form-control" readonly>{{ detalle_op.odi }}</div>
       </div>
       <div class="col-md-3">
-        <label for="empleado" class="form-label fw-bold text-primary">Vendedor</label>
+        <label for="empleado"
+          class="form-label fw-bold text-primary">Vendedor</label>
         <div class="form-control" readonly>{{ detalle_op.empleado }}</div>
       </div>
       <div class="col-md-3">
-        <label for="disenador_grafico" class="form-label fw-bold text-primary">Diseñador Grafico</label>
-        <div class="form-control" readonly>{{ detalle_op.nombre_disenador_grafico }}</div>
+        <label for="disenador_grafico"
+          class="form-label fw-bold text-primary">Diseñador Grafico</label>
+        <div class="form-control" readonly>{{
+          detalle_op.nombre_disenador_grafico }}</div>
       </div>
       <div class="col-md-3">
-        <label for="disenador_industrial" class="form-label fw-bold text-primary">Diseñador Industrial</label>
-        <div class="form-control" readonly>{{ detalle_op.nombre_disenador_industrial }}</div>
+        <label for="disenador_industrial"
+          class="form-label fw-bold text-primary">Diseñador Industrial</label>
+        <div class="form-control" readonly>{{
+          detalle_op.nombre_disenador_industrial }}</div>
       </div>
       <div class="col-md-3">
-        <label for="supervisor" class="form-label fw-bold text-primary">Supervisor</label>
-        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor }}</div>
+        <label for="supervisor"
+          class="form-label fw-bold text-primary">Supervisor</label>
+        <div class="form-control" readonly>{{ detalle_op.nombre_supervisor
+          }}</div>
       </div>
       <div class="col-md-2">
         <label for="fecha" class="form-label fw-bold text-primary">Fecha</label>
         <div class="form-control" readonly>{{ detalle_op.fecha }}</div>
       </div>
       <div class="col-md-2">
-        <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha de Entrega</label>
+        <label for="fecha_entrega" class="form-label fw-bold text-primary">Fecha
+          de Entrega</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_entrega }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-12">
-        <label for="descripcion_general" class="form-label fw-bold text-primary">Descripción General</label>
-        <textarea class="form-control auto-adjust" readonly>{{ detalle_op.descripcion_general }}</textarea>
+        <label for="descripcion_general"
+          class="form-label fw-bold text-primary">Descripción General</label>
+        <textarea class="form-control auto-adjust"
+          readonly>{{ detalle_op.descripcion_general }}</textarea>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-4">
-        <label for="empaque" class="form-label fw-bold text-primary">Empaque</label>
+        <label for="empaque"
+          class="form-label fw-bold text-primary">Empaque</label>
         <div class="form-control" readonly>{{ detalle_op.empaque }}</div>
       </div>
       <div class="col-md-3">
-        <label for="logistica" class="form-label fw-bold text-primary">Logística</label>
-        <div class="form-control" readonly>{{ detalle_op.logistica | default('No especificada') }}</div>
+        <label for="logistica"
+          class="form-label fw-bold text-primary">Logística</label>
+        <div class="form-control" readonly>{{ detalle_op.logistica |
+          default('No especificada') }}</div>
       </div>
       <div class="col-md-2">
-        <label for="instructivo" class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO</label>
-        <div class="form-control" readonly>{{ detalle_op.instructivo | default('No especificada') }}</div>
+        <label for="instructivo"
+          class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO</label>
+        <div class="form-control" readonly>{{ detalle_op.instructivo |
+          default('No especificada') }}</div>
       </div>
       <div class="col-md-3">
-        <label for="estado_proyecto" class="form-label fw-bold text-primary">Estado Proyecto</label>
-        <div class="form-control" readonly>{{ detalle_op.estado_proyecto | default('') }}</div>
+        <label for="estado_proyecto"
+          class="form-label fw-bold text-primary">Estado Proyecto</label>
+        <div class="form-control" readonly>{{ detalle_op.estado_proyecto |
+          default('') }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-3">
-        <label for="fecha_registro" class="form-label fw-bold text-primary">Fecha y Hora de Registro</label>
+        <label for="fecha_registro"
+          class="form-label fw-bold text-primary">Fecha y Hora de
+          Registro</label>
         <div class="form-control" readonly>{{ detalle_op.fecha_registro }}</div>
       </div>
       <div class="col-md-3">
-        <label for="usuario_registro" class="form-label fw-bold text-primary">Registrado por</label>
-        <div class="form-control" readonly>{{ detalle_op.usuario_registro }}</div>
+        <label for="usuario_registro"
+          class="form-label fw-bold text-primary">Registrado por</label>
+        <div class="form-control" readonly>{{ detalle_op.usuario_registro
+          }}</div>
       </div>
     </div>
 
@@ -124,8 +154,10 @@
     <h4 class="fw-bold text-primary mt-5 mb-4">Procesos de la Orden</h4>
     <div class="row g-4">
       <div class="col-md-12">
-        <label class="form-label fw-bold text-primary">Procesos Asociados</label>
-        <div class="form-control" readonly>{{ detalle_op.procesos|join(', ') }}</div>
+        <label class="form-label fw-bold text-primary">Procesos
+          Asociados</label>
+        <div class="form-control" readonly>{{ detalle_op.procesos|join(', ')
+          }}</div>
       </div>
     </div>
 
@@ -136,14 +168,18 @@
       {% for render in detalle_op.renders %}
       <div class="col-md-4 text-center">
         <br />
-        <img style="width: 200px; border-radius: 10px;" src="/static/render_op/{{ render }}" alt="Render" class="img-thumbnail render-img" />
+        <img style="width: 200px; border-radius: 10px;"
+          src="/static/render_op/{{ render }}" alt="Render"
+          class="img-thumbnail render-img" />
       </div>
       {% endfor %}
       {% else %}
       <div class="col-md-4 text-center">
         <label class="form-label fw-bold text-primary">Render</label>
         <br />
-        <img style="width: 200px; border-radius: 10px;" src="{{ url_for('static', filename='assets/img/default_render.png') }}" alt="Render por defecto" class="img-thumbnail render-img" />
+        <img style="width: 200px; border-radius: 10px;"
+          src="{{ url_for('static', filename='assets/img/default_render.png') }}"
+          alt="Render por defecto" class="img-thumbnail render-img" />
       </div>
       {% endif %}
     </div>
@@ -154,8 +190,12 @@
     <div class="row g-4">
       {% for doc in detalle_op.documentos %}
       <div class="col-md-4">
-        <a href="{{ url_for('static', filename='documentos_op/' ~ doc.documento_path) }}" download="{{ doc.documento_nombre_original }}" class="btn btn-outline-primary">
-          <i class="bi bi-download"></i> Descargar {{ doc.documento_nombre_original }}
+        <a
+          href="{{ url_for('static', filename='documentos_op/' ~ doc.documento_path) }}"
+          download="{{ doc.documento_nombre_original }}"
+          class="btn btn-outline-primary">
+          <i class="bi bi-download"></i> Descargar {{
+          doc.documento_nombre_original }}
         </a>
       </div>
       {% endfor %}
@@ -185,6 +225,8 @@
     <h4 class="fw-bold text-primary mt-5 mb-4">Piezas Asociadas</h4>
     {% if detalle_op.piezas %}
     {% for pieza in detalle_op.piezas %}
+    {% set num_pieza = loop.index %}
+    <h5 class="fw-bold text-secondary mb-3">Pieza #{{ loop.index }}</h5>
     <div class="piece-card">
       <div class="row g-4">
         <div class="col-md-2">
@@ -222,42 +264,53 @@
           <div class="form-control" readonly>{{ pieza.fondo_pieza }}</div>
         </div>
         <div class="col-md-3">
-          <label class="form-label fw-bold text-primary">Proveedor Externo</label>
-          <div class="form-control" readonly>{{ pieza.proveedor_externo | default('') }}</div>
+          <label class="form-label fw-bold text-primary">Proveedor
+            Externo</label>
+          <div class="form-control" readonly>{{ pieza.proveedor_externo |
+            default('') }}</div>
         </div>
-         <div class="col-md-3">
-          <label class="form-label fw-bold text-primary">Cantidad Material</label>
+        <div class="col-md-3">
+          <label class="form-label fw-bold text-primary">Cantidad
+            Material</label>
           <div class="form-control" readonly>{{ pieza.cantidad_material }}</div>
         </div>
       </div>
       <div class="row g-4 mt-2">
         <div class="col-md-4">
-          <label class="form-label fw-bold text-primary">Actividades Asociadas</label>
-          <div class="form-control" readonly>{{ pieza.actividades|join(', ') }}</div>
+          <label class="form-label fw-bold text-primary">Actividades
+            Asociadas</label>
+          <div class="form-control" readonly>{{ pieza.actividades|join(', ')
+            }}</div>
         </div>
         <div class="col-md-3">
           <label class="form-label fw-bold text-primary">Tipo Molde</label>
           <div class="form-control" readonly>{{ pieza.tipo_molde }}</div>
         </div>
         <div class="col-md-12">
-          <label class="form-label fw-bold text-primary">Descripción Pieza</label>
-          <textarea class="form-control auto-adjust" readonly rows="2">{{ pieza.descripcion_general }}</textarea>
-        </div>        
+          <label class="form-label fw-bold text-primary">Descripción
+            Pieza</label>
+          <textarea class="form-control auto-adjust" readonly
+            rows="2">{{ pieza.descripcion_general }}</textarea>
+        </div>
       </div>
       <!-- Detalles de Configuración Adicional de la Pieza -->
       <div class="row g-4 mt-3">
         <div class="col-md-12">
-          <h6 class="fw-bold text-secondary mb-2">Detalles de Configuración Adicional:</h6>
-          {% if pieza.detalles_configuracion and pieza.detalles_configuracion|length > 0 %}
-            <ul class="list-group list-group-flush">
-              {% for config in pieza.detalles_configuracion %}
-                <li class="list-group-item py-1 px-0 border-0">
-                  <span class="fw-semibold">{{ config.grupo }}:</span> {{ config.valor }}
-                </li>
-              {% endfor %}
-            </ul>
+          <h6 class="fw-bold text-secondary mb-2">Detalles de Configuración
+            Adicional:</h6>
+          {% if pieza.detalles_configuracion and
+          pieza.detalles_configuracion|length > 0 %}
+          <ul class="list-group list-group-flush">
+            {% for config in pieza.detalles_configuracion %}
+            <li class="list-group-item py-1 px-0 border-0">
+              <span class="fw-semibold">{{ config.grupo }}:</span> {{
+              config.valor }}
+            </li>
+            {% endfor %}
+          </ul>
           {% else %}
-            <p class="text-muted small mb-0">No hay detalles de configuración adicionales para esta pieza.</p>
+          <p class="text-muted small mb-0">No hay detalles de configuración
+            adicionales para esta pieza.</p>
           {% endif %}
         </div>
       </div>
@@ -265,7 +318,8 @@
       <!-- Especificaciones de la Pieza -->
       <div class="row g-4 mt-3">
         <div class="col-md-12">
-          <h6 class="fw-bold text-secondary mb-2">Especificaciones de la Pieza:</h6>
+          <h6 class="fw-bold text-secondary mb-2">Especificaciones de la
+            Pieza:</h6>
           {% if pieza.especificaciones and pieza.especificaciones|length > 0 %}
           <div class="table-responsive">
             <table class="table table-sm table-bordered table-striped">
@@ -300,7 +354,8 @@
             </table>
           </div>
           {% else %}
-            <p class="text-muted small mb-0">No hay especificaciones para esta pieza.</p>
+          <p class="text-muted small mb-0">No hay especificaciones para esta
+            pieza.</p>
           {% endif %}
         </div>
       </div>
@@ -336,45 +391,58 @@
 </div>
 {% endif %}
 {% if detalle_op.piezas and detalle_op.piezas|length > 0 %}
-<h4 class="fw-bold text-primary mt-5 mb-4">Resumen General de Especificaciones</h4>
+<h4 class="fw-bold text-primary mt-5 mb-4">Resumen General de
+  Especificaciones</h4>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped table-sm">
-        <thead class="table-light">
-            <tr>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Pieza</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Item</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Calibre</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Largo</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Ancho</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Unidad</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">KG</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Retal (kg)</th>
-                <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Reproceso</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pieza in detalle_op.piezas %}
-                {% if pieza.especificaciones %}
-                    {% for esp in pieza.especificaciones %}
-                    <tr>
-                        <td>{{ pieza.nombre_pieza }}</td>
-                        <td>{{ esp.item | default('N/A') }}</td>
-                        <td>{{ esp.calibre | default('N/A') }}</td>
-                        <td>{{ esp.largo | default('N/A') }}</td>
-                        <td>{{ esp.ancho | default('N/A') }}</td>
-                        <td>{{ esp.unidad | default('N/A') }}</td>
-                        <td>{{ esp.cantidad_especificacion | default('N/A') }}</td>
-                        <td>{{ esp.kg | default('N/A') }}</td>
-                        <td>{{ esp.retal_kg | default('N/A') }}</td>
-                        <td>{{ esp.reproceso | default('N/A') }}</td>
-                    </tr>
-                    {% endfor %}
-                {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
+  <table class="table table-bordered table-striped table-sm">
+    <thead class="table-light">
+      <tr>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Pieza</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Item</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Calibre</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Largo</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Ancho</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Unidad</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cantidad</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">KG</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Retal
+          (kg)</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Reproceso</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pieza in detalle_op.piezas %}
+      {% set num_pieza = loop.index %}
+      {% if pieza.especificaciones %}
+      {% for esp in pieza.especificaciones %}
+      <tr>
+        <td>Pieza #{{ num_pieza }} - {{ pieza.nombre_pieza }}</td>
+        <td>{{ esp.item | default('N/A') }}</td>
+        <td>{{ esp.calibre | default('N/A') }}</td>
+        <td>{{ esp.largo | default('N/A') }}</td>
+        <td>{{ esp.ancho | default('N/A') }}</td>
+        <td>{{ esp.unidad | default('N/A') }}</td>
+        <td>{{ esp.cantidad_especificacion | default('N/A') }}</td>
+        <td>{{ esp.kg | default('N/A') }}</td>
+        <td>{{ esp.retal_kg | default('N/A') }}</td>
+        <td>{{ esp.reproceso | default('N/A') }}</td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endif %}
 {% endblock %}
