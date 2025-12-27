@@ -1,10 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
-from app import db  # Importa db desde app.py, donde se inicializa
+#from app import db  # Importa db desde app.py, donde se inicializa
 # Quitamos import datetime ya que no se usa directamente aquí
 from sqlalchemy.sql import func  # Importa func para usar func.now()
 from sqlalchemy import Enum,Column, Integer, Text, DateTime, ForeignKey # Para el Enum de Empresa
 from datetime import datetime
 from sqlalchemy.orm import relationship
+from conexion.database import db
 
 # --- Modelo Empresa ---
 # Definido antes porque otros modelos dependen de él

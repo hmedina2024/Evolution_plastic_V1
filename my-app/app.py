@@ -51,7 +51,12 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 # Inicializa SQLAlchemy
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+# Importamos la db vacía desde el nuevo archivo
+from conexion.database import db
+
+# La conectamos con la app
+db.init_app(app)
 
 # Vincula el logger de Flask al logger personalizado
 app.logger.handlers = logger.handlers

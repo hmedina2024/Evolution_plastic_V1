@@ -26,6 +26,16 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql import text
 
+from io import BytesIO  # Import necesario para BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether,PageBreak
+from reportlab.lib.enums import TA_CENTER
+
+
+
 magic.Magic(mime=True)
 
 # Define la zona horaria local (ajusta según tu ubicación)
@@ -4262,3 +4272,324 @@ def get_all_empleados():
     except Exception as e:
         app.logger.error(f"Error en get_all_empleados: {e}", exc_info=True)
         return []
+    
+    
+def generar_pdf_op_func(detalle_op, codigo_op):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=40, leftMargin=40,
+        topMargin=40, bottomMargin=40
+    )
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # --- Estilos Personalizados ---
+    style_titulo = ParagraphStyle(
+        'TituloCustom', parent=styles['Heading1'],
+        fontSize=16, textColor=colors.HexColor("#0d6efd"), alignment=TA_CENTER, spaceAfter=20
+    )
+    style_subtitulo = ParagraphStyle(
+        'SubtituloCustom', parent=styles['Heading2'],
+        fontSize=12, textColor=colors.HexColor("#395c83"), spaceBefore=15, spaceAfter=10, borderPadding=5,
+        borderColor=colors.HexColor("#395c83"), borderWidth=0, backColor=colors.HexColor("#e9ecef")
+    )
+    style_normal = styles['Normal']
+    style_bold = ParagraphStyle('BoldCustom', parent=styles['Normal'], fontName='Helvetica-Bold')
+    
+    # Estilo pequeño para tablas con mucho contenido
+    style_small = ParagraphStyle('SmallCustom', parent=styles['Normal'], fontSize=8)
+    
+    # Función auxiliar para texto seguro (evita None)
+    def t(text):
+        return str(text) if text is not None else "N/A"
+    
+    # Función auxiliar para parrafos en tablas
+    def p_cell(text, style=style_normal):
+        return Paragraph(t(text), style)
+
+    # ================= CABECERA (Logo y Título) =================
+    logo_path = os.path.join(app.root_path, "static/assets/img/logo.png")
+    header_data = []
+    
+    # Si existe el logo, lo agregamos a la tabla de cabecera
+    if os.path.exists(logo_path):
+        img = Image(logo_path, width=1.5*inch, height=0.75*inch)
+        img.hAlign = 'LEFT'
+        # Título a la derecha del logo
+        title_text = Paragraph(f"<b>ORDEN DE PRODUCCIÓN #{t(detalle_op['codigo_op'])}</b><br/><font size=10>Fecha: {t(detalle_op['fecha'])}</font>", style_titulo)
+        header_data = [[img, title_text]]
+    else:
+        # Sin logo, solo título
+        header_data = [[Paragraph(f"ORDEN DE PRODUCCIÓN #{t(detalle_op['codigo_op'])}", style_titulo)]]
+
+    header_table = Table(header_data, colWidths=[2*inch, 4.5*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("INFORMACIÓN GENERAL", style_subtitulo))
+
+    # ================= DETALLES GENERALES (Tabla 4 columnas) =================
+    data_general = [
+        [Paragraph('<b>Cliente:</b>', style_normal), p_cell(detalle_op['nombre_cliente']), Paragraph('<b>Producto:</b>', style_normal), p_cell(detalle_op['producto'])],
+        [Paragraph('<b>Versión:</b>', style_normal), p_cell(detalle_op['version']), Paragraph('<b>Cotización:</b>', style_normal), p_cell(detalle_op['cotizacion'])],
+        [Paragraph('<b>Estado:</b>', style_normal), p_cell(detalle_op['estado']), Paragraph('<b>Cantidad:</b>', style_normal), p_cell(detalle_op['cantidad'])],
+        [Paragraph('<b>Referencia:</b>', style_normal), p_cell(detalle_op['referencia']), Paragraph('<b>ODI:</b>', style_normal), p_cell(detalle_op['odi'])]
+    ]
+    
+    t_general = Table(data_general, colWidths=[1.2*inch, 2*inch, 1.2*inch, 2.8*inch])
+    t_general.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke), # Columna labels 1
+        ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke), # Columna labels 2
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP para mejor alineación
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t_general)
+
+    # ================= PERSONAL Y FECHAS =================
+    elements.append(Spacer(1, 10))
+    data_personal = [
+        [Paragraph('<b>Vendedor:</b>', style_normal), p_cell(detalle_op['empleado']), Paragraph('<b>Fecha Entrega:</b>', style_normal), p_cell(detalle_op['fecha_entrega'])],
+        [Paragraph('<b>Diseñador Gráfico:</b>', style_normal), p_cell(detalle_op['nombre_disenador_grafico']), Paragraph('<b>Diseñador Ind.:</b>', style_normal), p_cell(detalle_op['nombre_disenador_industrial'])],
+        [Paragraph('<b>Supervisor:</b>', style_normal), p_cell(detalle_op['nombre_supervisor']), Paragraph('<b>Registrado por:</b>', style_normal), p_cell(detalle_op['usuario_registro'])]
+    ]
+    t_personal = Table(data_personal, colWidths=[1.5*inch, 1.8*inch, 1.5*inch, 2.4*inch])
+    t_personal.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+        ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t_personal)
+
+    # ================= DESCRIPCIÓN Y LOGÍSTICA =================
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("<b>Descripción General:</b>", style_bold))
+    elements.append(Paragraph(t(detalle_op['descripcion_general']), style_normal))
+    elements.append(Spacer(1, 10))
+
+    data_logistica = [
+        [Paragraph('<b>Empaque</b>', style_normal), Paragraph('<b>Logística</b>', style_normal), Paragraph('<b>Instructivo</b>', style_normal), Paragraph('<b>Estado Proyecto</b>', style_normal)],
+        [p_cell(detalle_op['empaque']), p_cell(detalle_op.get('logistica')), p_cell(detalle_op.get('instructivo')), p_cell(detalle_op.get('estado_proyecto'))]
+    ]
+    t_logistica = Table(data_logistica, colWidths=[1.8*inch, 1.8*inch, 1.8*inch, 1.8*inch])
+    t_logistica.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")), # Header azul
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t_logistica)
+
+    # ================= PROCESOS =================
+    elements.append(Spacer(1, 10))
+    procesos_str = ", ".join(detalle_op.get('procesos', []))
+    elements.append(Paragraph(f"<b>Procesos Asociados:</b> {procesos_str}", style_normal))
+
+    # ================= RENDERS (IMÁGENES) =================
+    if detalle_op.get('renders'):
+        elements.append(Paragraph("RENDERS Y VISUALIZACIÓN", style_subtitulo))
+        render_images = []
+        row = []
+        for i, render_file in enumerate(detalle_op['renders']):
+            r_path = os.path.join(app.root_path, f"static/render_op/{render_file}")
+            if os.path.exists(r_path):
+                # Ajustar imagen a aprox 2 pulgadas de ancho manteniendo aspecto
+                img_obj = Image(r_path, width=5*inch, height=5*inch, kind='proportional')
+                row.append(img_obj)
+            
+            # Hacer filas de 3 imágenes
+            if len(row) == 3:
+                render_images.append(row)
+                row = []
+        if row: render_images.append(row)
+        
+        if render_images:
+            t_renders = Table(render_images)
+            t_renders.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
+            elements.append(t_renders)
+
+    # ================= PIEZAS (LOOP PRINCIPAL) =================
+    if detalle_op.get('piezas'):
+        elements.append(Paragraph("DETALLE DE PIEZAS", style_subtitulo))
+        
+        for idx, pieza in enumerate(detalle_op['piezas'], 1):
+            # Usamos KeepTogether para intentar que una pieza no se corte feo entre páginas
+            pieza_elements = []
+            
+            # Encabezado Pieza
+            pieza_header = Paragraph(f"<b>PIEZA #{idx}: {t(pieza['nombre_pieza'])}</b>", style_bold)
+            pieza_elements.append(pieza_header)
+            pieza_elements.append(Spacer(1, 5))
+
+            # Tabla Info Pieza - CONVERTIR VALORES A PARAGRAPH
+            data_pieza = [
+                [Paragraph('<b>Cant</b>', style_small), Paragraph('<b>Montaje</b>', style_small), Paragraph('<b>Tamaño Mont.</b>', style_small), Paragraph('<b>Material</b>', style_small), Paragraph('<b>Prov. Ext.</b>', style_small)],
+                [p_cell(pieza['cantidad'], style_small), p_cell(pieza['montaje'], style_small), p_cell(pieza['montaje_tamano'], style_small), p_cell(pieza['material'], style_small), p_cell(pieza.get('proveedor_externo'), style_small)],
+                [Paragraph('<b>Ancho</b>', style_small), Paragraph('<b>Alto</b>', style_small), Paragraph('<b>Fondo</b>', style_small), Paragraph('<b>Cant. Mat.</b>', style_small), Paragraph('<b>Tipo Molde</b>', style_small)],
+                [p_cell(pieza['ancho_pieza'], style_small), p_cell(pieza['alto_pieza'], style_small), p_cell(pieza['fondo_pieza'], style_small), p_cell(pieza['cantidad_material'], style_small), p_cell(pieza['tipo_molde'], style_small)]
+            ]
+            t_pieza = Table(data_pieza, colWidths=[1.2*inch]*5)
+            t_pieza.setStyle(TableStyle([
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey), # Header fila 1
+                ('BACKGROUND', (0,2), (-1,2), colors.lightgrey), # Header fila 3
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+                ('FONTSIZE', (0,0), (-1,-1), 8),
+            ]))
+            pieza_elements.append(t_pieza)
+            
+            # Descripción Pieza
+            if pieza.get('descripcion_general'):
+                 pieza_elements.append(Spacer(1, 5))
+                 pieza_elements.append(Paragraph(f"<b>Descripción:</b> {pieza['descripcion_general']}", style_normal))
+
+            # ================= TABLA DE CONFIGURACIÓN ADICIONAL (FILTRADA) =================
+            if pieza.get('detalles_configuracion'):
+                # 1. Preparamos la lista con SOLO el encabezado inicial
+                data_config = [[Paragraph('<b>Grupo / Característica</b>', style_normal), Paragraph('<b>Valor / Detalle</b>', style_normal)]]
+
+                # 2. Recorremos los datos y SOLO agregamos si tienen información real
+                for config in pieza['detalles_configuracion']:
+                    raw_valor = config.get('valor')
+                    
+                    # CONDICIÓN DE FILTRADO:
+                    # Verifica que no sea None Y que al quitar espacios no quede vacío
+                    if raw_valor and str(raw_valor).strip():
+                        grupo_cell = Paragraph(f"<b>{t(config.get('grupo'))}</b>", style_normal)
+                        valor_cell = Paragraph(t(raw_valor), style_normal)
+                        data_config.append([grupo_cell, valor_cell])
+
+                # 3. VERIFICACIÓN FINAL: 
+                # Solo pintamos la tabla si tiene más de 1 fila (es decir, si tiene datos aparte del encabezado)
+                if len(data_config) > 1:
+                    pieza_elements.append(Spacer(1, 10))
+                    pieza_elements.append(Paragraph("<b>Configuración Adicional:</b>", style_normal))
+                    pieza_elements.append(Spacer(1, 5))
+
+                    # Crear la tabla con los datos filtrados
+                    t_config = Table(data_config, colWidths=[3*inch, 3.5*inch])
+
+                    t_config.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")), # Cabecera Azul
+                        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+                        ('PADDING', (0,0), (-1,-1), 6),
+                        ('BACKGROUND', (0,1), (-1,-1), colors.whitesmoke),
+                    ]))
+                    
+                    pieza_elements.append(t_config)
+
+            # Especificaciones (Tabla)
+            if pieza.get('especificaciones'):
+                pieza_elements.append(Spacer(1, 5))
+                pieza_elements.append(Paragraph("<b>Especificaciones Técnicas:</b>", style_normal))
+                
+                # Headers de la tabla de especificaciones
+                data_specs = [[
+                    Paragraph('<b>Item</b>', style_small), 
+                    Paragraph('<b>Calibre</b>', style_small), 
+                    Paragraph('<b>Largo</b>', style_small), 
+                    Paragraph('<b>Ancho</b>', style_small),
+                    Paragraph('<b>Unidad</b>', style_small), 
+                    Paragraph('<b>Cant</b>', style_small),
+                    Paragraph('<b>KG</b>', style_small), 
+                    Paragraph('<b>Retal</b>', style_small), 
+                    Paragraph('<b>Repro.</b>', style_small)
+                ]]
+                for esp in pieza['especificaciones']:
+                    data_specs.append([
+                        p_cell(esp.get('item'), style_small),
+                        p_cell(esp.get('calibre'), style_small), 
+                        p_cell(esp.get('largo'), style_small), 
+                        p_cell(esp.get('ancho'), style_small),
+                        p_cell(esp.get('unidad'), style_small), 
+                        p_cell(esp.get('cantidad_especificacion'), style_small),
+                        p_cell(esp.get('kg'), style_small), 
+                        p_cell(esp.get('retal_kg'), style_small), 
+                        p_cell(esp.get('reproceso'), style_small)
+                    ])
+                
+                # Anchos calculados para ajustar a la página
+                col_w = [1.5*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch]
+                t_specs = Table(data_specs, colWidths=col_w)
+                t_specs.setStyle(TableStyle([
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")), # Azul oscuro
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('FONTSIZE', (0,0), (-1,-1), 8),
+                    ('ALIGN', (1,0), (-1,-1), 'CENTER'), # Centrar numeros
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+                ]))
+                pieza_elements.append(t_specs)
+
+            pieza_elements.append(Spacer(1, 15))
+            elements.append(KeepTogether(pieza_elements))
+
+    # ================= RESUMEN GENERAL DE ESPECIFICACIONES =================
+    if detalle_op.get('piezas'):
+        elements.append(PageBreak())  # Nueva página para el resumen si es necesario
+        elements.append(Paragraph("Resumen General de Especificaciones", style_subtitulo))
+        
+        # Headers de la tabla resumida
+        data_resumen = [[
+            Paragraph('<b>Pieza</b>', style_small), 
+            Paragraph('<b>Item</b>', style_small), 
+            Paragraph('<b>Calibre</b>', style_small), 
+            Paragraph('<b>Largo</b>', style_small), 
+            Paragraph('<b>Ancho</b>', style_small), 
+            Paragraph('<b>Unidad</b>', style_small), 
+            Paragraph('<b>Cantidad</b>', style_small), 
+            Paragraph('<b>KG</b>', style_small), 
+            Paragraph('<b>Retal (kg)</b>', style_small), 
+            Paragraph('<b>Reproceso</b>', style_small)
+        ]]
+        
+        # Recopilar datos de todas las piezas
+        for num_pieza, pieza in enumerate(detalle_op['piezas'], start=1):
+            if pieza.get('especificaciones'):
+                for esp in pieza['especificaciones']:
+                    data_resumen.append([
+                        p_cell(f"Pieza #{num_pieza} - {t(pieza['nombre_pieza'])}", style_small),
+                        p_cell(esp.get('item'), style_small),
+                        p_cell(esp.get('calibre'), style_small),
+                        p_cell(esp.get('largo'), style_small),
+                        p_cell(esp.get('ancho'), style_small),
+                        p_cell(esp.get('unidad'), style_small),
+                        p_cell(esp.get('cantidad_especificacion'), style_small),
+                        p_cell(esp.get('kg'), style_small),
+                        p_cell(esp.get('retal_kg'), style_small),
+                        p_cell(esp.get('reproceso'), style_small)
+                    ])
+        
+        # Si hay datos, crear la tabla
+        if len(data_resumen) > 1:
+            col_w_resumen = [1.5*inch] + [0.6*inch]*9  # Ajuste para 10 columnas
+            t_resumen = Table(data_resumen, colWidths=col_w_resumen)
+            t_resumen.setStyle(TableStyle([
+                ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")),  # Azul oscuro
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('ALIGN', (1,0), (-1,-1), 'CENTER'),  # Centrar columnas numéricas
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Cambiado a TOP
+            ]))
+            elements.append(t_resumen)
+
+    # ================= GENERAR PDF =================
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return buffer
