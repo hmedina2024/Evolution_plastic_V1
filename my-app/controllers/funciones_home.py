@@ -4376,8 +4376,9 @@ def generar_pdf_op_func(detalle_op, codigo_op):
     elements.append(Spacer(1, 10))
 
     data_logistica = [
-        [Paragraph('<b>Empaque</b>', style_normal), Paragraph('<b>Logística</b>', style_normal), Paragraph('<b>Instructivo</b>', style_normal), Paragraph('<b>Estado Proyecto</b>', style_normal)],
-        [p_cell(detalle_op['empaque']), p_cell(detalle_op.get('logistica')), p_cell(detalle_op.get('instructivo')), p_cell(detalle_op.get('estado_proyecto'))]
+            ['Empaque', 'Logística', 'Instructivo', 'Estado Proyecto'],  # 👈 String simple
+        [p_cell(detalle_op['empaque']), p_cell(detalle_op.get('logistica')), 
+        p_cell(detalle_op.get('instructivo')), p_cell(detalle_op.get('estado_proyecto'))]
     ]
     t_logistica = Table(data_logistica, colWidths=[1.8*inch, 1.8*inch, 1.8*inch, 1.8*inch])
     t_logistica.setStyle(TableStyle([
@@ -4417,6 +4418,49 @@ def generar_pdf_op_func(detalle_op, codigo_op):
             t_renders = Table(render_images)
             t_renders.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
             elements.append(t_renders)
+            
+    # ================= DOCUMENTOS ADJUNTOS =================
+    if detalle_op.get('documentos'):
+        elements.append(Spacer(1, 10))
+        elements.append(Paragraph("Documentos Adjuntos", style_subtitulo))
+        
+        data_docs = [['Nombre del Archivo']]
+        for documents in detalle_op['documentos']:
+            data_docs.append([p_cell(documents.get('documento_nombre_original', 'N/A'))])  # Usar nombre original del archivo
+
+        t_docs = Table(data_docs, colWidths=[6*inch])
+        t_docs.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")),  # Header azul
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('PADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(t_docs)
+
+            # ================= URLS ASOCIADAS =================
+    if detalle_op.get('urls_op'):  # 👈 Cambiar 'urls' por 'urls_op'
+        elements.append(Spacer(1, 10))
+        elements.append(Paragraph("URLs Asociadas", style_subtitulo))
+        
+        data_urls = [['URL']]
+        
+        # Las URLs vienen como una lista simple de strings, no como lista de diccionarios
+        for url_item in detalle_op['urls_op']:  # 👈 Cambiar aquí también
+            # Como es un string directo, no necesitas .get('url')
+            data_urls.append([p_cell(url_item)])  # 👈 Usar url_item directamente
+        
+        t_urls = Table(data_urls, colWidths=[6*inch])
+        t_urls.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('PADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(t_urls)
+    
 
     # ================= PIEZAS (LOOP PRINCIPAL) =================
     if detalle_op.get('piezas'):
@@ -4457,7 +4501,7 @@ def generar_pdf_op_func(detalle_op, codigo_op):
             # ================= TABLA DE CONFIGURACIÓN ADICIONAL (FILTRADA) =================
             if pieza.get('detalles_configuracion'):
                 # 1. Preparamos la lista con SOLO el encabezado inicial
-                data_config = [[Paragraph('<b>Grupo / Característica</b>', style_normal), Paragraph('<b>Valor / Detalle</b>', style_normal)]]
+                data_config = [['Grupo / Característica', 'Valor / Detalle']]
 
                 # 2. Recorremos los datos y SOLO agregamos si tienen información real
                 for config in pieza['detalles_configuracion']:
@@ -4498,17 +4542,7 @@ def generar_pdf_op_func(detalle_op, codigo_op):
                 pieza_elements.append(Paragraph("<b>Especificaciones Técnicas:</b>", style_normal))
                 
                 # Headers de la tabla de especificaciones
-                data_specs = [[
-                    Paragraph('<b>Item</b>', style_small), 
-                    Paragraph('<b>Calibre</b>', style_small), 
-                    Paragraph('<b>Largo</b>', style_small), 
-                    Paragraph('<b>Ancho</b>', style_small),
-                    Paragraph('<b>Unidad</b>', style_small), 
-                    Paragraph('<b>Cant</b>', style_small),
-                    Paragraph('<b>KG</b>', style_small), 
-                    Paragraph('<b>Retal</b>', style_small), 
-                    Paragraph('<b>Repro.</b>', style_small)
-                ]]
+                data_specs = [['Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cant', 'KG', 'Retal', 'Repro.']]
                 for esp in pieza['especificaciones']:
                     data_specs.append([
                         p_cell(esp.get('item'), style_small),
@@ -4544,18 +4578,7 @@ def generar_pdf_op_func(detalle_op, codigo_op):
         elements.append(Paragraph("Resumen General de Especificaciones", style_subtitulo))
         
         # Headers de la tabla resumida
-        data_resumen = [[
-            Paragraph('<b>Pieza</b>', style_small), 
-            Paragraph('<b>Item</b>', style_small), 
-            Paragraph('<b>Calibre</b>', style_small), 
-            Paragraph('<b>Largo</b>', style_small), 
-            Paragraph('<b>Ancho</b>', style_small), 
-            Paragraph('<b>Unidad</b>', style_small), 
-            Paragraph('<b>Cantidad</b>', style_small), 
-            Paragraph('<b>KG</b>', style_small), 
-            Paragraph('<b>Retal (kg)</b>', style_small), 
-            Paragraph('<b>Reproceso</b>', style_small)
-        ]]
+        data_resumen = [['Pieza', 'Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cantidad', 'KG', 'Retal (kg)', 'Reproceso']]
         
         # Recopilar datos de todas las piezas
         for num_pieza, pieza in enumerate(detalle_op['piezas'], start=1):
