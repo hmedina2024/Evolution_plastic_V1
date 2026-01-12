@@ -137,7 +137,7 @@ class Clientes(db.Model):
     # FK a TipoDocumento
     id_tipo_documento = db.Column(db.Integer, db.ForeignKey('tbl_tipo_documento.id_tipo_documento'), nullable=True)
     # Ajuste: String y unique
-    documento = db.Column(db.String(50), nullable=False, unique=True)
+    documento = db.Column(db.String(50), nullable=False, unique=False)
     nombre_cliente = db.Column(db.String(50), nullable=True)
     telefono_cliente = db.Column(db.String(50), nullable=True)
     email_cliente = db.Column(db.String(50), nullable=True)

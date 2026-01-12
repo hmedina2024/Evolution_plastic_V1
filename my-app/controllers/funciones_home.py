@@ -331,11 +331,12 @@ def procesar_actualizacion_form(data_request):
             return False, "Documento es requerido."
         documento = int(documento_sin_puntos)
 
-        if str(empleado.documento) != str(documento):
-            otro_empleado_con_mismo_doc = db.session.query(Empleados.id_empleado).filter(
-                Empleados.documento == documento, Empleados.id_empleado != empleado.id_empleado, Empleados.fecha_borrado.is_(None)).first()
-            if otro_empleado_con_mismo_doc:
-                return False, f"El documento '{documento}' ya está registrado para otro empleado."
+        # Validación de documento duplicado eliminada para permitir múltiples empleados con el mismo documento
+        # if str(empleado.documento) != str(documento):
+        #     otro_empleado_con_mismo_doc = db.session.query(Empleados.id_empleado).filter(
+        #         Empleados.documento == documento, Empleados.id_empleado != empleado.id_empleado, Empleados.fecha_borrado.is_(None)).first()
+        #     if otro_empleado_con_mismo_doc:
+        #         return False, f"El documento '{documento}' ya está registrado para otro empleado."
 
         id_empresa_str = data_request.form.get('id_empresa')
         if not id_empresa_str or not id_empresa_str.isdigit():

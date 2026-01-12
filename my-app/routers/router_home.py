@@ -11,6 +11,7 @@ from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
 from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
+from sqlalchemy import func, and_
 from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
@@ -148,10 +149,19 @@ def buscando_empleados():
             8: None  # Columna "Acción" (no se ordena)
         }
 
+        # Subconsulta para obtener el registro más reciente por documento
+        subquery = db.session.query(
+            Empleados.documento,
+            func.max(Empleados.fecha_registro).label('max_fecha')
+        ).group_by(Empleados.documento).subquery()
+
         # Construir la consulta
         query = db.session.query(Empleados, Empresa).\
             join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            filter(Empleados.fecha_borrado.is_(None))
+            join(subquery, and_(
+                Empleados.documento == subquery.c.documento,
+                Empleados.fecha_registro == subquery.c.max_fecha
+            ))
 
         # Aplicar filtro por nombre
         if search_value:
@@ -189,7 +199,8 @@ def buscando_empleados():
                 'nombre_empresa': empresa.nombre_empresa,
                 'cargo': empleado.cargo,
                 'fecha_registro': empleado.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if empleado.fecha_registro else None,
-                'foto_empleado': empleado.foto_empleado if empleado.foto_empleado else ''
+                'foto_empleado': empleado.foto_empleado if empleado.foto_empleado else '',
+                'estado': 'Activo' if not empleado.fecha_borrado else 'Inactivo'
             })
 
         return jsonify({

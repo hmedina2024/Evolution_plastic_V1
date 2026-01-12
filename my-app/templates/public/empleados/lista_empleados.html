@@ -38,6 +38,7 @@
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empresa</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Cargo</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Fecha Registro</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Estado</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>
           </thead>
@@ -80,6 +81,13 @@ $(document).ready(function() {
             { "data": "nombre_empresa" },
             { "data": "cargo" },
             { "data": "fecha_registro" },
+            { "data": "estado", "render": function(data, type, row) {
+                if (data === 'Activo') {
+                    return '<span class="badge bg-success">Activo</span>';
+                } else {
+                    return '<span class="badge bg-danger">Inactivo</span>';
+                }
+            }},
             { "data": null, "render": function(data, type, row) {
                 var acciones = `<a href="/detalles-empleado/${row.id_empleado}" class="btn btn-info btn-sm" data-bs-toggle="tooltip" data-bs-offset="0,4" data-bs-placement="top" data-bs-html="true" title="<span>Ver detalles</span>"><i class="bi bi-eye"></i> Ver detalles</a>`;
                 acciones += ` <a href="/editar-empleado/${row.id_empleado}" class="btn btn-success btn-sm" tooltip="Actualizar Registro"><i class="bi bi-arrow-clockwise"></i> Actualizar</a>`;
@@ -120,7 +128,11 @@ $(document).ready(function() {
 // Función para eliminar empleado (mantenemos la lógica existente)
 function eliminarEmpleado(id_empleado, foto_empleado) {
     if (confirm('¿Estás seguro de eliminar este empleado?')) {
-        window.location.href = '/borrar-empleado/' + id_empleado + '/' + encodeURIComponent(foto_empleado);
+        let foto = foto_empleado;
+        if (!foto || foto.trim() === '') {
+            foto = 'sin_foto';
+        }
+        window.location.href = '/borrar-empleado/' + id_empleado + '/' + encodeURIComponent(foto);
     }
 }
 </script>

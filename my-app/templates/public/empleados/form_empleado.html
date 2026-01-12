@@ -17,7 +17,7 @@
       <div class="row g-4">
         <div class="col-md-4">
           <label for="documento" class="form-label fw-bold text-primary">Documento <span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="documento" id="documento" value="{{ data_form.documento if data_form and 'documento' in data_form else '' }}" required onchange="validateDocument()" />
+          <input class="form-control" type="text" name="documento" id="documento" value="{{ data_form.documento if data_form and 'documento' in data_form else '' }}" required />
           <div id="documento-error" class="text-danger"></div>
         </div>
         <div class="col-md-4">
@@ -189,29 +189,7 @@ $(document).ready(function () {
         }
     });
 
-    // Validar documento del empleado
-    function validateDocument() {
-        const documento = document.getElementById('documento').value;
-        const errorDiv = document.getElementById('documento-error');
-        fetch('/validar-documento-empleado', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `documento=${documento}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            errorDiv.textContent = data.error ? data.error : '';
-            if (data.error) {
-                document.getElementById('documento').value = ''; // Limpiar el campo si hay error
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-
-    // Exponer la función al ámbito global
-    window.validateDocument = validateDocument;
+    // Validar documento del empleado (Eliminado para permitir duplicados)
 });
 </script>
 {% endblock %}
