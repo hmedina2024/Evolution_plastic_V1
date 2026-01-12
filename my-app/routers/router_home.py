@@ -239,7 +239,7 @@ def viewEditarEmpleado(id):
             tipos_empleado = obtener_tipo_empleado()
             return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado, tipos_empleado=tipos_empleado)
         else:
-            flash('El empleado no existe.', 'error')
+            flash('El empleado no existe o esta inactivo.', 'error')
             return redirect(url_for('inicio'))
     else:
         flash('Primero debes iniciar sesión.', 'error')
