@@ -2112,6 +2112,10 @@ def procesar_form_op(dataForm, files):
                             Hola {destinatario.name_surname},
 
                             Se ha registrado una nueva Orden de Producción:
+                            ---
+                            Mensaje Adicional:
+                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                            ---
 
                             - Número de OP: {orden.codigo_op}
                             - Cliente: {cliente.nombre_cliente}
@@ -2128,11 +2132,6 @@ def procesar_form_op(dataForm, files):
 
                             Descripción:
                             {orden.descripcion_general}
-
-                            ---
-                            Mensaje Adicional:
-                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
-                            ---
 
                             Este es un mensaje automático.
                             """
@@ -3168,7 +3167,11 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             body = f"""
                             Hola {destinatario.name_surname},
 
-                            Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:
+                            Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:                            
+                            ---
+                            Mensaje Adicional:
+                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                            ---
 
                             - Número de OP: {orden.codigo_op}
                             - Cliente: {cliente.nombre_cliente}
@@ -3186,11 +3189,6 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
 
                             Descripción:
                             {orden.descripcion_general}
-
-                            ---
-                            Mensaje Adicional:
-                            {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
-                            ---
 
                             Este es un mensaje automático.
                             """
