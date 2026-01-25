@@ -349,3 +349,33 @@ CREATE TABLE `tbl_orden_pieza_valores_detalle` (
   KEY `id_orden_pieza` (`id_orden_pieza`),
   CONSTRAINT `tbl_orden_pieza_valores_detalle_ibfk_1` FOREIGN KEY (`id_orden_pieza`) REFERENCES `tbl_orden_piezas` (`id_orden_pieza`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE tbl_listas_correos (
+    id_lista INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_lista VARCHAR(100) NOT NULL,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP);
+
+
+CREATE TABLE tbl_listas_miembros (
+    id_relacion INT AUTO_INCREMENT PRIMARY KEY,
+    id_lista INT NOT NULL,
+    id_empleado INT NOT NULL,
+    FOREIGN KEY (id_lista) REFERENCES tbl_listas_correos(id_lista) ON DELETE CASCADE,
+    FOREIGN KEY (id_empleado) REFERENCES tbl_empleados(id_empleado) ON DELETE CASCADE
+)
+
+
+CREATE TABLE tbl_correos_fijos (
+    id_correo INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(100) DEFAULT NULL,
+    activo TINYINT(1) DEFAULT 1
+);
+
+INSERT INTO tbl_correos_fijos (email, descripcion) VALUES 
+('auxiliar.almacen@evolutionplastic.com', 'Auxiliar Almacén'),
+('ruben.rodriguez@evolutionplastic.com', 'Ruben Rodriguez'),
+('compras@evolutionplastic.com', 'Compras'),
+('sistema.datos@evolutionplastic.com', 'Sistema Datos'),
+('direccion.logistica@evolutionplastic.com', 'Dirección Logística');

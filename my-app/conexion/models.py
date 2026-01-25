@@ -407,3 +407,25 @@ class OPLog(db.Model):
     # Relación opcional con OrdenProduccion y Users (si necesitas acceder a los objetos)
     orden = relationship("OrdenProduccion", back_populates="logs")
     usuario = relationship("Users", back_populates="op_logs")
+    
+
+class ListasCorreos(db.Model):
+    __tablename__ = 'tbl_listas_correos'
+    id_lista = db.Column(db.Integer, primary_key=True)
+    nombre_lista = db.Column(db.String(100), nullable=False)
+    # Relación para acceder a los miembros
+    miembros = db.relationship('ListasMiembros', backref='lista', cascade="all, delete-orphan")
+
+class ListasMiembros(db.Model):
+    __tablename__ = 'tbl_listas_miembros'
+    id_relacion = db.Column(db.Integer, primary_key=True)
+    id_lista = db.Column(db.Integer, db.ForeignKey('tbl_listas_correos.id_lista'), nullable=False)
+    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=False)
+    
+    
+class CorreosFijos(db.Model):
+    __tablename__ = 'tbl_correos_fijos'
+    id_correo = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), nullable=False)
+    descripcion = db.Column(db.String(100), nullable=True)
+    activo = db.Column(db.Boolean, default=True)

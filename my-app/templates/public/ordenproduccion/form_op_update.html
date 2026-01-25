@@ -88,7 +88,8 @@
         <div class="col-md-2">
           <label for="cantidad" class="form-label fw-bold text-primary">Cantidad
             OP<span class="text-danger">*</span></label>
-          <input class="form-control" type="number" name="cantidad" id="cantidad"
+          <input class="form-control" type="number" name="cantidad"
+            id="cantidad"
             required min="1">
           <div class="invalid-feedback">Ingrese cantidad válida (>0).</div>
         </div>
@@ -124,7 +125,8 @@
           <select name="logistica" id="logistica" class="form-control select2">
             <option value disabled selected>Seleccionar Logística</option>
             <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option><option
-              value="DISTRIBUCIÓN E INSTALACIÓN">DISTRIBUCIÓN E INSTALACIÓN</option><option
+              value="DISTRIBUCIÓN E INSTALACIÓN">DISTRIBUCIÓN E
+              INSTALACIÓN</option><option
               value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option
               value="INSTALACIÓN">INSTALACIÓN</option><option
               value="ENTREGAS EN CIUDAD">ENTREGAS EN CIUDAD</option><option
@@ -136,7 +138,8 @@
           <label for="instructivo"
             class="form-label fw-bold text-primary">REQUIERE INSTRUCTIVO<span
               class="text-danger">*</span></label>
-          <select required name="instructivo" id="instructivo" class="form-control select2">
+          <select required name="instructivo" id="instructivo"
+            class="form-control select2">
             <option value disabled selected>Requiere Instructivo</option>
             <option value="SI">SI</option><option value="NO">NO</option>
           </select>
@@ -160,7 +163,8 @@
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
-          <label for="render" class="form-label fw-bold text-primary">IMAGEN DE REFERENCIA</label>
+          <label for="render" class="form-label fw-bold text-primary">IMAGEN DE
+            REFERENCIA</label>
           {% set existing_render = op_data.renders[0] if op_data.renders and
           op_data.renders|length > 0 else None %}
           {% set render_url = '/static/render_op/' ~ existing_render if
@@ -204,7 +208,8 @@
             class="form-label fw-bold text-primary">DESCRIPCIÓN GENERAL (ORDEN)
             <span class="text-danger">*</span></label>
           <textarea class="form-control auto-adjust" id="descripcion_general_op"
-            name="descripcion_general_op" rows="3" required>{{ op_data.descripcion_general_op or '' }}</textarea>
+            name="descripcion_general_op" rows="3"
+            required>{{ op_data.descripcion_general_op or '' }}</textarea>
           <div class="invalid-feedback">Ingrese la descripción general.</div>
         </div>
       </div>
@@ -276,14 +281,16 @@
       <input type="hidden" id="piezas" name="piezas">
       <input type="hidden" name="submit_action" id="submit_action" value="save">
       <input type="hidden" name="destinatarios" id="destinatarios">
-      <input type="hidden" name="mensaje_personalizado" id="mensaje_personalizado">
+      <input type="hidden" name="mensaje_personalizado"
+        id="mensaje_personalizado">
 
       <div class="text-center mt-5">
         <!-- <button type="button" class="btn btn-primary rounded-pill px-4" id="submitUpdateBtn">
           Actualizar Orden <i class="bi bi-save ms-2"></i>
         </button>
         <br><br> -->
-        <button type="button" class="btn btn-primary rounded-pill px-4" id="submitNotifyBtn">
+        <button type="button" class="btn btn-primary rounded-pill px-4"
+          id="submitNotifyBtn">
           Actualizar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
       </div>
@@ -576,7 +583,8 @@
                 <td><input type="number" class="form-control"
                     name="especificaciones[0][kg]" min="0" step="any"></td>
                 <td><input type="number" class="form-control"
-                    name="especificaciones[0][retal_kg]" min="0" step="any"></td>
+                    name="especificaciones[0][retal_kg]" min="0"
+                    step="any"></td>
                 <td><input type="text" class="form-control"
                     name="especificaciones[0][reproceso]"></td>
                 <td><button type="button"
@@ -597,17 +605,45 @@
     </div>
   </div>
 </div>
-<div class="modal fade" id="modalDestinatarios" tabindex="-1" aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
+<div class="modal fade" id="modalDestinatarios" tabindex="-1"
+  aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar Destinatarios</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar
+          Destinatarios</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+          aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="card p-3 mb-3 bg-light border-0">
+          <label class="fw-bold mb-2">Gestionar Grupos de Envío:</label>
+          <div class="input-group">
+            <select class="form-select" id="select-grupo-correo">
+              <option value selected>-- Seleccionar un grupo --</option>
+            </select>
+            <button class="btn btn-outline-primary" type="button"
+              id="btn-cargar-grupo" title="Aplicar selección">
+              <i class="bi bi-check-lg"></i> Aplicar
+            </button>
+            <button class="btn btn-outline-success" type="button"
+              id="btn-crear-grupo"
+              title="Guardar seleccionados como nuevo grupo">
+              <i class="bi bi-plus-lg"></i> Crear Nuevo
+            </button>
+            <button class="btn btn-outline-danger" type="button"
+              id="btn-eliminar-grupo" title="Eliminar grupo seleccionado">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <small class="text-muted">Seleccione empleados en la tabla y haga clic
+            en "Crear Nuevo" para guardar un grupo.</small>
+        </div>
         <div class="mb-3">
-          <label for="mensaje-modal" class="form-label">Añadir descripción o mensaje al correo: <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="mensaje-modal" rows="3" required placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
+          <label for="mensaje-modal" class="form-label">Añadir descripción o
+            mensaje al correo: <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="mensaje-modal" rows="3" required
+            placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
         </div>
         <div class="table-responsive">
           <table class="table table-striped">
@@ -620,13 +656,15 @@
               </tr>
             </thead>
             <tbody id="lista-empleados-modal">
-              </tbody>
+            </tbody>
           </table>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" id="guardar-destinatarios">Guardar y Enviar</button>
+        <button type="button" class="btn btn-secondary"
+          data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary"
+          id="guardar-destinatarios">Guardar y Enviar</button>
       </div>
     </div>
   </div>
@@ -1713,6 +1751,28 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     $('#actualizarOpForm').submit();
   });
 
+  function cargarGruposCorreo() {
+      $.ajax({
+          url: '/api/listas-correos',
+          method: 'GET',
+          success: function(data) {
+              const $select = $('#select-grupo-correo');
+              $select.empty();
+              $select.append('<option value="" selected>-- Seleccionar un grupo --</option>');
+              
+              if(data && Array.isArray(data)) {
+                  data.forEach(grupo => {
+                      $select.append(`<option value="${grupo.id_lista}" data-miembros='${JSON.stringify(grupo.miembros)}'>${grupo.nombre_lista}</option>`);
+                  });
+              }
+          },
+          error: function() {
+              console.error("Error al cargar grupos de correo");
+          }
+      });
+  }
+  
+
   // Botón para actualizar y notificar
   $('#submitNotifyBtn').on('click', function(e) {
     e.preventDefault();
@@ -1740,12 +1800,89 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                     </tr>
                 `);
             });
+            
             $('#modalDestinatarios').modal('show');
         },
         error: function() {
             alert('Error al cargar la lista de empleados para notificar.');
         }
     });
+    cargarGruposCorreo();
+  });
+
+  // 1. Aplicar Grupo
+  $('#btn-cargar-grupo').on('click', function() {
+      const $option = $('#select-grupo-correo option:selected');
+      const miembrosIds = $option.data('miembros'); 
+
+      if (!miembrosIds) {
+          alert("Seleccione un grupo válido.");
+          return;
+      }
+
+      // Desmarcar todos primero
+      $('.destinatario-check').prop('checked', false);
+
+      // Marcar los que coincidan
+      miembrosIds.forEach(id => {
+          $(`.destinatario-check[value="${id}"]`).prop('checked', true);
+      });
+  });
+
+  // 2. Crear Grupo
+  $('#btn-crear-grupo').on('click', function() {
+      const idsSeleccionados = [];
+      $('.destinatario-check:checked').each(function() {
+          idsSeleccionados.push(parseInt($(this).val()));
+      });
+
+      if (idsSeleccionados.length === 0) {
+          alert("Seleccione al menos un empleado de la lista para crear un grupo.");
+          return;
+      }
+
+      const nombreGrupo = prompt("Ingrese el nombre para el nuevo grupo (Ej: Logística):");
+      if (!nombreGrupo) return;
+
+      $.ajax({
+          url: '/api/listas-correos/crear',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+              nombre: nombreGrupo,
+              ids_empleados: idsSeleccionados
+          }),
+          success: function(response) {
+              alert(response.message);
+              cargarGruposCorreo(); 
+          },
+          error: function() {
+              alert("Error al crear el grupo.");
+          }
+      });
+  });
+
+  // 3. Eliminar Grupo
+  $('#btn-eliminar-grupo').on('click', function() {
+      const idGrupo = $('#select-grupo-correo').val();
+      if (!idGrupo) {
+          alert("Seleccione un grupo para eliminar.");
+          return;
+      }
+
+      if (!confirm("¿Seguro que desea eliminar este grupo?")) return;
+
+      $.ajax({
+          url: `/api/listas-correos/eliminar/${idGrupo}`,
+          method: 'DELETE',
+          success: function(response) {
+              alert(response.message);
+              cargarGruposCorreo();
+          },
+          error: function() {
+              alert("Error al eliminar el grupo.");
+          }
+      });
   });
 
   // Checkbox para seleccionar todos
