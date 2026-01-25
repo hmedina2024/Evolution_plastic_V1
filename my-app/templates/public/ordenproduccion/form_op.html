@@ -145,17 +145,14 @@
             <option value selected>Seleccionar Estado del Proyecto</option>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
-            <option value="Validar con prototipo aprobado">Validar con prototipo
-              aprobado</option>
-            <option value="Validar con cabeza de serie">Validar con cabeza de
-              serie</option>
+            <option value="Estructura aprobada">Estructura aprobada</option>
+            <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
           </select>
         </div>
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
-          <label for="render" class="form-label fw-bold text-primary">RENDER
-            APROBADO</label>
+          <label for="render" class="form-label fw-bold text-primary">IMAGEN DE REFERENCIA</label>
           {% set url_render = url_for('static',
           filename='assets/img/Prototipo.png') %}
           <div class="render-upload-container" id="imagePreview"
@@ -607,8 +604,8 @@
       <div class="modal-body">
         <div class="mb-3">
           <label for="mensaje-modal" class="form-label">Añadir descripción o
-            mensaje al correo:</label>
-          <textarea class="form-control" id="mensaje-modal" rows="3"
+            mensaje al correo: <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="mensaje-modal" rows="3" required
             placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
         </div>
         <div class="table-responsive">
@@ -700,7 +697,7 @@ $(document).ready(function () {
   renderFileList();
   // --- FIN: Lógica para "Cargar Documentos" ---
 
-  // --- INICIO: Lógica para "Render Aprobado" ---
+  // --- INICIO: Lógica para "IMAGEN DE REFERENCIA" ---
 const imageUpload = document.getElementById('imageUpload');
 const imagePreview = document.getElementById('imagePreview');
 const deleteImageBtn = document.getElementById('deleteImageBtn');
@@ -732,7 +729,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 }
 
 updateRenderPreview(); // Inicializar con la imagen por defecto
-// --- FIN: Lógica para "Render Aprobado" ---
+// --- FIN: Lógica para "IMAGEN DE REFERENCIA" ---
 
   function setupSelect2(selector, url, placeholder, dataKey, keyId, keyText, isMultiple = false, tags = false, allowClearOverride = true, createTagCallback = null, extraParams = {}) {
     const $select = $(selector);
@@ -1363,11 +1360,18 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     });
 
     // --- LÍNEA DE DEPURACIÓN AÑADIDA ---
-    alert("IDs de destinatarios seleccionados: " + destinatariosIds.join(', '));
+    //alert("IDs de destinatarios seleccionados: " + destinatariosIds.join(', '));
     // ------------------------------------
 
     if (destinatariosIds.length === 0) {
         alert('Debe seleccionar al menos un destinatario.');
+        return;
+    }
+
+    const mensajeModal = $('#mensaje-modal').val().trim();
+    if (mensajeModal === '') {
+        alert('Debe ingresar un mensaje o descripción para el correo.');
+        $('#mensaje-modal').focus();
         return;
     }
 

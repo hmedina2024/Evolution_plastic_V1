@@ -151,10 +151,8 @@
               Proyecto</option>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
-            <option value="Validar con prototipo aprobado">Validar con prototipo
-              aprobado</option>
-            <option value="Validar con cabeza de serie">Validar con cabeza de
-              serie</option>
+            <option value="Estructura aprobada">Estructura aprobada</option>
+            <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado
             proyecto.</div>
@@ -162,8 +160,7 @@
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
-          <label for="render" class="form-label fw-bold text-primary">RENDER
-            APROBADO</label>
+          <label for="render" class="form-label fw-bold text-primary">IMAGEN DE REFERENCIA</label>
           {% set existing_render = op_data.renders[0] if op_data.renders and
           op_data.renders|length > 0 else None %}
           {% set render_url = '/static/render_op/' ~ existing_render if
@@ -609,8 +606,8 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label for="mensaje-modal" class="form-label">Añadir descripción o mensaje al correo:</label>
-          <textarea class="form-control" id="mensaje-modal" rows="3" placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
+          <label for="mensaje-modal" class="form-label">Añadir descripción o mensaje al correo: <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="mensaje-modal" rows="3" required placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
         </div>
         <div class="table-responsive">
           <table class="table table-striped">
@@ -762,7 +759,7 @@ $(document).ready(function () {
   renderFileList(); // Renderizar la lista inicial
   // --- FIN: Lógica para "Cargar Documentos" ---
 
-  // --- INICIO: Lógica para "Render Aprobado" ---
+  // --- INICIO: Lógica para "Imagen de referencia" ---
 const imageUpload = document.getElementById('imageUpload');
 const imagePreview = document.getElementById('imagePreview');
 const deleteImageBtn = document.getElementById('deleteImageBtn');
@@ -814,7 +811,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
 }
 // No es necesaria una llamada a updateRenderPreview() aquí si el estado inicial ya se maneja con Jinja y el if anterior.
-// --- FIN: Lógica para "Render Aprobado" ---
+// --- FIN: Lógica para "IMAGEN DE REFERENCIA" ---
 
   function setupSelect2(selector, url, placeholder, dataKey, keyId, keyText, isMultiple = false, tags = false, allowClearOverride = true, createTagCallback = null, extraParams = {}) {
     const $select = $(selector);
@@ -1765,6 +1762,13 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
     if (destinatariosIds.length === 0) {
         alert('Debe seleccionar al menos un destinatario.');
+        return;
+    }
+
+    const mensajeModal = $('#mensaje-modal').val().trim();
+    if (mensajeModal === '') {
+        alert('Debe ingresar un mensaje o descripción para el correo.');
+        $('#mensaje-modal').focus();
         return;
     }
 
