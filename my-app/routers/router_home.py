@@ -10,7 +10,7 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
-from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado, Clientes
+from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado,ListasCorreos,ListasMiembros, Clientes
 from sqlalchemy import func, and_
 from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
@@ -1487,3 +1487,49 @@ def generar_pdf_op(codigo_op):
         download_name=f"OP_{codigo_op}.pdf",
         mimetype='application/pdf'
     )
+    
+    
+# Obtener todas las listas y sus miembros
+@app.route('/api/listas-correos', methods=['GET'])
+def get_listas_correos():
+    listas = ListasCorreos.query.all()
+    resultado = []
+    for lista in listas:
+        miembros_ids = [m.id_empleado for m in lista.miembros]
+        resultado.append({
+            'id_lista': lista.id_lista,
+            'nombre_lista': lista.nombre_lista,
+            'miembros': miembros_ids
+        })
+    return jsonify(resultado)
+
+# Crear una nueva lista
+@app.route('/api/listas-correos/crear', methods=['POST'])
+def crear_lista_correo():
+    data = request.json
+    nombre = data.get('nombre')
+    ids_empleados = data.get('ids_empleados', []) # Array de IDs [1, 5, 20]
+
+    if not nombre or not ids_empleados:
+        return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
+
+    nueva_lista = ListasCorreos(nombre_lista=nombre)
+    db.session.add(nueva_lista)
+    db.session.flush() # Para obtener el ID de la nueva lista
+
+    for id_emp in ids_empleados:
+        nuevo_miembro = ListasMiembros(id_lista=nueva_lista.id_lista, id_empleado=id_emp)
+        db.session.add(nuevo_miembro)
+    
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Grupo creado correctamente'})
+
+# Eliminar una lista
+@app.route('/api/listas-correos/eliminar/<int:id_lista>', methods=['DELETE'])
+def eliminar_lista_correo(id_lista):
+    lista = ListasCorreos.query.get(id_lista)
+    if lista:
+        db.session.delete(lista)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Grupo eliminado'})
+    return jsonify({'status': 'error', 'message': 'Grupo no encontrado'}), 404

@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
+from conexion.models import db,CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -2087,31 +2087,66 @@ def procesar_form_op(dataForm, files):
         app.logger.info(f"Orden de Producción {orden.codigo_op} (ID: {orden.id_op}) registrada exitosamente, incluyendo procesos globales y piezas.")
         
         
-        # --- INICIO: LÓGICA DE NOTIFICACIÓN (SIN CAMBIOS) ---
+        # --- INICIO: LÓGICA DE NOTIFICACIÓN (CON CORREOS FIJOS) ---
         if action == 'save_and_notify':
             app.logger.info(f"Iniciando notificación por correo para OP {orden.codigo_op}.")
-            if not destinatarios_ids_str:
-                app.logger.warning('Acción "save_and_notify" pero no se proporcionaron destinatarios.')
-            else:
+            
+            # 1. Preparar lista unificada de destinatarios (Diccionario para evitar duplicados)
+            destinatarios_finales = {} 
+
+            # A. Agregar usuarios seleccionados manualmente (checkboxes)
+            if destinatarios_ids_str:
                 try:
                     destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
-                    destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    usuarios_seleccionados = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    
+                    for usuario in usuarios_seleccionados:
+                        if usuario.email_user:
+                            destinatarios_finales[usuario.email_user] = usuario.name_surname
+                except Exception as e:
+                    app.logger.error(f"Error procesando destinatarios manuales en registro OP: {e}")
+
+            # B. Agregar correos FIJOS de la Base de Datos
+            try:
+                correos_fijos_bd = CorreosFijos.query.filter_by(activo=True).all()
+                for fijo in correos_fijos_bd:
+                    if fijo.email:
+                        # Solo agregamos si no está ya en la lista (para respetar el nombre del usuario si ya fue seleccionado)
+                        if fijo.email not in destinatarios_finales:
+                            destinatarios_finales[fijo.email] = fijo.descripcion or "Colaborador"
+            except Exception as e:
+                app.logger.error(f"Error consultando correos fijos en registro OP: {e}")
+
+            # Verificación final
+            if not destinatarios_finales:
+                app.logger.warning('Acción "save_and_notify" pero no hay destinatarios (ni manuales ni fijos).')
+            else:
+                try:
+                    # Cargar datos para el cuerpo del correo
                     cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
+                    
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
 
-                    for destinatario in destinatarios:
-                        # Usamos el campo 'email_user' de tu modelo Users
-                        if destinatario.email_user: 
+                    context = ssl.create_default_context()
+                    
+                    # Conexión SMTP única para enviar todos los correos
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                        smtp.login(email_sender, email_password)
+
+                        # Iterar sobre la lista unificada
+                        for email_destino, nombre_destino in destinatarios_finales.items():
+                            
                             subject = f'Nueva Orden de Producción Registrada: {orden.codigo_op}'
                             body = f"""
-                            Hola {destinatario.name_surname},
+                            Hola {nombre_destino},
 
                             Se ha registrado una nueva Orden de Producción:
+                            
                             ---
                             Mensaje Adicional:
                             {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
@@ -2128,28 +2163,25 @@ def procesar_form_op(dataForm, files):
                             - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
                             - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
                             - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
-                            - Version : {orden.version}
+                            - Versión: {orden.version}
 
                             Descripción:
                             {orden.descripcion_general}
 
                             Este es un mensaje automático.
                             """
+                            
                             em = EmailMessage()
                             em['From'] = email_sender
-                            em['To'] = destinatario.email_user   # <-- CORREGIDO
+                            em['To'] = email_destino
                             em['Subject'] = subject
                             em.set_content(body)
 
-                            context = ssl.create_default_context()
-                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-                                smtp.login(email_sender, email_password)
-                                smtp.send_message(em)
-                            
-                            # Logueamos el correo correcto al que se envió
-                            app.logger.info(f'Correo de OP {orden.codigo_op} notificado a {destinatario.email_user}')
+                            smtp.send_message(em)
+                            app.logger.info(f'Correo de nueva OP {orden.codigo_op} enviado a {email_destino}')
+
                 except Exception as e:
-                    app.logger.error(f"FALLO al enviar correos de notificación para OP {orden.codigo_op}: {str(e)}")
+                    app.logger.error(f"FALLO al enviar correos de notificación para OP {orden.codigo_op}: {str(e)}", exc_info=True)
         # --- FIN: LÓGICA DE NOTIFICACIÓN ---
         
         
@@ -3147,27 +3179,65 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         # --- INICIO: LÓGICA DE NOTIFICACIÓN PARA ACTUALIZACIÓN ---
         if action == 'save_and_notify':
             app.logger.info(f"Iniciando notificación por correo para la ACTUALIZACIÓN de OP {orden.codigo_op}.")
-            if not destinatarios_ids_str:
-                app.logger.warning('Acción "save_and_notify" pero no se proporcionaron destinatarios.')
-            else:
+            
+            # 1. Preparar lista unificada de destinatarios
+            # Usaremos un diccionario para evitar duplicados por email
+            destinatarios_finales = {} 
+
+            # A. Agregar usuarios seleccionados manualmente (checkboxes)
+            if destinatarios_ids_str:
                 try:
                     destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
-                    destinatarios = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    usuarios_seleccionados = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    
+                    for usuario in usuarios_seleccionados:
+                        if usuario.email_user:
+                            destinatarios_finales[usuario.email_user] = usuario.name_surname
+                except Exception as e:
+                    app.logger.error(f"Error procesando destinatarios manuales: {e}")
+
+            # B. Agregar correos FIJOS de la Base de Datos
+            try:
+                correos_fijos_bd = CorreosFijos.query.filter_by(activo=True).all()
+                for fijo in correos_fijos_bd:
+                    # Solo agregamos si no está ya en la lista (aunque el diccionario lo sobreescribiría, es seguro)
+                    if fijo.email:
+                        # Usamos la descripción como nombre (ej: "Auxiliar Almacén") si no existe nombre de usuario
+                        if fijo.email not in destinatarios_finales:
+                            destinatarios_finales[fijo.email] = fijo.descripcion or "Colaborador"
+            except Exception as e:
+                app.logger.error(f"Error consultando correos fijos: {e}")
+
+            # Verificación final
+            if not destinatarios_finales:
+                app.logger.warning('Acción "save_and_notify" pero no hay destinatarios (ni manuales ni fijos).')
+            else:
+                try:
+                    # Cargar datos para el cuerpo del correo
                     cliente = db.session.query(Clientes).get(id_cliente_val)
                     vendedor = db.session.query(Empleados).get(orden.id_empleado)
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
+                    
+                    # Credenciales (idealmente mover a variables de entorno)
                     email_sender = 'evolutioncontrolweb@gmail.com'
                     email_password = 'qsmr ccyb yzjd gzkm'
 
-                    for destinatario in destinatarios:
-                        if destinatario.email_user: 
+                    context = ssl.create_default_context()
+                    # Conectar al servidor SMTP una sola vez para enviar todos los correos
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                        smtp.login(email_sender, email_password)
+
+                        # Iterar sobre la lista unificada
+                        for email_destino, nombre_destino in destinatarios_finales.items():
+                            
                             subject = f'Actualización en Orden de Producción: {orden.codigo_op}'
                             body = f"""
-                            Hola {destinatario.name_surname},
+                            Hola {nombre_destino},
 
-                            Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:                            
+                            Se ha ACTUALIZADO la Orden de Producción con los siguientes detalles:
+                            
                             ---
                             Mensaje Adicional:
                             {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
@@ -3185,28 +3255,25 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
                             - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
                             - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
-                            - Version : {orden.version}
+                            - Versión: {orden.version}
 
                             Descripción:
                             {orden.descripcion_general}
 
                             Este es un mensaje automático.
                             """
+                            
                             em = EmailMessage()
                             em['From'] = email_sender
-                            em['To'] = destinatario.email_user
+                            em['To'] = email_destino
                             em['Subject'] = subject
                             em.set_content(body)
 
-                            context = ssl.create_default_context()
-                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-                                smtp.login(email_sender, email_password)
-                                smtp.send_message(em)
-                            
-                            app.logger.info(f'Correo de actualización de OP {orden.codigo_op} notificado a {destinatario.email_user}')
+                            smtp.send_message(em)
+                            app.logger.info(f'Correo enviado a {email_destino}')
                 
                 except Exception as e:
-                    app.logger.error(f"FALLO al enviar correos de notificación para la ACTUALIZACIÓN de OP {orden.codigo_op}: {str(e)}", exc_info=True)
+                    app.logger.error(f"FALLO masivo al enviar correos: {str(e)}", exc_info=True)
         # --- FIN: LÓGICA DE NOTIFICACIÓN ---
         
         return {'status': 'success', 'message': f'Orden de Producción {orden.codigo_op} actualizada correctamente.', 'codigo_op': orden.codigo_op, 'redirect_url': url_for('detalle_op', codigo_op=orden.codigo_op)} # Corregido: endpoint 'detalle_op'
