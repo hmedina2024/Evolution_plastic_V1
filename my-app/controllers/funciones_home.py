@@ -1592,7 +1592,7 @@ def eliminar_operacion(id_operacion):
 
 # Constantes de configuración
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg','pdf', 'doc', 'docx', 'xls', 'xlsx','dxf','ai'}
+ALLOWED_DOC_EXTENSIONS = {'png', 'jpg', 'jpeg','pdf', 'doc', 'docx', 'xls', 'xlsx','dxf','ai', 'zip', 'rar', 'pptx'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_MIME_TYPES = {
     'image/png', 'image/jpeg',

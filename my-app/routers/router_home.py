@@ -1533,3 +1533,30 @@ def eliminar_lista_correo(id_lista):
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'Grupo eliminado'})
     return jsonify({'status': 'error', 'message': 'Grupo no encontrado'}), 404
+
+
+# Actualizar una lista existente
+@app.route('/api/listas-correos/actualizar/<int:id_lista>', methods=['PUT'])
+def actualizar_lista_correo(id_lista):
+    data = request.json
+    ids_empleados = data.get('ids_empleados', [])
+
+    lista = ListasCorreos.query.get(id_lista)
+    if not lista:
+        return jsonify({'status': 'error', 'message': 'Grupo no encontrado'}), 404
+
+    try:
+        # 1. Eliminar miembros actuales de esa lista
+        ListasMiembros.query.filter_by(id_lista=id_lista).delete()
+        
+        # 2. Agregar los nuevos seleccionados
+        for id_emp in ids_empleados:
+            nuevo_miembro = ListasMiembros(id_lista=lista.id_lista, id_empleado=id_emp)
+            db.session.add(nuevo_miembro)
+        
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': f'Grupo "{lista.nombre_lista}" actualizado correctamente'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error actualizando lista {id_lista}: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Error al actualizar el grupo'}), 500

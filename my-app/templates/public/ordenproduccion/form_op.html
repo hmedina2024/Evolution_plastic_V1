@@ -610,14 +610,15 @@
             <select class="form-select" id="select-grupo-correo">
               <option value selected>-- Seleccionar un grupo --</option>
             </select>
-            <button class="btn btn-outline-primary" type="button"
-              id="btn-cargar-grupo" title="Aplicar selección">
-              <i class="bi bi-check-lg"></i> Aplicar
-            </button>
             <button class="btn btn-outline-success" type="button"
               id="btn-crear-grupo"
               title="Guardar seleccionados como nuevo grupo">
               <i class="bi bi-plus-lg"></i> Crear Nuevo
+            </button>
+            <button class="btn btn-outline-warning text-dark" type="button"
+              id="btn-actualizar-grupo"
+              title="Guardar cambios en el grupo seleccionado">
+              <i class="bi bi-pencil-square"></i> Actualizar Grupo
             </button>
             <button class="btn btn-outline-danger" type="button"
               id="btn-eliminar-grupo" title="Eliminar grupo seleccionado">
@@ -1343,6 +1344,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
 
   // Función para cargar los grupos en el Select
   function cargarGruposCorreo() {
+      // Guardar la selección actual si existe para restaurarla después de recargar
+      const seleccionPrevia = $('#select-grupo-correo').val();
+
       $.ajax({
           url: '/api/listas-correos',
           method: 'GET',
@@ -1351,10 +1355,19 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
               $select.empty();
               $select.append('<option value="" selected>-- Seleccionar un grupo --</option>');
               
-              data.forEach(grupo => {
-                  // Guardamos los IDs de los miembros en un atributo data para acceso rápido
-                  $select.append(`<option value="${grupo.id_lista}" data-miembros='${JSON.stringify(grupo.miembros)}'>${grupo.nombre_lista}</option>`);
-              });
+              if(data && Array.isArray(data)) {
+                  data.forEach(grupo => {
+                      $select.append(`<option value="${grupo.id_lista}" data-miembros='${JSON.stringify(grupo.miembros)}'>${grupo.nombre_lista}</option>`);
+                  });
+              }
+
+              // Restaurar selección si sigue existiendo
+              if (seleccionPrevia) {
+                  $select.val(seleccionPrevia);
+              }
+          },
+          error: function() {
+              console.error("Error al cargar grupos de correo");
           }
       });
   }
@@ -1397,35 +1410,65 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     cargarGruposCorreo();
   });
 
-  // 1. Aplicar Grupo: Marca los checkboxes según el grupo seleccionado
-  $('#btn-cargar-grupo').on('click', function() {
-      const $option = $('#select-grupo-correo option:selected');
-      const miembrosIds = $option.data('miembros'); // Array de IDs [1, 2, 3]
+  // 1. AUTO-APLICAR: Al cambiar la opción del select, se marcan los checkboxes
+  $('#select-grupo-correo').on('change', function() {
+      const $option = $(this).find('option:selected');
+      const miembrosIds = $option.data('miembros'); 
 
-      if (!miembrosIds) {
-          alert("Seleccione un grupo válido.");
+      // Primero desmarcamos TODOS los checkboxes para limpiar
+      $('.destinatario-check').prop('checked', false);
+
+      if (miembrosIds && Array.isArray(miembrosIds)) {
+          // Marcamos solo los que pertenecen al grupo seleccionado
+          miembrosIds.forEach(id => {
+              $(`.destinatario-check[value="${id}"]`).prop('checked', true);
+          });
+      }
+  });
+
+  // 2. ACTUALIZAR GRUPO: Toma lo que está marcado actualmente y actualiza el grupo seleccionado en BD
+  $('#btn-actualizar-grupo').on('click', function() {
+      const idGrupo = $('#select-grupo-correo').val();
+      const nombreGrupo = $('#select-grupo-correo option:selected').text();
+
+      if (!idGrupo) {
+          alert("Primero seleccione un grupo de la lista para modificarlo.");
           return;
       }
 
-      // Desmarcar todos primero
-      $('.destinatario-check').prop('checked', false);
-
-      // Marcar los que coincidan
-      let encontrados = 0;
-      miembrosIds.forEach(id => {
-          $(`.destinatario-check[value="${id}"]`).prop('checked', true);
-          if($(`.destinatario-check[value="${id}"]`).length) encontrados++;
+      const idsSeleccionados = [];
+      $('.destinatario-check:checked').each(function() {
+          idsSeleccionados.push(parseInt($(this).val()));
       });
 
-      // Feedback visual (opcional)
-      // alert(`Grupo aplicado. ${encontrados} empleados seleccionados.`);
+      if (idsSeleccionados.length === 0) {
+          if(!confirm("No ha seleccionado ningún empleado. ¿Desea dejar el grupo vacío?")) return;
+      }
+
+      if (!confirm(`¿Desea actualizar el grupo "${nombreGrupo}" con los empleados seleccionados actualmente?`)) return;
+
+      $.ajax({
+          url: `/api/listas-correos/actualizar/${idGrupo}`,
+          method: 'PUT',
+          contentType: 'application/json',
+          data: JSON.stringify({
+              ids_empleados: idsSeleccionados
+          }),
+          success: function(response) {
+              alert(response.message);
+              cargarGruposCorreo(); // Recargar para actualizar los datos internos del select
+          },
+          error: function() {
+              alert("Error al actualizar el grupo.");
+          }
+      });
   });
 
-  // 2. Crear Grupo: Toma los checkboxes marcados y los guarda
+  // 3. Crear Nuevo Grupo (Igual que antes)
   $('#btn-crear-grupo').on('click', function() {
       const idsSeleccionados = [];
       $('.destinatario-check:checked').each(function() {
-          idsSeleccionados.push($(this).val());
+          idsSeleccionados.push(parseInt($(this).val()));
       });
 
       if (idsSeleccionados.length === 0) {
@@ -1446,7 +1489,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           }),
           success: function(response) {
               alert(response.message);
-              cargarGruposCorreo(); // Recargar el dropdown
+              cargarGruposCorreo(); 
           },
           error: function() {
               alert("Error al crear el grupo.");
@@ -1454,7 +1497,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
       });
   });
 
-  // 3. Eliminar Grupo
+  // 4. Eliminar Grupo (Igual que antes)
   $('#btn-eliminar-grupo').on('click', function() {
       const idGrupo = $('#select-grupo-correo').val();
       if (!idGrupo) {
@@ -1462,7 +1505,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           return;
       }
 
-      if (!confirm("¿Seguro que desea eliminar este grupo? (No se borrarán los empleados, solo la lista).")) return;
+      if (!confirm("¿Seguro que desea eliminar este grupo?")) return;
 
       $.ajax({
           url: `/api/listas-correos/eliminar/${idGrupo}`,
@@ -1470,12 +1513,15 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
           success: function(response) {
               alert(response.message);
               cargarGruposCorreo();
+              // Limpiar checkboxes al eliminar
+              $('.destinatario-check').prop('checked', false);
           },
           error: function() {
               alert("Error al eliminar el grupo.");
           }
       });
   });
+  // --- FIN: Lógica de Grupos de Correo ---
 
   $('#seleccionar-todos').on('click', function() {
     $('.destinatario-check').prop('checked', $(this).prop('checked'));
