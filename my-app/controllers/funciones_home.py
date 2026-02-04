@@ -13,6 +13,7 @@ from conexion.models import db,CorreosFijos, OPLog, OrdenPiezasActividades, Orde
 import pytz
 import re
 import openpyxl  # Para generar el Excel
+import threading
 from flask import send_file, session, Flask, url_for, jsonify, flash
 # from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado # Ya importado arriba
 from sqlalchemy import or_, func, desc, asc
@@ -1188,8 +1189,10 @@ def procesar_form_operacion(dataForm):
                     
                     app.logger.debug(
                         f"Se encontraron {len(destinatarios)} destinatarios.")
-                    email_sender = 'evolutioncontrolweb@gmail.com'
-                    email_password = 'qsmr ccyb yzjd gzkm'
+                    email_sender = 'sistema.datos@evolutionplastic.com'
+                    email_password = 'SisEvo--11'
+                    smtp_server = 'mail.evolutionplastic.com'
+                    smtp_port = 465
                     subject = 'Confirmación: Finalización de Actividad'
                     
                     # Obtener los nombres del proceso y actividad
@@ -1235,13 +1238,19 @@ def procesar_form_operacion(dataForm):
                             em['Subject'] = subject
                             em.set_content(body)
 
-                            context = ssl.create_default_context()
-                            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-                                smtp.login(email_sender, email_password)
-                                smtp.sendmail(
-                                    email_sender, email_receiver, em.as_string())
-                                app.logger.info(
-                                    f'Correo enviado a {email_receiver}')
+                            try:
+                                context = ssl.create_default_context()
+                                
+                                with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as smtp:
+                                    smtp.login(email_sender, email_password)
+                                    smtp.send_message(em)
+                                
+                                app.logger.info(f'Correo enviado a {email_receiver} via mail.evolutionplastic.com')
+                            
+                            except smtplib.SMTPAuthenticationError:
+                                app.logger.error(f"Error de autenticación: Verifica la contraseña de {email_sender}")
+                            except Exception as e:
+                                app.logger.error(f"Error SMTP al enviar a {email_receiver}: {str(e)}")
                         else:
                             app.logger.warning(f"El empleado {destinatario.nombre_empleado} no tiene un correo electrónico registrado.")
             except Exception as e:
@@ -2129,18 +2138,20 @@ def procesar_form_op(dataForm, files):
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
                     
-                    email_sender = 'evolutioncontrolweb@gmail.com'
-                    email_password = 'qsmr ccyb yzjd gzkm'
+                    email_sender = 'sistema.datos@evolutionplastic.com'  # <--- COLOCA TU CORREO AQUÍ
+                    email_password = 'SisEvo--11'          # <--- COLOCA TU CONTRASEÑA AQUÍ
+                    smtp_server = 'mail.evolutionplastic.com'
+                    smtp_port = 465
 
                     context = ssl.create_default_context()
                     
                     # Conexión SMTP única para enviar todos los correos
-                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                    with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as smtp:
                         smtp.login(email_sender, email_password)
 
                         # Iterar sobre la lista unificada
                         for email_destino, nombre_destino in destinatarios_finales.items():
-                            
+                            email_receiver = email_destino
                             subject = f'Nueva Orden de Producción Registrada: {orden.codigo_op}'
                             body = f"""
                             Hola {nombre_destino},
@@ -2173,12 +2184,13 @@ def procesar_form_op(dataForm, files):
                             
                             em = EmailMessage()
                             em['From'] = email_sender
-                            em['To'] = email_destino
+                            em['To'] = email_receiver
                             em['Subject'] = subject
                             em.set_content(body)
 
+                            # Enviar usando la conexión abierta
                             smtp.send_message(em)
-                            app.logger.info(f'Correo de nueva OP {orden.codigo_op} enviado a {email_destino}')
+                            app.logger.info(f'Correo enviado a {email_receiver} via Hosting')
 
                 except Exception as e:
                     app.logger.error(f"FALLO al enviar correos de notificación para OP {orden.codigo_op}: {str(e)}", exc_info=True)
@@ -3221,17 +3233,19 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
                     
                     # Credenciales (idealmente mover a variables de entorno)
-                    email_sender = 'evolutioncontrolweb@gmail.com'
-                    email_password = 'qsmr ccyb yzjd gzkm'
+                    email_sender = 'sistema.datos@evolutionplastic.com'
+                    email_password = 'SisEvo--11'
+                    smtp_server = 'mail.evolutionplastic.com'
+                    smtp_port = 465 
 
                     context = ssl.create_default_context()
                     # Conectar al servidor SMTP una sola vez para enviar todos los correos
-                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                    with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as smtp:
                         smtp.login(email_sender, email_password)
 
                         # Iterar sobre la lista unificada
                         for email_destino, nombre_destino in destinatarios_finales.items():
-                            
+                            email_receiver = email_destino
                             subject = f'Actualización en Orden de Producción: {orden.codigo_op}'
                             body = f"""
                             Hola {nombre_destino},
@@ -3265,12 +3279,12 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                             
                             em = EmailMessage()
                             em['From'] = email_sender
-                            em['To'] = email_destino
+                            em['To'] = email_receiver
                             em['Subject'] = subject
                             em.set_content(body)
 
                             smtp.send_message(em)
-                            app.logger.info(f'Correo enviado a {email_destino}')
+                            app.logger.info(f'Correo enviado a {email_receiver}')
                 
                 except Exception as e:
                     app.logger.error(f"FALLO masivo al enviar correos: {str(e)}", exc_info=True)
@@ -4682,3 +4696,30 @@ def generar_pdf_op_func(detalle_op, codigo_op):
     buffer.seek(0)
     
     return buffer
+
+# Función auxiliar para ejecutar en segundo plano
+def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, sender, password, server, port):
+    # Necesitamos el contexto de la app para usar el logger si lo necesitas, 
+    # aunque para smtplib puro no es estricto, es buena práctica.
+    with app.app_context():
+        try:
+            import smtplib, ssl
+            from email.message import EmailMessage
+            
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(server, port, context=context) as smtp:
+                smtp.login(sender, password)
+                
+                for email_destino, nombre_destino in destinatarios_finales.items():
+                    try:
+                        em = EmailMessage()
+                        em['From'] = sender
+                        em['To'] = email_destino
+                        em['Subject'] = subject
+                        em.set_content(body.replace('{nombre_destino}', nombre_destino)) # Pequeño truco para personalizar
+                        smtp.send_message(em)
+                        app.logger.info(f"Background: Correo enviado a {email_destino}")
+                    except Exception as e:
+                        app.logger.error(f"Background Error enviando a {email_destino}: {e}")
+        except Exception as e_gen:
+            app.logger.error(f"Background Error General SMTP: {e_gen}")
