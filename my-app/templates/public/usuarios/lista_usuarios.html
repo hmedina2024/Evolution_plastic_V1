@@ -2,9 +2,12 @@
 <!--Cambiando el title-->
 {% block title %}Lista de Usuarios{% endblock %}
 <!---->
-{% block body %} 
-{% if resp_usuariosBD %}
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/my_style.css') }}">
+{% endblock %}
 
+{% block body %} 
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-4">
@@ -12,8 +15,13 @@
       <hr />
     </div>
 
-    <div class="row justify-content-end">
+    <div class="row justify-content-end mb-3">
+        <div class="col-md-4 position-relative py-3">
+            <label for="filterBusqueda" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Buscar Usuario</label>
+            <input type="text" id="filterBusqueda" class="form-control" placeholder="Nombre, email o rol...">
+        </div>
     </div>
+    
     <div class="row justify-content-center mb-2">
       <div class="table-responsive text-nowrap table-hover" style="max-height: 500px; overflow-y: auto;">
         <table
@@ -32,67 +40,78 @@
             </tr>
           </thead>
           <tbody>
-            {% for usuario in resp_usuariosBD %}
-            <tr id="usuario_{{ usuario.id }}">
-              <td>{{ loop.index + ((pagination.page - 1) * pagination.per_page) }}</td>
-              <td>{{ usuario.name_surname }}</td>
-              <td>{{ usuario.email_user }}</td>
-              <td>{{ usuario.rol }}</td>
-              <td>{{ usuario.created_user }}</td>
-              <td width="10px">
-                <a
-                  href="#"
-                  onclick="eliminarUsuario('{{ usuario.id }}');"
-                  class="btn btn-danger btn-sm"
-                  data-bs-toggle="tooltip"
-                  data-bs-offset="0,4"
-                  data-bs-placement="top"
-                  data-bs-html="true"
-                  title="<span>Eliminar usuario {{ usuario.name_surname }}</span>">
-                  <i class="bi bi-trash3"></i>
-                  Eliminar
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
           </tbody>
         </table>
       </div>
-      <!-- Paginación con Flask-Paginate -->
-      <div class="pagination">
-        {{ pagination.links }}
-      </div>
     </div>
   </div>
 </div>
-{% else %}
-<div class="container mt-3 mb-3" style="width: 100% !important">
-  <div class="row justify-content-md-center mb-2">
-    <div class="col-12">
-      <h2 class="text-center">No hay usuarios 😭</h2>
-    </div>
-  </div>
-</div>
-{% endif %}
-<!--Fin del Block-->
 {% endblock %}
 
 <!--Script Custom-->
 {% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script>
   $(document).ready(function() {
-      $('#tbl_usuarios').DataTable({
-          "pageLength": 10,  // Registros por página
-          "order": [[4, "desc"]],  // Ordenar por la columna Fecha de Creación (índice 4) descendente
+      var table = $('#tbl_usuarios').DataTable({
+          "serverSide": true,
+          "ajax": {
+              "url": "/buscando-usuarios",
+              "type": "POST",
+              "contentType": "application/json",
+              "data": function(d) {
+                  d.busqueda = $('#filterBusqueda').val();
+                  return JSON.stringify(d);
+              },
+              "dataSrc": function(json) {
+                  if (json.fin === 0) return [];
+                  return json.data;
+              },
+              "error": function(xhr, error, thrown) {
+                  console.log("Error en AJAX: ", xhr.status, error, thrown);
+              }
+          },
+          "columns": [
+              { "data": null, "render": function(data, type, row, meta) { return meta.row + meta.settings._iDisplayStart + 1; } },
+              { "data": "name_surname" },
+              { "data": "email_user" },
+              { "data": "rol" },
+              { "data": "created_user" },
+              { "data": null, "render": function(data, type, row) {
+                  return `
+                  <a href="#" onclick="eliminarUsuario('${row.id}', '${row.name_surname}');" 
+                     class="btn btn-danger btn-sm" 
+                     title="Eliminar usuario">
+                    <i class="bi bi-trash3"></i> Eliminar
+                  </a>`;
+              }}
+          ],
+          "pageLength": 10,
+          "order": [[4, "desc"]], // Ordenar por fecha creación
           "responsive": true,
           "scrollY": "500px",
           "scrollCollapse": true,
-          "paging": false  // Desactiva la paginación de DataTables para evitar conflictos con Flask-Paginate
+          "processing": true,
+          "language": {
+              "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json"
+          },
+          "searching": false, // Desactivar búsqueda nativa para usar la personalizada
+          "dom": 'lfrtip'
+      });
+
+      // Evento para el filtro con debounce
+      var debounceTimer;
+      $('#filterBusqueda').on('keyup', function() {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(function() {
+              table.ajax.reload();
+          }, 300);
       });
   });
 
-  function eliminarUsuario(id) {
-    if (confirm("¿Estás seguro que deseas eliminar el Usuario?")) {
+  function eliminarUsuario(id, nombre) {
+    if (confirm(`¿Estás seguro que deseas eliminar el Usuario ${nombre}?`)) {
       let url = `/borrar-usuario/${id}`;
       if (url) {
         window.location.href = url;

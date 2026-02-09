@@ -16,18 +16,22 @@
     </div>
 
     <div class="row justify-content-end mb-2">
-      <div class="col-md-3 mt-0 py-3">
+      <div class="col-md-2 mt-0 py-3">
         <a href="{{ url_for('viewFormOp') }}" class="btn btn-info btn-sm">
           <i class="bi bi-plus-circle me-1"></i> Registrar Nueva Orden de Producción
         </a>
       </div>
-      <div class="col-md-3 position-relative mt-0 py-3">
+      <div class="col-md-2 position-relative mt-0 py-3">
         <label for="filterCodOP" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Cod. OP</label>
         <input type="text" id="filterCodOP" class="form-control" placeholder="Filtrar por Cod. OP">
       </div>
       <div class="col-md-3 position-relative mt-0 py-3">
         <label for="filterCliente" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Cliente</label>
         <input type="text" id="filterCliente" class="form-control" placeholder="Filtrar por Cliente">
+      </div>
+      <div class="col-md-3 position-relative mt-0 py-3">
+        <label for="filterProducto" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Producto</label>
+        <input type="text" id="filterProducto" class="form-control" placeholder="Filtrar por Producto">
       </div>
       <div class="col-md-2 position-relative mt-0 py-3">
         <label for="filterFecha" class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Fecha de Registro</label>
@@ -73,6 +77,7 @@ $(document).ready(function() {
                 d.codigo_op = $('#filterCodOP').val();
                 d.fecha = $('#filterFecha').val();
                 d.nombre_cliente = $('#filterCliente').val(); // Enviar el nombre del cliente
+                d.producto = $('#filterProducto').val(); // Enviar el producto
                 return JSON.stringify(d);
             },
             "dataSrc": function(json) {
@@ -142,6 +147,14 @@ $(document).ready(function() {
 
     // Evento para el filtro por cliente con debounce
     $('#filterCliente').on('keyup', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+            table.ajax.reload();
+        }, 300);
+    });
+
+    // Evento para el filtro por producto con debounce
+    $('#filterProducto').on('keyup', function() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
             table.ajax.reload();

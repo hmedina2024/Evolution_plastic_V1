@@ -419,12 +419,17 @@ def eliminar_empleado(id_empleado, foto_empleado_nombre):
 # --- Funciones de Usuarios ---
 
 
-def sql_lista_usuarios_bd(page=1, per_page=10):
+def sql_lista_usuarios_bd(page=1, per_page=10, search=None):
     try:
         offset = (page - 1) * per_page
-        query = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None))\
-                           .order_by(Users.created_user.desc())\
-                           .limit(per_page).offset(offset)
+        query = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None))
+        
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(or_(Users.name_surname.ilike(search_term), Users.email_user.ilike(search_term)))
+            
+        query = query.order_by(Users.created_user.desc())\
+                     .limit(per_page).offset(offset)
         usuarios_bd = query.all()
         return [{
             'id': u.id, 'name_surname': u.name_surname, 'email_user': u.email_user,
@@ -435,9 +440,13 @@ def sql_lista_usuarios_bd(page=1, per_page=10):
         return []
 
 
-def get_total_usuarios():
+def get_total_usuarios(search=None):
     try:
-        return Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None)).count()
+        query = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None))
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(or_(Users.name_surname.ilike(search_term), Users.email_user.ilike(search_term)))
+        return query.count()
     except Exception as e:
         app.logger.error(f"Error en get_total_usuarios: {e}", exc_info=True)
         return 0
@@ -455,6 +464,46 @@ def eliminar_usuario(user_id):
         db.session.rollback()
         app.logger.error(f"Error en eliminar_usuario: {e}", exc_info=True)
         return False
+
+
+def buscar_usuarios_bd(search='', start=0, length=10):
+    try:
+        # Consulta base
+        query = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None))
+
+        # Filtros
+        if search:
+            search_term = f"%{search.strip()}%"
+            query = query.filter(or_(
+                Users.name_surname.ilike(search_term),
+                Users.email_user.ilike(search_term),
+                Users.rol.ilike(search_term)
+            ))
+
+        # Total de registros sin filtrar (pero excluyendo admin y borrados)
+        total = Users.query.filter(Users.email_user != 'admin@admin.com', Users.fecha_borrado.is_(None)).count()
+
+        # Total de registros filtrados
+        total_filtered = query.count()
+
+        # Aplicar paginación y ordenamiento por defecto (fecha creación desc)
+        usuarios = query.order_by(Users.created_user.desc()).offset(start).limit(length).all()
+
+        # Formatear los datos
+        data = [{
+            'id': u.id,
+            'name_surname': u.name_surname,
+            'email_user': u.email_user,
+            'rol': u.rol,
+            'created_user': u.created_user.strftime('%Y-%m-%d %I:%M %p') if u.created_user else 'N/A',
+            'url_borrar': url_for('borrar_usuario', id=u.id)
+        } for u in usuarios]
+
+        return data, total, total_filtered
+
+    except Exception as e:
+        app.logger.error(f"Ocurrió un error en buscar_usuarios_bd: {str(e)}", exc_info=True)
+        return [], 0, 0
 
 # --- Funciones de Procesos ---
 
@@ -699,7 +748,7 @@ def procesar_imagen_cliente(foto):
 # Lista de Clientes con paginación
 
 
-def buscar_cliente_bd(search='', start=0, length=10):
+def buscar_cliente_bd(search='', search_date='', start=0, length=10):
     try:
         # Consulta base
         query = db.session.query(Clientes).join(
@@ -716,11 +765,12 @@ def buscar_cliente_bd(search='', start=0, length=10):
                 db.or_(
                     Clientes.nombre_cliente.ilike(f'%{search}%'),
                     Clientes.documento.ilike(f'%{search}%'),
-                    Clientes.email_cliente.ilike(f'%{search}%'),
-                    # Para búsqueda exacta de fecha
-                    db.func.date(Clientes.fecha_registro) == search
+                    Clientes.email_cliente.ilike(f'%{search}%')
                 )
             )
+        
+        if search_date:
+             query = query.filter(db.func.date(Clientes.fecha_registro) == search_date)
 
         # Total de registros sin filtrar
         total = db.session.query(Clientes).count()
@@ -2256,7 +2306,7 @@ def validar_cod_op(codigo_op):
         return False
 
 
-def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None, search_nombre_cliente=None):
+def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None):
     try:
         # Construir la consulta base
         query = db.session.query(OrdenProduccion).join(Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente).filter(
@@ -2271,6 +2321,11 @@ def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fe
         if search_nombre_cliente:
             query = query.filter(
                 Clientes.nombre_cliente.ilike(f"%{search_nombre_cliente}%"))
+
+        # Filtrar por producto si se proporciona
+        if search_producto:
+            query = query.filter(
+                OrdenProduccion.producto.ilike(f"%{search_producto}%"))
 
         # Filtrar por fecha de registro si se proporciona
         if search_fecha:

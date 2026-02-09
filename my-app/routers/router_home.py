@@ -9,7 +9,7 @@ from controllers.funciones_home import get_total_operaciones, sql_lista_op_bd,  
 from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleados
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
-from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios
+from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios, buscar_usuarios_bd
 from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado,ListasCorreos,ListasMiembros, Clientes
 from sqlalchemy import func, and_
 from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
@@ -19,7 +19,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil, procesar_actualizar_empresa, obtener_tipo_empleado, buscar_ordenes_produccion_bd,
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
                                         buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
-                                        eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas,
+                                        eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas, buscar_usuarios_bd,
                                         sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, # procesar_actualizar_form estaba duplicado
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
@@ -285,16 +285,35 @@ def actualizar_empleado(id):
 @app.route("/lista-de-usuarios", methods=['GET'])
 def usuarios():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(
-            page_parameter='page', per_page_parameter='per_page')
-        per_page = 10  # Registros por página
-        resp_usuariosBD = sql_lista_usuarios_bd(page=page, per_page=per_page)
-        total = get_total_usuarios()  # Usa la función optimizada
-        pagination = Pagination(
-            page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template('public/usuarios/lista_usuarios.html', resp_usuariosBD=resp_usuariosBD, pagination=pagination)
+        return render_template('public/usuarios/lista_usuarios.html')
     else:
         return redirect(url_for('inicio'))
+
+
+@app.route("/buscando-usuarios", methods=['POST'])
+def view_buscar_usuarios_bd():
+    try:
+        data = request.get_json()
+        
+        search = data.get('busqueda', '')
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+        
+        usuarios, total, total_filtered = buscar_usuarios_bd(search, start, length)
+
+        response = {
+            "draw": int(draw),
+            "recordsTotal": total,
+            "recordsFiltered": total_filtered,
+            "data": usuarios,
+            "fin": 1 if usuarios else 0
+        }
+        return jsonify(response)
+
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-usuarios: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/borrar-usuario/<string:id>', methods=['GET'])
@@ -487,7 +506,7 @@ def view_buscar_cliente_bd():
         order = data.get('order', [{'column': 0, 'dir': 'desc'}])
 
         clientes, total, total_filtered = buscar_cliente_bd(
-            search, start, length)
+            search, search_date, start, length)
 
         response = {
             "draw": int(draw),
@@ -910,6 +929,7 @@ def buscando_ordenes_produccion():
     search_codigo_op = request.json.get('codigo_op', '')
     search_fecha = request.json.get('fecha', '')
     search_nombre_cliente = request.json.get('nombre_cliente', '')
+    search_producto = request.json.get('producto', '')
 
     # Llamar a la función ajustada
     result = sql_lista_op_bd(
@@ -918,7 +938,8 @@ def buscando_ordenes_produccion():
         length=length,
         search_codigo_op=search_codigo_op,
         search_fecha=search_fecha,
-        search_nombre_cliente=search_nombre_cliente
+        search_nombre_cliente=search_nombre_cliente,
+        search_producto=search_producto
     )
 
     return jsonify(result)
