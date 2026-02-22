@@ -33,7 +33,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
                                         obtener_datos_op_para_edicion, # Importar la nueva función
-                                        get_all_empleados,generar_pdf_op_func
+                                        get_all_empleados,generar_pdf_op_func, obtener_ultima_fecha_fin_empleado
                                         )
 
 PATH_URL = "public/empleados"
@@ -680,6 +680,20 @@ def lista_operaciones():
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+
+
+@app.route('/api/ultima-fecha-fin/<int:id_empleado>', methods=['GET'])
+def api_ultima_fecha_fin(id_empleado):
+    if 'conectado' not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    fecha_fin = obtener_ultima_fecha_fin_empleado(id_empleado)
+    
+    if fecha_fin:
+        # Formato ISO 8601 compatible con input datetime-local: "YYYY-MM-DDTHH:MM"
+        return jsonify({"fecha_fin": fecha_fin.strftime('%Y-%m-%dT%H:%M')})
+    else:
+        return jsonify({"fecha_fin": None})
 
 
 @app.route('/buscando-operaciones', methods=['POST'])

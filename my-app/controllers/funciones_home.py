@@ -1474,6 +1474,24 @@ def procesar_form_operacion(dataForm):
             f'Se produjo un error en procesar_form_operacion: {str(e)}')
         return f"Se produjo un error: {str(e)}"
 
+
+def obtener_ultima_fecha_fin_empleado(id_empleado):
+    """
+    Obtiene la fecha y hora de finalización de la última operación registrada para un empleado.
+    """
+    try:
+        ultima_operacion = db.session.query(Operaciones.fecha_hora_fin)\
+            .filter(Operaciones.id_empleado == id_empleado)\
+            .order_by(Operaciones.fecha_hora_fin.desc())\
+            .first()
+
+        if ultima_operacion:
+            return ultima_operacion[0]
+        return None
+    except Exception as e:
+        app.logger.error(f"Error en obtener_ultima_fecha_fin_empleado: {e}", exc_info=True)
+        return None
+
 # Lista de Operaciones con paginación
 
 
