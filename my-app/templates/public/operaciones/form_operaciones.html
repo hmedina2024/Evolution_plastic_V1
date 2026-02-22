@@ -37,6 +37,10 @@
         </div>
         <div class="col-md-3 position-relative">
           <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
+          <div class="d-flex align-items-center mb-1">
+              <input class="form-check-input me-2" type="checkbox" id="inicio_jornada">
+              <label class="form-check-label small text-muted" for="inicio_jornada">¿Es inicio de jornada?</label>
+          </div>
           <input class="form-control" type="datetime-local" name="fecha_hora_inicio" id="fecha_hora_inicio" required />
           <div class="invalid-feedback" id="hora_inicio_feedback"></div>
         </div>
@@ -167,6 +171,64 @@ $(document).ready(function () {
     setupSelect2('id_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
     setupSelect2('id_proceso', '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
     
+    // --- Lógica de Inicio de Jornada y Continuidad ---
+    let ultimaFechaFin = null;
+    const inicioJornadaCheckbox = $('#inicio_jornada');
+    const fechaInicioInput = $('#fecha_hora_inicio');
+
+    // Al cambiar el empleado, buscar su última fecha fin
+    $('#id_empleado').on('select2:select', function (e) {
+        const id_empleado = e.params.data.id;
+        
+        $.ajax({
+            url: `/api/ultima-fecha-fin/${id_empleado}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.fecha_fin) {
+                    ultimaFechaFin = response.fecha_fin;
+                    console.log("Última fecha fin encontrada:", ultimaFechaFin);
+                    
+                    if (!inicioJornadaCheckbox.is(':checked')) {
+                        fechaInicioInput.val(ultimaFechaFin);
+                        fechaInicioInput.prop('readonly', true);
+                    }
+                } else {
+                    ultimaFechaFin = null;
+                    console.log("No hay operaciones previas.");
+                    // Si no hay operaciones previas, es como un inicio de jornada forzado pero sin marcar el check automáticamente para no confundir
+                    if (!inicioJornadaCheckbox.is(':checked')) {
+                        fechaInicioInput.val('');
+                        fechaInicioInput.prop('readonly', false);
+                    }
+                }
+            },
+            error: function(err) {
+                console.error("Error al obtener última fecha fin:", err);
+                ultimaFechaFin = null;
+                fechaInicioInput.prop('readonly', false);
+            }
+        });
+    });
+
+    // Lógica del Checkbox "Inicio de Jornada"
+    inicioJornadaCheckbox.on('change', function() {
+        if ($(this).is(':checked')) {
+            // Si marca inicio de jornada, limpiamos y permitimos editar
+            fechaInicioInput.val('');
+            fechaInicioInput.prop('readonly', false);
+        } else {
+            // Si desmarca, intentamos restaurar la continuidad
+            if (ultimaFechaFin) {
+                fechaInicioInput.val(ultimaFechaFin);
+                fechaInicioInput.prop('readonly', true);
+            } else {
+                 // Si no había fecha previa, dejamos editar
+                fechaInicioInput.val(''); // Limpiar si no hay fecha previa
+                fechaInicioInput.prop('readonly', false);
+            }
+        }
+    });
+
     // Inicializar el Select2 de actividades deshabilitado
     const actividadSelect = $('#id_actividad').select2({
         placeholder: 'Seleccione un proceso primero',
