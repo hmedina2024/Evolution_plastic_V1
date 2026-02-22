@@ -20,11 +20,11 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
                                         buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
                                         eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas, buscar_usuarios_bd,
-                                        sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, # procesar_actualizar_form estaba duplicado
+                                        sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, buscar_procesos_bd, # procesar_actualizar_form estaba duplicado
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
                                         buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
-                                        sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad,
+                                        sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad, buscar_actividades_bd,
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
                                         procesar_form_operacion, sql_lista_operaciones_bd, sql_detalles_operaciones_bd, buscar_operacion_unico,
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
@@ -372,14 +372,7 @@ def form_proceso():
 @app.route('/lista-de-procesos', methods=['GET'])
 def lista_procesos():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(
-            page_parameter='page', per_page_parameter='per_page')
-        per_page = 10  # Registros por página
-        procesos = sql_lista_procesos_bd(page=page, per_page=per_page)
-        total = get_total_procesos()  # Usa la función optimizada
-        pagination = Pagination(
-            page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template('public/procesos/lista_procesos.html', procesos=procesos, pagination=pagination)
+        return render_template('public/procesos/lista_procesos.html')
     else:
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -593,14 +586,7 @@ def form_actividad():
 @app.route('/lista-de-actividades', methods=['GET'])
 def lista_actividades():
     if 'conectado' in session:
-        page, per_page, offset = get_page_args(
-            page_parameter='page', per_page_parameter='per_page')
-        per_page = 10  # Registros por página
-        actividades = sql_lista_actividades_bd(page=page, per_page=per_page)
-        total = get_total_actividades()  # Usa la función optimizada
-        pagination = Pagination(
-            page=page, per_page=per_page, total=total, css_framework='bootstrap5')
-        return render_template('public/actividades/lista_actividades.html', actividades=actividades, pagination=pagination)
+        return render_template('public/actividades/lista_actividades.html')
     else:
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -943,6 +929,56 @@ def buscando_ordenes_produccion():
     )
 
     return jsonify(result)
+
+
+@app.route('/buscando-procesos', methods=['POST'])
+def buscando_procesos():
+    if 'conectado' not in session:
+        return jsonify({"error": "No autorizado", "data": []}), 401
+
+    # Obtener parámetros enviados por DataTables
+    draw = request.json.get('draw', 1)
+    start = request.json.get('start', 0)
+    length = request.json.get('length', 10)
+    search_codigo_proceso = request.json.get('codigo_proceso', '')
+    search_nombre_proceso = request.json.get('nombre_proceso', '')
+
+    # Llamar a la función de búsqueda
+    result = buscar_procesos_bd(
+        draw=draw,
+        start=start,
+        length=length,
+        search_codigo_proceso=search_codigo_proceso,
+        search_nombre_proceso=search_nombre_proceso
+    )
+
+    return jsonify(result)
+
+
+@app.route('/buscando-actividades', methods=['POST'])
+def buscando_actividades():
+    if 'conectado' not in session:
+        return jsonify({"error": "No autorizado", "data": []}), 401
+
+    # Obtener parámetros enviados por DataTables
+    draw = request.json.get('draw', 1)
+    start = request.json.get('start', 0)
+    length = request.json.get('length', 10)
+    search_codigo_actividad = request.json.get('codigo_actividad', '')
+    search_nombre_actividad = request.json.get('nombre_actividad', '')
+
+    # Llamar a la función de búsqueda
+    result = buscar_actividades_bd(
+        draw=draw,
+        start=start,
+        length=length,
+        search_codigo_actividad=search_codigo_actividad,
+        search_nombre_actividad=search_nombre_actividad
+    )
+
+    return jsonify(result)
+
+
 @app.route('/buscando-jornadas', methods=['POST'])
 def buscando_jornadas_route(): # Renombrada para evitar conflicto si 'buscando_jornadas' ya existe como función
     if 'conectado' not in session:

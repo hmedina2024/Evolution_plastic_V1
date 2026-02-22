@@ -650,6 +650,73 @@ def eliminar_proceso(id_proceso):
         app.logger.error(f"Error en eliminar_proceso: {e}", exc_info=True)
         return False, "Error interno al eliminar el proceso."
 
+
+def buscar_procesos_bd(draw=1, start=0, length=10, search_codigo_proceso=None, search_nombre_proceso=None):
+    """
+    Busca procesos en la base de datos con filtros y paginación para DataTables.
+    
+    Args:
+        draw: Contador de peticiones de DataTables
+        start: Registro inicial para paginación
+        length: Número de registros por página
+        search_codigo_proceso: Filtro por código de proceso
+        search_nombre_proceso: Filtro por nombre de proceso
+    
+    Returns:
+        dict: Respuesta en formato DataTables con datos, totales y draw
+    """
+    try:
+        # Construir la consulta base
+        query = Procesos.query.filter(Procesos.fecha_borrado.is_(None))
+
+        # Filtrar por código de proceso si se proporciona
+        if search_codigo_proceso:
+            query = query.filter(Procesos.codigo_proceso.ilike(f"%{search_codigo_proceso}%"))
+        
+        # Filtrar por nombre de proceso si se proporciona
+        if search_nombre_proceso:
+            query = query.filter(Procesos.nombre_proceso.ilike(f"%{search_nombre_proceso}%"))
+
+        # Contar el total de registros (sin paginación, pero con filtros)
+        records_filtered = query.count()
+
+        # Aplicar paginación y ordenamiento
+        query = query.order_by(Procesos.codigo_proceso.desc()).offset(start).limit(length)
+
+        # Ejecutar la consulta
+        procesos_bd = query.all()
+
+        # Obtener el total de registros sin filtros
+        records_total = Procesos.query.filter(Procesos.fecha_borrado.is_(None)).count()
+
+        # Formatear los datos para DataTables
+        data = []
+        for p in procesos_bd:
+            data.append({
+                'id_proceso': p.id_proceso,
+                'codigo_proceso': p.codigo_proceso,
+                'nombre_proceso': p.nombre_proceso,
+                'descripcion_proceso': p.descripcion_proceso if p.descripcion_proceso else '',
+                'fecha_registro': p.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if p.fecha_registro else 'N/A',
+            })
+
+        # Retornar en el formato que espera DataTables
+        return {
+            "draw": int(draw),
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": data
+        }
+    except Exception as e:
+        app.logger.error(f"Error en la función buscar_procesos_bd: {e}", exc_info=True)
+        return {
+            "draw": int(draw),
+            "recordsTotal": 0,
+            "recordsFiltered": 0,
+            "data": [],
+            "error": str(e)
+        }
+
 # --- Funciones de Clientes ---
 
 # Clientes
@@ -1110,6 +1177,73 @@ def eliminar_actividad(id_actividad):
         db.session.rollback()
         app.logger.error(f"Error en eliminar_actividad: {e}", exc_info=True)
         return False, "Error interno al eliminar el proceso."
+
+
+def buscar_actividades_bd(draw=1, start=0, length=10, search_codigo_actividad=None, search_nombre_actividad=None):
+    """
+    Busca actividades en la base de datos con filtros y paginación para DataTables.
+    
+    Args:
+        draw: Contador de peticiones de DataTables
+        start: Registro inicial para paginación
+        length: Número de registros por página
+        search_codigo_actividad: Filtro por código de actividad
+        search_nombre_actividad: Filtro por nombre de actividad
+    
+    Returns:
+        dict: Respuesta en formato DataTables con datos, totales y draw
+    """
+    try:
+        # Construir la consulta base
+        query = Actividades.query.filter(Actividades.fecha_borrado.is_(None))
+
+        # Filtrar por código de actividad si se proporciona
+        if search_codigo_actividad:
+            query = query.filter(Actividades.codigo_actividad.ilike(f"%{search_codigo_actividad}%"))
+        
+        # Filtrar por nombre de actividad si se proporciona
+        if search_nombre_actividad:
+            query = query.filter(Actividades.nombre_actividad.ilike(f"%{search_nombre_actividad}%"))
+
+        # Contar el total de registros (sin paginación, pero con filtros)
+        records_filtered = query.count()
+
+        # Aplicar paginación y ordenamiento
+        query = query.order_by(Actividades.codigo_actividad.desc()).offset(start).limit(length)
+
+        # Ejecutar la consulta
+        actividades_bd = query.all()
+
+        # Obtener el total de registros sin filtros
+        records_total = Actividades.query.filter(Actividades.fecha_borrado.is_(None)).count()
+
+        # Formatear los datos para DataTables
+        data = []
+        for a in actividades_bd:
+            data.append({
+                'id_actividad': a.id_actividad,
+                'codigo_actividad': a.codigo_actividad,
+                'nombre_actividad': a.nombre_actividad,
+                'descripcion_actividad': a.descripcion_actividad if a.descripcion_actividad else '',
+                'fecha_registro': a.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if a.fecha_registro else 'N/A',
+            })
+
+        # Retornar en el formato que espera DataTables
+        return {
+            "draw": int(draw),
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": data
+        }
+    except Exception as e:
+        app.logger.error(f"Error en la función buscar_actividades_bd: {e}", exc_info=True)
+        return {
+            "draw": int(draw),
+            "recordsTotal": 0,
+            "recordsFiltered": 0,
+            "data": [],
+            "error": str(e)
+        }
 
 # Operación Diaria
 
