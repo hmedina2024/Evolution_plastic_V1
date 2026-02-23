@@ -29,27 +29,41 @@
           <label for="id_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
           <select name="id_op" id="id_op" class="form-control select2" required></select>
         </div>
-      </div>
-      <div class="row g-4 mt-3">
-        <div class="col-md-2">
-          <label for="cantidad" class="form-label fw-bold text-primary">Cantidad Realizada <span class="text-danger">*</span></label>
-          <input class="form-control" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+        <hr>
+    <div>
+      <!-- Sección: Tiempos y Cantidades -->
+      <div class="row g-4 mb-4 bg-light p-3 rounded-3 border">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap">
+            <label class="toggle-switch-container mt-2 mt-sm-0" for="inicio_jornada" id="toggle-container-jornada">
+                <input class="toggle-switch-checkbox" type="checkbox" id="inicio_jornada">
+                <span class="toggle-switch-slider"></span>
+                <span class="toggle-label">¿Es inicio de jornada?</span>
+             </label>
+             <h5 class="text-secondary mb-0"><i class="bi bi-clock-history me-2"></i>Tiempos y Cantidades</h5>             
+             <!-- Toggle Switch Start of Shift -->             
         </div>
-        <div class="col-md-3 position-relative">
-          <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
-          <div class="d-flex align-items-center mb-1">
-              <input class="form-check-input me-2" type="checkbox" id="inicio_jornada">
-              <label class="form-check-label small text-muted" for="inicio_jornada">¿Es inicio de jornada?</label>
-          </div>
-          <input class="form-control" type="datetime-local" name="fecha_hora_inicio" id="fecha_hora_inicio" required />
+
+        <div class="col-md-4">
+          <label for="fecha_hora_inicio" class="form-label-modern">Fecha y Hora Inicio <span class="text-danger">*</span></label>
+          <input class="form-control form-control-modern" type="datetime-local" name="fecha_hora_inicio" id="fecha_hora_inicio" required />
           <div class="invalid-feedback" id="hora_inicio_feedback"></div>
         </div>
-        <div class="col-md-3 position-relative">
-          <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin <span class="text-danger">*</span></label>
-          <input class="form-control" type="datetime-local" name="fecha_hora_fin" id="fecha_hora_fin" required />
+        
+        <div class="col-md-4">
+          <label for="fecha_hora_fin" class="form-label-modern">Fecha y Hora Fin <span class="text-danger">*</span></label>
+          <input class="form-control form-control-modern" type="datetime-local" name="fecha_hora_fin" id="fecha_hora_fin" required />
           <div class="invalid-feedback" id="hora_fin_feedback"></div>
         </div>
+
+        <div class="col-md-4">
+          <label for="cantidad" class="form-label-modern">Cantidad Realizada <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <input class="form-control form-control-modern" type="text" name="cantidad" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="0"/>
+            <span class="input-group-text bg-white border-start-0 text-muted"><i class="bi bi-123"></i></span>
+          </div>
+        </div>
       </div>
+
       <div class="row g-4 mt-3">
         <div class="col-md-5">
           <label for="pieza_realizada" class="form-label fw-bold text-primary">Pieza Realizada</label>

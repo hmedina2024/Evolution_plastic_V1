@@ -356,3 +356,173 @@ tbody tr:hover {
 .dataTables_scrollBody {
   overflow-x: auto !important;
 }
+
+/* Modern Form Styles */
+.card-modern {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #ffffff;
+}
+
+.card-modern:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.card-header-modern {
+  background: linear-gradient(135deg, #124a8b 0%, #0d3666 100%);
+  color: white;
+  border-radius: 15px 15px 0 0 !important;
+  padding: 1.5rem;
+  border-bottom: none;
+}
+
+.form-label-modern {
+  font-weight: 600;
+  color: #344767;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-control-modern, .select2-container--default .select2-selection--single {
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  height: auto !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 24px !important;
+    padding-left: 0 !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px !important;
+}
+
+.form-control-modern:focus, .select2-container--default.select2-container--open .select2-selection--single {
+  border-color: #124a8b;
+  box-shadow: 0 0 0 4px rgba(18, 74, 139, 0.1);
+  background-color: #fff;
+}
+
+/* Custom Toggle Switch for 'Inicio de Jornada' */
+.toggle-switch-container {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 50px; /* Makes it pill-shaped */
+  padding: 8px 15px; /* Increase padding for height/width */
+  border: 1px solid #e0e6ed;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative; /* For absolute positioning of label if needed, or just flex */
+  width: fit-content; /* Adjust to content */
+}
+
+.toggle-switch-container:hover {
+  border-color: #124a8b;
+  background-color: #eef2f7;
+}
+
+.toggle-switch-container.active {
+  background-color: #e3f2fd; /* Light blue background when active */
+  border-color: #124a8b;
+}
+
+/* The actual checkbox (hidden) */
+.toggle-switch-checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* The slider */
+.toggle-switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 44px; /* Slightly wider */
+  height: 24px; /* Slightly taller */
+  background-color: #ccc;
+  border-radius: 34px;
+  transition: .4s;
+  margin-right: 12px;
+}
+
+.toggle-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: .4s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch-checkbox:checked + .toggle-switch-slider {
+  background-color: #124a8b;
+}
+
+.toggle-switch-checkbox:focus + .toggle-switch-slider {
+  box-shadow: 0 0 1px #124a8b;
+}
+
+.toggle-switch-checkbox:checked + .toggle-switch-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  font-weight: 600;
+  color: #555;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.toggle-switch-container.active .toggle-label {
+    color: #124a8b;
+}
+
+.section-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e0e6ed, transparent);
+    margin: 2rem 0;
+}
+
+.btn-modern {
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.btn-modern:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-modern-primary {
+    background: linear-gradient(135deg, #124a8b 0%, #0d3666 100%);
+    border: none;
+    color: white;
+}
+
+.btn-modern-success {
+    background: linear-gradient(135deg, #2dce89 0%, #2dcecc 100%);
+    border: none;
+    color: white;
+}
