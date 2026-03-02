@@ -485,11 +485,103 @@ input[type=number] {
 }
 
 .auto-adjust {
-    field-sizing: content; /* La magia: se ajusta al contenido */
-    min-height: 80px;      /* Altura mínima estética */
-  }
+  field-sizing: content;
+  /* La magia: se ajusta al contenido */
+  min-height: 80px;
+  /* Altura mínima estética */
+}
 
-  .auto-adjust {
-    field-sizing: content; /* La magia: se ajusta al contenido */
-    min-height: 80px;      /* Altura mínima estética */
-  }
+.auto-adjust {
+  field-sizing: content;
+  /* La magia: se ajusta al contenido */
+  min-height: 80px;
+  /* Altura mínima estética */
+}
+
+
+.card-header {
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.info-card {
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.info-value {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  color: #495057;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+}
+
+.info-section {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.employee-photo {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border: 4px solid #fff;
+}
+
+.photo-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  border-radius: 15px;
+  display: inline-block;
+}
+
+.badge-custom {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.back-button {
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  transform: translateX(-5px);
+}

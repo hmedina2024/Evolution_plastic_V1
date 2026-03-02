@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db,CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -62,10 +62,29 @@ def procesar_form_empleado(dataForm, foto_perfil):
             raise ValueError("Debe seleccionar una empresa válida.")
         id_empresa = int(id_empresa_str)
 
+        # Obtener el tipo de empleado automáticamente desde el campo oculto
         id_tipo_empleado_str = dataForm.get('tipo_empleado')
         if not id_tipo_empleado_str or not id_tipo_empleado_str.isdigit():
-            raise ValueError("Debe seleccionar un tipo de empleado válido.")
-        id_tipo_empleado = int(id_tipo_empleado_str)
+            # Si no viene el tipo de empleado, lo obtenemos de la empresa
+            empresa = Empresa.query.get(id_empresa)
+            if not empresa:
+                raise ValueError("Empresa no encontrada.")
+            
+            # Asignar tipo de empleado según el tipo de empresa
+            if empresa.tipo_empresa == 'Temporal':
+                id_tipo_empleado = 2
+            elif empresa.tipo_empresa == 'Directo':
+                id_tipo_empleado = 1
+            else:
+                raise ValueError("Tipo de empresa no válido.")
+        else:
+            id_tipo_empleado = int(id_tipo_empleado_str)
+
+        # Obtener el proceso
+        id_proceso_str = dataForm.get('id_proceso')
+        if not id_proceso_str or not id_proceso_str.isdigit():
+            raise ValueError("Debe seleccionar un proceso válido.")
+        id_proceso = int(id_proceso_str)
 
         nombre_empleado = dataForm.get('nombre_empleado')
         if not nombre_empleado:
@@ -83,6 +102,7 @@ def procesar_form_empleado(dataForm, foto_perfil):
             documento=documento,
             id_empresa=id_empresa,
             id_tipo_empleado=id_tipo_empleado,
+            id_proceso=id_proceso,
             nombre_empleado=nombre_empleado,
             apellido_empleado=dataForm.get('apellido_empleado'),
             telefono_empleado=dataForm.get('telefono_empleado'),
@@ -132,6 +152,13 @@ def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
         return False, "Error interno al guardar la imagen."
 
 
+def obtener_cargos():
+    try:
+        return Cargos.query.order_by(Cargos.nombre_cargo.asc()).all()
+    except Exception as e:
+        app.logger.error(f"Error en la función obtener_cargos: {e}", exc_info=True)
+        return []
+
 def obtener_tipo_empleado():
     try:
         return Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()
@@ -159,13 +186,14 @@ def get_total_empleados():
 
 def sql_detalles_empleadosBD(id_empleado):
     try:
-        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado).\
+        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado, Procesos).\
             join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
             join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
+            join(Procesos, Empleados.id_proceso == Procesos.id_proceso).\
             filter(Empleados.id_empleado == id_empleado, Empleados.fecha_borrado.is_(None)).\
             first()
         if empleado_tupla:
-            e, empresa, tipo_emp = empleado_tupla
+            e, empresa, tipo_emp, proceso = empleado_tupla
             return {
                 'id_empleado': e.id_empleado, 'documento': e.documento,
                 'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
@@ -173,6 +201,7 @@ def sql_detalles_empleadosBD(id_empleado):
                 'id_tipo_empleado': e.id_tipo_empleado,
                 'id_empresa': e.id_empresa,
                 'nombre_empresa': empresa.nombre_empresa if empresa else None,
+                'nombre_proceso': proceso.nombre_proceso if proceso else None,
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
                 'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
@@ -292,18 +321,20 @@ def buscar_empleado_unico(id_empleado_param):
     try:
         if not id_empleado_param:
             return None
-        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado).\
+        empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado, Procesos).\
             join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
             join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
+            outerjoin(Procesos, Empleados.id_proceso == Procesos.id_proceso).\
             filter(Empleados.id_empleado == id_empleado_param, Empleados.fecha_borrado.is_(None)).\
             first()
         if empleado_tupla:
-            e, empresa, tipo_emp = empleado_tupla
+            e, empresa, tipo_emp, proceso = empleado_tupla
             return {
                 'id_empleado': e.id_empleado, 'documento': e.documento,
                 'id_empresa': e.id_empresa, 'nombre_empresa': empresa.nombre_empresa,
                 'nombre_empleado': e.nombre_empleado, 'apellido_empleado': e.apellido_empleado,
                 'id_tipo_empleado': e.id_tipo_empleado, 'tipo_empleado': tipo_emp.tipo_empleado,
+                'id_proceso': e.id_proceso, 'nombre_proceso': proceso.nombre_proceso if proceso else None,
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
                 'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
@@ -347,7 +378,26 @@ def procesar_actualizacion_form(data_request):
         app.logger.debug(f"Valor de id_tipo_empleado_str: {id_tipo_empleado_str}")
         print('tipo empleado', id_tipo_empleado_str)
         if not id_tipo_empleado_str or not id_tipo_empleado_str.isdigit():
-            return False, "Debe seleccionar un tipo de empleado."
+            # Si no viene el tipo de empleado, lo obtenemos de la empresa
+            empresa = Empresa.query.get(int(id_empresa_str))
+            if not empresa:
+                return False, "Empresa no encontrada."
+            
+            # Asignar tipo de empleado según el tipo de empresa
+            if empresa.tipo_empresa == 'Temporal':
+                id_tipo_empleado = 2
+            elif empresa.tipo_empresa == 'Directo':
+                id_tipo_empleado = 1
+            else:
+                return False, "Tipo de empresa no válido."
+        else:
+            id_tipo_empleado = int(id_tipo_empleado_str)
+
+        # Obtener el proceso
+        id_proceso_str = data_request.form.get('id_proceso')
+        if not id_proceso_str or not id_proceso_str.isdigit():
+            return False, "Debe seleccionar un proceso válido."
+        id_proceso = int(id_proceso_str)
 
         empleado.documento = documento
         empleado.id_empresa = int(id_empresa_str)
@@ -355,7 +405,8 @@ def procesar_actualizacion_form(data_request):
         if not empleado.nombre_empleado:
             return False, "Nombre del empleado es requerido."
         empleado.apellido_empleado = data_request.form.get('apellido_empleado')
-        empleado.id_tipo_empleado = int(id_tipo_empleado_str)
+        empleado.id_tipo_empleado = id_tipo_empleado
+        empleado.id_proceso = id_proceso
         empleado.telefono_empleado = data_request.form.get('telefono_empleado')
         empleado.email_empleado = data_request.form.get('email_empleado')
         empleado.cargo = data_request.form.get('cargo')

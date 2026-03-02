@@ -76,6 +76,7 @@ class Empleados(db.Model):
     nombre_empleado = db.Column(db.String(50), nullable=True)
     apellido_empleado = db.Column(db.String(50), nullable=True)
     id_tipo_empleado = db.Column(db.Integer, db.ForeignKey('tbl_tipo_empleado.id_tipo_empleado'), nullable=True)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=True)
     telefono_empleado = db.Column(db.String(50), nullable=True)
     email_empleado = db.Column(db.String(50), nullable=True, unique=True)
     cargo = db.Column(db.String(50), nullable=True)
@@ -85,6 +86,13 @@ class Empleados(db.Model):
 
     # Relaciones
     empresa = db.relationship('Empresa', backref='empleados')
+    proceso = db.relationship('Procesos', backref='empleados_proceso')
+
+# --- Modelo Cargos ---
+class Cargos(db.Model):
+    __tablename__ = 'tbl_cargos'
+    id_cargo = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_cargo = db.Column(db.String(100), nullable=False, unique=True)
 
 # --- Modelo Procesos ---
 class Procesos(db.Model):

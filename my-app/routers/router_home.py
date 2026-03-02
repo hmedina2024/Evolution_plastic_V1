@@ -16,7 +16,7 @@ from controllers.funciones_home import get_empleados_paginados, get_piezas_pagin
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,get_disenadores_graficos_paginados,get_disenadores_industriales_paginados,
-                                        procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil, procesar_actualizar_empresa, obtener_tipo_empleado, buscar_ordenes_produccion_bd,
+                                        procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil, procesar_actualizar_empresa, obtener_tipo_empleado, obtener_cargos, buscar_ordenes_produccion_bd,
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
                                         buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
                                         eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas, buscar_usuarios_bd,
@@ -50,7 +50,8 @@ def viewFormEmpleado():
             tipos_empleado = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipo_empleado]
         else:
             tipos_empleado = []
-        return render_template(f'{PATH_URL}/form_empleado.html', tipos_empleado=tipos_empleado)
+        cargos = obtener_cargos() or []
+        return render_template(f'{PATH_URL}/form_empleado.html', tipos_empleado=tipos_empleado, cargos=cargos)
     else:
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -71,17 +72,20 @@ def form_registrar_empleado():
                     # Pasar los datos del formulario para rellenar los campos en caso de error
                     tipos_empleado = obtener_tipo_empleado() or []
                     tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
-                    return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list)
+                    cargos = obtener_cargos() or []
+                    return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list, cargos=cargos)
             else:
                 flash('Debe cargar una foto del empleado.', 'error')
                 tipos_empleado = obtener_tipo_empleado() or []
                 tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
-                return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list)
+                cargos = obtener_cargos() or []
+                return render_template('public/empleados/form_empleado.html', data_form=request.form, tipos_empleado=tipos_empleado_list, cargos=cargos)
         else:
             # Cargar el formulario inicialmente
             tipos_empleado = obtener_tipo_empleado() or []
             tipos_empleado_list = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipos_empleado]
-            return render_template('public/empleados/form_empleado.html', data_form=None, tipos_empleado=tipos_empleado_list)
+            cargos = obtener_cargos() or []
+            return render_template('public/empleados/form_empleado.html', data_form=None, tipos_empleado=tipos_empleado_list, cargos=cargos)
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -237,7 +241,8 @@ def viewEditarEmpleado(id):
         respuestaEmpleado = buscar_empleado_unico(id)
         if respuestaEmpleado:
             tipos_empleado = obtener_tipo_empleado()
-            return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado, tipos_empleado=tipos_empleado)
+            cargos = obtener_cargos() or []
+            return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=respuestaEmpleado, tipos_empleado=tipos_empleado, cargos=cargos)
         else:
             flash('El empleado no existe o esta inactivo.', 'error')
             return redirect(url_for('inicio'))
@@ -264,7 +269,8 @@ def actualizar_empleado(id):
                     tipos_empleado = []
                 # Obtener el empleado para mostrar los datos
                 empleado = db.session.query(Empleados).filter_by(id_empleado=id).first()
-                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado)
+                cargos = obtener_cargos() or []
+                return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado, cargos=cargos)
         else:
             # Método GET: Mostrar el formulario con los datos del empleado
             empleado = db.session.query(Empleados).filter_by(id_empleado=id).first()
@@ -274,9 +280,10 @@ def actualizar_empleado(id):
                     tipos_empleado = [{'id_tipo_empleado': t.id_tipo_empleado, 'tipo_empleado': t.tipo_empleado} for t in tipo_empleado]
                 else:
                     tipos_empleado = []
-                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado)
+                cargos = obtener_cargos() or []
+                return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=empleado, tipos_empleado=tipos_empleado, cargos=cargos)
             else:
-                return render_template(f'{PATH_URL}/form_empleado.html', respuestaEmpleado=None)
+                return render_template(f'{PATH_URL}/form_empleado_update.html', respuestaEmpleado=None)
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))

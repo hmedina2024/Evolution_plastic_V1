@@ -379,3 +379,52 @@ INSERT INTO tbl_correos_fijos (email, descripcion) VALUES
 ('compras@evolutionplastic.com', 'Compras'),
 ('sistema.datos@evolutionplastic.com', 'Sistema Datos'),
 ('direccion.logistica@evolutionplastic.com', 'Dirección Logística');
+
+
+-- 1. Crear la nueva tabla de cargos
+CREATE TABLE tbl_cargos (
+    id_cargo INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_cargo VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- 2. Insertar los cargos nuevos extraídos del archivo CSV
+INSERT INTO tbl_cargos (nombre_cargo) VALUES
+('ANALISTA DE COMPRAS'),
+('ANALISTA DE COSTOS'),
+('ANALISTA DE NOMINA'),
+('APRENDIZ SENA'),
+('ASESOR DE PRODUCCION'),
+('ASISTENTE COMERCIAL'),
+('AUXILIAR ADMINISTRATIVA'),
+('AUXILIAR DE ARCHIVO'),
+('AUXILIAR DE COSTOS'),
+('AUXILIAR DE PINTURA'),
+('AUXILIAR DE PRODUCCION'),
+('AUXILIAR GESTION HUMANA'),
+('AUXILIAR MANTENIMIENTO'),
+('CONDUCTOR'),
+('CONTADOR'),
+('DIRECTOR ADMINISTRATIVO'),
+('DIRECTOR DE GSH'),
+('DISEÑADOR GRAFICO'),
+('DISEÑADOR INDUSTRIAL'),
+('ELECTROMECANICO'),
+('GERENTE'),
+('JEFE ALMACEN'),
+('JEFE HSEQ'),
+('JEFE LITOGRAFIA'),
+('JEFE LOGISTICA'),
+('JEFE MANTENIMIENTO'),
+('JEFE METALISTERIA'),
+('JEFE PRODUCCION'),
+('JEFE PROTOTIPOS'),
+('JEFE TERMOFORMADO'),
+('MENSAJERO'),
+('OPERARIO'),
+('PINTOR'),
+('POR DEFINIR'),
+('RECEPCIONISTA'),
+('SERVICIOS GENERALES'),
+('SOLDADOR'),
+('SUPERVISOR'),
+('VENDEDOR')

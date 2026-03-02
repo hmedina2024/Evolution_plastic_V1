@@ -30,16 +30,16 @@
           </select>
         </div>
         <div class="col-md-4">
-          <label for="tipo_empleado" class="form-label fw-bold text-primary">Tipo Empleado <span class="text-danger">*</span></label>
-          <select name="tipo_empleado" id="tipo_empleado" class="form-control select2" required>
-            <option value="">Seleccionar tipo empleado...</option>
-            {% for tipo in tipos_empleado %}
-              <option value="{{ tipo.id_tipo_empleado }}" {% if data_form and 'tipo_empleado' in data_form and data_form.tipo_empleado == tipo.id_tipo_empleado|string %}selected{% endif %}>
-                {{ tipo.tipo_empleado }}
-              </option>
-            {% endfor %}
+          <label for="id_proceso" class="form-label fw-bold text-primary">Proceso <span class="text-danger">*</span></label>
+          <select name="id_proceso" id="id_proceso" class="form-control select2" required>
+            <option value="">Seleccionar proceso...</option>
+            {% if data_form and 'id_proceso' in data_form %}
+              <option value="{{ data_form.id_proceso }}" selected>{{ data_form.id_proceso }}</option>
+            {% endif %}
           </select>
         </div>
+        <!-- Campo oculto para tipo_empleado que se llenará automáticamente -->
+        <input type="hidden" name="tipo_empleado" id="tipo_empleado" value="">
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
@@ -62,7 +62,12 @@
         </div>
         <div class="col-md-4">
           <label for="cargo" class="form-label fw-bold text-primary">Cargo </label>
-          <input class="form-control" type="text" name="cargo" value="{{ data_form.cargo if data_form and 'cargo' in data_form else '' }}" />
+          <select class="form-select" name="cargo">
+            <option value="" disabled selected>Seleccione un cargo</option>
+            {% for cargo in cargos %}
+              <option value="{{ cargo.nombre_cargo }}" {% if data_form and data_form.cargo == cargo.nombre_cargo %}selected{% endif %}>{{ cargo.nombre_cargo }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-md-4">
           <label for="foto_empleado" class="form-label fw-bold text-primary">Cargar Imagen del Empleado</label>
@@ -94,74 +99,140 @@
 <script src="{{ url_for('static', filename='assets/customJS/file.js') }}"></script>
 <script>
 $(document).ready(function () {
-    // Configuración de Select2 genérica
-    function setupSelect2(selectId, url, placeholder, dataKey) {
-        const $select = $(`#${selectId}`);
-        $select.select2({
-            placeholder: placeholder,
-            allowClear: true,
-            minimumInputLength: 0,
-            dropdownAutoWidth: true,
-            ajax: {
-                url: url,
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {
-                        search: params.term || '',
-                        page: params.page || 1,
-                        per_page: 10
-                    };
-                },
-                processResults: function (data) {
-                    return {
-                        results: data[dataKey].map(item => ({
-                            id: item.id_empresa,
-                            text: item.nombre_empresa
-                        })),
-                        pagination: { more: data[dataKey].length === 10 }
-                    };
-                },
-                cache: true
+    // Configuración de Select2 para empresas
+    const $selectEmpresa = $('#id_empresa');
+    $selectEmpresa.select2({
+        placeholder: 'Seleccionar empresa...',
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+            url: '/api/empresas',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    search: params.term || '',
+                    page: params.page || 1,
+                    per_page: 10
+                };
             },
-            templateResult: function (data) {
-                return data.text;
+            processResults: function (data) {
+                return {
+                    results: data.empresas.map(item => ({
+                        id: item.id_empresa,
+                        text: item.nombre_empresa,
+                        tipo_empresa: item.tipo_empresa // Guardamos el tipo de empresa
+                    })),
+                    pagination: { more: data.empresas.length === 10 }
+                };
             },
-            templateSelection: function (data) {
-                return data.text || data.id;
-            }
-        }).on('select2:open', function () {
-            setTimeout(() => {
-                document.querySelector('.select2-search__field').focus();
-            }, 50);
-        });
-
-        // Si hay un valor preseleccionado (en caso de error), cargarlo
-        if ($select.val()) {
-            const value = $select.val();
-            $.ajax({
-                url: url,
-                data: { id: value },
-                dataType: 'json'
-            }).then(data => {
-                const optionData = data[dataKey].find(item => item.id_empresa == value);
-                if (optionData) {
-                    const option = new Option(optionData.nombre_empresa, optionData.id_empresa, true, true);
-                    $select.append(option).trigger('change');
-                }
-            });
+            cache: true
+        },
+        templateResult: function (data) {
+            return data.text;
+        },
+        templateSelection: function (data) {
+            return data.text || data.id;
         }
+    }).on('select2:open', function () {
+        setTimeout(() => {
+            document.querySelector('.select2-search__field').focus();
+        }, 50);
+    }).on('select2:select', function (e) {
+        // Cuando se selecciona una empresa, asignar automáticamente el tipo de empleado
+        const tipoEmpresa = e.params.data.tipo_empresa;
+        const $tipoEmpleadoHidden = $('#tipo_empleado');
+        
+        if (tipoEmpresa === 'Temporal') {
+            $tipoEmpleadoHidden.val('2'); // ID 2 para Temporal
+        } else if (tipoEmpresa === 'Directo') {
+            $tipoEmpleadoHidden.val('1'); // ID 1 para Directo
+        }
+        
+        console.log('Tipo de empresa seleccionado:', tipoEmpresa, '- Tipo empleado asignado:', $tipoEmpleadoHidden.val());
+    });
+
+    // Si hay un valor preseleccionado (en caso de error), cargarlo
+    if ($selectEmpresa.val()) {
+        const value = $selectEmpresa.val();
+        $.ajax({
+            url: '/api/empresas',
+            data: { id: value },
+            dataType: 'json'
+        }).then(data => {
+            const optionData = data.empresas.find(item => item.id_empresa == value);
+            if (optionData) {
+                const option = new Option(optionData.nombre_empresa, optionData.id_empresa, true, true);
+                option.dataset.tipoEmpresa = optionData.tipo_empresa;
+                $selectEmpresa.append(option).trigger('change');
+                
+                // Asignar tipo de empleado automáticamente
+                if (optionData.tipo_empresa === 'Temporal') {
+                    $('#tipo_empleado').val('2');
+                } else if (optionData.tipo_empresa === 'Directo') {
+                    $('#tipo_empleado').val('1');
+                }
+            }
+        });
     }
 
-    // Configurar Select2 para empresas
-    setupSelect2('id_empresa', '/api/empresas', 'Seleccionar empresa...', 'empresas');
-
-    // Configurar Select2 para tipo_empleado (estático)
-    $('#tipo_empleado').select2({
-        placeholder: 'Seleccionar tipo empleado...',
+    // Configurar Select2 para procesos
+    const $selectProceso = $('#id_proceso');
+    $selectProceso.select2({
+        placeholder: 'Seleccionar proceso...',
         allowClear: true,
-        minimumResultsForSearch: Infinity
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+            url: '/api/procesos',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    search: params.term || '',
+                    page: params.page || 1,
+                    per_page: 10
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.procesos.map(item => ({
+                        id: item.id_proceso,
+                        text: item.nombre_proceso
+                    })),
+                    pagination: { more: data.procesos.length === 10 }
+                };
+            },
+            cache: true
+        },
+        templateResult: function (data) {
+            return data.text;
+        },
+        templateSelection: function (data) {
+            return data.text || data.id;
+        }
+    }).on('select2:open', function () {
+        setTimeout(() => {
+            document.querySelector('.select2-search__field').focus();
+        }, 50);
     });
+
+    // Si hay un valor preseleccionado para proceso (en caso de error), cargarlo
+    if ($selectProceso.val()) {
+        const value = $selectProceso.val();
+        $.ajax({
+            url: '/api/procesos',
+            data: { id: value },
+            dataType: 'json'
+        }).then(data => {
+            const optionData = data.procesos.find(item => item.id_proceso == value);
+            if (optionData) {
+                const option = new Option(optionData.nombre_proceso, optionData.id_proceso, true, true);
+                $selectProceso.append(option).trigger('change');
+            }
+        });
+    }
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;
