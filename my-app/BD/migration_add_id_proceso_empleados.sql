@@ -15,4 +15,4 @@ FOREIGN KEY (id_proceso) REFERENCES tbl_procesos(id_proceso);
 CREATE INDEX idx_empleados_proceso ON tbl_empleados(id_proceso);
 
 -- Comentario sobre la columna
-COMMENT ON COLUMN tbl_empleados.id_proceso IS 'ID del proceso al que pertenece el empleado';
+COMMENT ON COLUMN tbl_empleados.id_proceso IS 'ID del proceso al que pertenece el empleado..';
