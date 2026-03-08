@@ -12,7 +12,7 @@ from controllers.funciones_home import sql_lista_actividades_bd, get_total_activ
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios, buscar_usuarios_bd
 from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado,ListasCorreos,ListasMiembros, Clientes
 from sqlalchemy import func, and_
-from controllers.funciones_home import get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
+from controllers.funciones_home import get_novedades_actividades, get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
 # Importando funciones desde funciones_home.py (ahora con SQLAlchemy)
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,get_disenadores_graficos_paginados,get_disenadores_industriales_paginados,
@@ -1049,10 +1049,8 @@ def viewFormJornada():
     else:
         id_empleados = obtener_id_empleados()
         if 'conectado' in session:
-            nombre_proceso = obtener_proceso()
-            nombre_actividad = obtener_actividad()
-            codigo_op = obtener_op()  # Llamar a la nueva función
-            return render_template('public/jornada/form_jornadas.html', nombre_proceso=nombre_proceso, id_empleados=id_empleados, nombre_actividad=nombre_actividad, codigo_op=codigo_op)
+            actividades_novedad = get_novedades_actividades()
+            return render_template('public/jornada/form_jornadas.html', id_empleados=id_empleados, actividades_novedad=actividades_novedad)
         else:
             flash('Primero debes iniciar sesión.', 'error')
             return redirect(url_for('inicio'))
@@ -1115,7 +1113,8 @@ def viewEditarJornada(id):
         app.logger.debug(f"Respuesta de buscar_jornada_unico en la RUTA viewEditarJornada: {respuesta_jornada}") # Log para ver el contenido
         if respuesta_jornada:
             # Asegurarse de que el nombre de la variable coincida con el que espera el template
-            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuesta_jornada)
+            actividades_novedad = get_novedades_actividades()
+            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuesta_jornada, actividades_novedad=actividades_novedad)
         else:
             app.logger.debug(f"respuesta_jornada es None o Falsy en la RUTA viewEditarJornada, mostrando flash.") # Log
             flash('La Jornada no existe.', 'error')
@@ -1148,7 +1147,8 @@ def actualizar_jornada_post(id_jornada):
             # Si falla, volvemos a cargar el formulario de edición con los datos actuales
             # para que el usuario pueda corregir.
             respuestaJornada = buscar_jornada_unico(id_jornada) # Re-obtener datos para el form
-            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuestaJornada)
+            actividades_novedad = get_novedades_actividades()
+            return render_template('public/jornada/form_jornada_update.html', respuestaJornada=respuestaJornada, actividades_novedad=actividades_novedad)
     # Si no es POST, redirigir o manejar como error, aunque esta ruta es solo para POST.
     return redirect(url_for('lista_jornadas'))
 

@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 
-{% block title %}Detalle Jornadas{% endblock %}
+{% block title %}Detalle de Novedad{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
@@ -14,7 +14,7 @@
       <a href="/lista-de-jornadas" class="text-white">
         <i class="bi bi-arrow-left-circle"></i>
       </a>
-      INFORMACIÓN DE LA JORNADA
+      INFORMACIÓN DE LA NOVEDAD
     </h3>
   </div>
   <div class="card-body p-4">
@@ -23,9 +23,13 @@
         <label for="nombre_empleado" class="form-label fw-bold text-primary">Nombre Empleado</label>
         <div class="form-control" readonly>{{ detalle_jornada.nombre_empleado }}</div>
       </div>
+      <div class="col-md-4">
+        <label for="nombre_actividad" class="form-label fw-bold text-primary">Actividad</label>
+        <div class="form-control" readonly>{{ detalle_jornada.nombre_actividad }}</div>
+      </div>
     </div>
     <div class="row g-4 mt-3">
-      <div class="col-md-3">
+      <!-- <div class="col-md-3">
         <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">FH. Llegada Programada</label>
         <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_llegada_programada }}</div>
       </div>
@@ -36,19 +40,19 @@
       <div class="col-md-6">
         <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">NOVEDAD JORNADA PROGRAMADA</label>
         <div class="form-control" readonly>{{ detalle_jornada.novedad_jornada_programada }}</div>
-      </div>
+      </div> -->
     </div>
     <div class="row g-4 mt-3">
       <div class="col-md-3">
-        <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Llegada Real</label>
+        <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Inicio Novedad</label>
         <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_llegada }}</div>
       </div>
       <div class="col-md-3">
-        <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Salida Real</label>
+        <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Fin de Novedad</label>
         <div class="form-control" readonly>{{ detalle_jornada.fecha_hora_salida }}</div>
       </div>
       <div class="col-md-6">
-        <label for="novedad_jornada" class="form-label fw-bold text-primary">NOVEDAD JORNADA REAL</label>
+        <label for="novedad_jornada" class="form-label fw-bold text-primary">Detalle de Novedad</label>
         <div class="form-control" readonly>{{ detalle_jornada.novedad_jornada }}</div>
       </div>
     </div>

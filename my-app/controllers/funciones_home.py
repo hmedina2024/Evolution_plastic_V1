@@ -1339,6 +1339,23 @@ def obtener_actividad():
         return []
 
 
+def get_novedades_actividades():
+    """
+    Obtiene las actividades cuyo código comienza con 'N-'.
+    Retorna una lista de diccionarios con 'id_actividad' y 'nombre_actividad'.
+    """
+    try:
+        actividades = db.session.query(Actividades).filter(
+            Actividades.codigo_actividad.like('N-%'),
+            Actividades.fecha_borrado.is_(None)
+        ).order_by(Actividades.nombre_actividad.asc()).all()
+        
+        return [{'id_actividad': a.id_actividad, 'nombre_actividad': a.nombre_actividad} for a in actividades]
+    except Exception as e:
+        app.logger.error(f"Error en get_novedades_actividades: {e}")
+        return []
+
+
 def procesar_form_operacion(dataForm):
     app.logger.debug(
         "Entrando a procesar_form_operacion con datos: %s", dataForm)
@@ -2415,7 +2432,7 @@ def procesar_form_op(dataForm, files):
                     
                     # CONFIGURACIÓN CORREO (cPanel / Colombia Hosting)
                     email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'U-L!Y]UG!sK-'  # <--- ¡IMPORTANTE! COLOCA LA CORRECTA AQUÍ
+                    email_password = '~a&l(=o5%*Nc'  # <--- ¡IMPORTANTE! COLOCA LA CORRECTA AQUÍ
                     smtp_server = 'mail.evolutionplastic.com'
                     smtp_port = 465
 
@@ -3513,7 +3530,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     
                     # CONFIGURACIÓN CORREO (cPanel)
                     email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'U-L!Y]UG!sK-'  # <--- RECUERDA VERIFICAR ESTA CONTRASEÑA
+                    email_password = '~a&l(=o5%*Nc'  # <--- RECUERDA VERIFICAR ESTA CONTRASEÑA
                     smtp_server = 'mail.evolutionplastic.com'
                     smtp_port = 465 
 
@@ -3756,15 +3773,23 @@ def obtener_op():
 def procesar_form_jornada(dataForm):
     try:
         id_empleado = dataForm['id_empleado']
-        fecha_hora_llegada_programada = dataForm['fecha_hora_llegada_programada']
-        fecha_hora_salida_programada = dataForm['fecha_hora_salida_programada']
-        novedad_jornada_programada = dataForm['novedad_jornada_programada']
+        # Convertir id_actividad a entero si viene en el formulario
+        id_actividad = dataForm.get('id_actividad')
+        if id_actividad and id_actividad.isdigit():
+            id_actividad = int(id_actividad)
+        else:
+            id_actividad = None
+            
+        fecha_hora_llegada_programada = dataForm.get('fecha_hora_llegada_programada')
+        fecha_hora_salida_programada = dataForm.get('fecha_hora_salida_programada')
+        novedad_jornada_programada = dataForm.get('novedad_jornada_programada')
         fecha_hora_llegada = dataForm['fecha_hora_llegada']
         fecha_hora_salida = dataForm['fecha_hora_salida']
         novedad_jornada = dataForm['novedad_jornada']
 
         jornada = Jornadas(
             id_empleado=id_empleado,
+            id_actividad=id_actividad, # Nuevo campo
             novedad_jornada_programada=novedad_jornada_programada,
             novedad_jornada=novedad_jornada,
             fecha_hora_llegada_programada=fecha_hora_llegada_programada,
@@ -3788,13 +3813,16 @@ def procesar_form_jornada(dataForm):
 def sql_lista_jornadas_bd(page=1, per_page=10):
     try:
         offset = (page - 1) * per_page
-        query = db.session.query(Jornadas, Empleados.nombre_empleado, Empleados.apellido_empleado).join(Empleados, Jornadas.id_empleado == Empleados.id_empleado).order_by(
-            Jornadas.fecha_registro.desc()).limit(per_page).offset(offset)
+        query = db.session.query(Jornadas, Empleados.nombre_empleado, Empleados.apellido_empleado, Actividades.nombre_actividad).\
+            join(Empleados, Jornadas.id_empleado == Empleados.id_empleado).\
+            outerjoin(Actividades, Jornadas.id_actividad == Actividades.id_actividad).\
+            order_by(Jornadas.fecha_registro.desc()).limit(per_page).offset(offset)
         jornadas_bd = query.all()
         return [{
             'id_jornada': j.Jornadas.id_jornada,
             'id_empleado': j.Jornadas.id_empleado,
             'nombre_empleado': f"{j.nombre_empleado} {j.apellido_empleado or ''}".strip(),
+            'nombre_actividad': j.nombre_actividad if j.nombre_actividad else "Sin actividad",
             'novedad_jornada_programada': j.Jornadas.novedad_jornada_programada,
             'novedad_jornada': j.Jornadas.novedad_jornada,
             'fecha_hora_llegada_programada': j.Jornadas.fecha_hora_llegada_programada,
@@ -3826,6 +3854,8 @@ def sql_detalles_jornadas_bd(id_jornada):
         if jornada:
             empleado = Empleados.query.get(jornada.id_empleado)
             usuario = Users.query.get(jornada.id_usuario_registro)
+            actividad = Actividades.query.get(jornada.id_actividad) if jornada.id_actividad else None
+            
             if not empleado:
                 raise ValueError(
                     f"No se encontró el empleado con ID: {jornada.id_empleado}")
@@ -3834,6 +3864,8 @@ def sql_detalles_jornadas_bd(id_jornada):
                 'id_jornada': jornada.id_jornada,
                 'id_empleado': jornada.id_empleado,
                 'nombre_empleado': f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip(),
+                'id_actividad': jornada.id_actividad,
+                'nombre_actividad': actividad.nombre_actividad if actividad else 'Sin actividad',
                 'novedad_jornada_programada': jornada.novedad_jornada_programada,
                 'novedad_jornada': jornada.novedad_jornada,
                 'fecha_hora_llegada_programada': jornada.fecha_hora_llegada_programada,
@@ -3863,6 +3895,8 @@ def buscar_jornada_unico(id):
             if empleado:
                 nombre_completo_empleado = f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip(
                 )
+            
+            actividad = Actividades.query.get(jornada.id_actividad) if jornada.id_actividad else None
 
             # Convertir datetimes a string si no son None, de lo contrario None o string vacío
             fecha_hora_llegada_programada_str = jornada.fecha_hora_llegada_programada.strftime(
@@ -3880,6 +3914,8 @@ def buscar_jornada_unico(id):
                 'id_jornada': jornada.id_jornada,
                 'id_empleado': jornada.id_empleado,
                 'nombre_empleado': nombre_completo_empleado,
+                'id_actividad': jornada.id_actividad,
+                'nombre_actividad': actividad.nombre_actividad if actividad else 'Sin actividad',
                 'novedad_jornada_programada': jornada.novedad_jornada_programada,
                 'novedad_jornada': jornada.novedad_jornada,
                 'fecha_hora_llegada_programada': fecha_hora_llegada_programada_str,
@@ -3900,6 +3936,13 @@ def procesar_actualizacion_jornada(id_jornada, dataForm):
             id_jornada=id_jornada).first()
         if jornada:
             jornada.id_empleado = dataForm.get('id_empleado')
+            
+            # Actualizar id_actividad
+            id_actividad_form = dataForm.get('id_actividad')
+            if id_actividad_form and str(id_actividad_form).isdigit():
+                jornada.id_actividad = int(id_actividad_form)
+            else:
+                jornada.id_actividad = None
 
             fh_llegada_prog_str = dataForm.get('fecha_hora_llegada_programada')
             if fh_llegada_prog_str:

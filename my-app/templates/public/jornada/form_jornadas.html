@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 
-{% block title %}Registrar Orden de Producción{% endblock %}
+{% block title %}Registrar Novedad{% endblock %}
 
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -10,7 +10,7 @@
 {% block body %}
 <div class="card shadow-sm" style="border-radius: 10px;">
   <div class="card-header bg-primary text-white text-center">
-    <h3 class="fw-bold">REGISTRO DE JORNADAS</h3>
+    <h3 class="fw-bold">REGISTRO DE NOVEDADES</h3>
   </div>
   <div class="card-body p-4">
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-jornada" autocomplete="off" enctype="multipart/form-data">
@@ -19,32 +19,28 @@
           <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
           <select name="id_empleado" id="nombre_empleado" class="form-control select2" required></select>
         </div>
-      </div>
-      <div class="row g-4 mt-3">
-        <div class="col-md-3">
-          <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">FH. Llegada programada</label>
-          <input class="form-control" type="datetime-local" id="fecha_hora_llegada_programada" name="fecha_hora_llegada_programada" required />
-        </div>
-        <div class="col-md-3">
-          <label for="fecha_hora_salida_programada" class="form-label fw-bold text-primary">FH. Salida programada</label>
-          <input class="form-control" type="datetime-local" name="fecha_hora_salida_programada" id="fecha_hora_salida_programada" required />
-        </div>
-        <div class="col-md-6">
-          <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">Novedades de la Jornada Programada</label>
-          <textarea class="form-control" name="novedad_jornada_programada" rows="1"></textarea>
+        <div class="col-md-4">
+          <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="id_actividad" id="id_actividad" class="form-control select2" required>
+              <option value="">Seleccione una Actividad</option>
+              {% for actividad in actividades_novedad %}
+                  <option value="{{ actividad.id_actividad }}">{{ actividad.nombre_actividad }}</option>
+              {% endfor %}
+          </select>
         </div>
       </div>
+
       <div class="row g-4 mt-3">
         <div class="col-md-3">
-          <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Llegada Real</label>
-          <input class="form-control" type="datetime-local" name="fecha_hora_llegada" required />
+          <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Inicio Novedad</label>
+          <input class="form-control" type="datetime-local" id="fecha_hora_llegada" name="fecha_hora_llegada" required />
         </div>
         <div class="col-md-3">
-          <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Salida Real</label>
-          <input class="form-control" type="datetime-local" name="fecha_hora_salida" required />
+          <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Fin de Novedad</label>
+          <input class="form-control" type="datetime-local" id="fecha_hora_salida" name="fecha_hora_salida" required />
         </div>
         <div class="col-md-6">
-          <label for="novedad_jornada" class="form-label fw-bold text-primary">Novedades de la Jornada Real</label>
+          <label for="novedad_jornada" class="form-label fw-bold text-primary">Detalle de Novedad</label>
           <textarea class="form-control" name="novedad_jornada" rows="1"></textarea>
         </div>
       </div>
@@ -66,13 +62,16 @@
 <script>
 $(document).ready(function () {
     // Configuración de Select2 (sin cambios aquí)
-    function setupSelect2(selectId, url, placeholder, dataKey, keyId, keyText) {
-        $(`#${selectId}`).select2({
+    function setupSelect2(selectId, placeholder, isAjax = false, url = '', dataKey = '', keyId = 'id', keyText = 'text') {
+        const options = {
             placeholder: placeholder,
             allowClear: true,
             minimumInputLength: 0,
             dropdownAutoWidth: true,
-            ajax: {
+        };
+
+        if (isAjax) {
+            options.ajax = {
                 url: url,
                 dataType: 'json',
                 delay: 250,
@@ -86,28 +85,25 @@ $(document).ready(function () {
                 processResults: function (data) {
                     return {
                         results: data[dataKey].map(item => ({
-                            id: item.id_empleado,
-                            text: item.nombre_empleado
+                            id: item[keyId],
+                            text: item[keyText]
                         })),
                         pagination: { more: data[dataKey].length === 10 }
                     };
                 },
                 cache: true
-            },
-            templateResult: function (data) {
-                return data.text;
-            },
-            templateSelection: function (data) {
-                return data.text || data.id;
-            }
-        }).on('select2:open', function () {
+            };
+        }
+
+        $(`#${selectId}`).select2(options).on('select2:open', function () {
             setTimeout(() => {
                 document.querySelector('.select2-search__field').focus();
             }, 50);
         });
     }
 
-    setupSelect2('nombre_empleado', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
+    setupSelect2('nombre_empleado', 'Buscar empleado...', true, '/api/empleados', 'empleados', 'id_empleado', 'nombre_empleado');
+    setupSelect2('id_actividad', 'Seleccione una Actividad...');
 
     // Variable para evitar múltiples envíos
     let isSubmitting = false;

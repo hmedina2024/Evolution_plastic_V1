@@ -193,6 +193,7 @@ class Jornadas(db.Model):
     id_jornada = db.Column(db.Integer, primary_key=True, autoincrement=True)
     # FK a Empleados (ya estaba)
     id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=False)
+    id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad'), nullable=True)
     novedad_jornada_programada = db.Column(db.String(200), nullable=True)
     novedad_jornada = db.Column(db.String(50), nullable=True) # Ej. 'Llegada Tarde', 'Ausencia Justificada'
     fecha_hora_llegada_programada = db.Column(db.DateTime, nullable=True) # Puede ser nullable si no siempre se programa
@@ -205,6 +206,7 @@ class Jornadas(db.Model):
 
     # Relaciones
     empleado = db.relationship('Empleados', backref='jornadas') # foreign_keys no es necesario
+    actividad = db.relationship('Actividades', backref='jornadas')
     usuario_reg = db.relationship('Users', backref='jornadas_registradas')
 
 

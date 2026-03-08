@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 <!--Cambiando el title-->
-{% block title %}Lista de Jornadas{% endblock %}
+{% block title %}Lista de Novedades{% endblock %}
 <!--Inicio del block-->
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
@@ -12,14 +12,14 @@
 <div class="card" style="border-radius: 0px !important">
   <div class="row justify-content-center mb-2">
     <div class="col-md-12 mb-0">
-      <h3 class="text-center mt-0 mb-3">LISTA DE JORNADAS</h3>
+      <h3 class="text-center mt-0 mb-3">LISTA DE NOVEDADES</h3>
       <hr />
     </div>
 
     <div class="row justify-content-end mb-3">
       <div class="col-md-4 mt-0 py-3">
         <a href="{{ url_for('viewFormJornada') }}" class="btn btn-info btn-sm">
-          <i class="bi bi-plus-circle me-2"></i> Registrar Nueva Jornada
+          <i class="bi bi-plus-circle me-2"></i> Registrar Nueva Novedad
         </a>
       </div>
       <div class="col-md-4 position-relative mt-0 py-3">
@@ -43,8 +43,8 @@
             <tr>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">#</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Empleado</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Llegada Real</th>
-              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Salida Real</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Inicio Novedad</th>
+              <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">FH. Fin Novedad</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Novedad en Jornada Real</th>
               <th style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Acción</th>
             </tr>

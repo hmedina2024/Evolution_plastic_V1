@@ -1,6 +1,6 @@
 {% extends 'public/base_cpanel.html' %}
 
-{% block title %}Actualizar Jornada{% endblock %}
+{% block title %}Actualizar Novedad{% endblock %}
 
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -16,7 +16,7 @@
       <a href="{{ url_for('lista_jornadas') }}" class="text-white">
         <i class="bi bi-arrow-left-circle"></i>
       </a>
-      ACTUALIZAR JORNADA
+      ACTUALIZAR NOVEDAD
     </h3>
   </div>
   <div class="card-body p-4">
@@ -32,36 +32,35 @@
             {% endif %}
           </select>
         </div>
+
+        <div class="col-md-6">
+          <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
+          <select name="id_actividad" id="id_actividad_select" class="form-control select2" required>
+            <option value="">Seleccione una Actividad</option>
+            {% for actividad in actividades_novedad %}
+              <option value="{{ actividad.id_actividad }}" {% if respuestaJornada.id_actividad == actividad.id_actividad %}selected{% endif %}>{{ actividad.nombre_actividad }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
 
       <div class="row g-4 mt-3">
-        <div class="col-md-3">
-          <label for="fecha_hora_llegada_programada" class="form-label fw-bold text-primary">FH. Llegada Programada</label>
-          <input class="form-control" type="datetime-local" id="fecha_hora_llegada_programada" name="fecha_hora_llegada_programada" value="{{ respuestaJornada.fecha_hora_llegada_programada if respuestaJornada.fecha_hora_llegada_programada else '' }}" />
-        </div>
-        <div class="col-md-3">
-          <label for="fecha_hora_salida_programada" class="form-label fw-bold text-primary">FH. Salida Programada</label>
-          <input class="form-control" type="datetime-local" name="fecha_hora_salida_programada" id="fecha_hora_salida_programada" value="{{ respuestaJornada.fecha_hora_salida_programada if respuestaJornada.fecha_hora_salida_programada else '' }}" />
-        </div>
-        <div class="col-md-6">
-          <label for="novedad_jornada_programada" class="form-label fw-bold text-primary">Novedades de la Jornada Programada</label>
-          <textarea class="form-control" name="novedad_jornada_programada" rows="2">{{ respuestaJornada.novedad_jornada_programada if respuestaJornada.novedad_jornada_programada else '' }}</textarea>
-        </div>
+
       </div>
 
       
 
       <div class="row g-4 mt-3">
         <div class="col-md-3">
-          <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Llegada Real</label>
+          <label for="fecha_hora_llegada" class="form-label fw-bold text-primary">FH. Inicio Novedad</label>
           <input class="form-control" type="datetime-local" name="fecha_hora_llegada" value="{{ respuestaJornada.fecha_hora_llegada if respuestaJornada.fecha_hora_llegada else '' }}" />
         </div>
         <div class="col-md-3">
-          <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Salida Real</label>
+          <label for="fecha_hora_salida" class="form-label fw-bold text-primary">FH. Fin de Novedad</label>
           <input class="form-control" type="datetime-local" name="fecha_hora_salida" value="{{ respuestaJornada.fecha_hora_salida if respuestaJornada.fecha_hora_salida else '' }}" />
         </div>
         <div class="col-md-6">
-          <label for="novedad_jornada" class="form-label fw-bold text-primary">Novedades de la Jornada Real</label>
+          <label for="novedad_jornada" class="form-label fw-bold text-primary">Detalle de Novedad</label>
           <textarea class="form-control" name="novedad_jornada" rows="2">{{ respuestaJornada.novedad_jornada if respuestaJornada.novedad_jornada else '' }}</textarea>
         </div>
       </div>
@@ -69,7 +68,7 @@
 
       <div class="text-center mt-4">
         <button type="submit" class="btn btn-primary rounded-pill px-4">
-          Actualizar Jornada
+          Actualizar Novedad
           <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
@@ -138,6 +137,13 @@ $(document).ready(function () {
     }
 
     setupSelect2('id_empleado_select', '/api/empleados', 'Buscar empleado...', 'empleados', 'id_empleado', 'nombre_empleado');
+    
+    // Inicializar Select2 para actividad (estático)
+    $('#id_actividad_select').select2({
+        placeholder: 'Seleccione una Actividad...',
+        allowClear: true,
+        width: '100%'
+    });
 
     // Si ya hay un empleado seleccionado (viene de respuestaJornada),
     // y el Select2 no lo muestra automáticamente, puedes inicializarlo.
