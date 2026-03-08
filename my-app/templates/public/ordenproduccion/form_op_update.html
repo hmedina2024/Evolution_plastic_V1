@@ -119,6 +119,12 @@
           <select name="id_disenador_industrial" id="id_disenador_industrial"
             class="form-control select2"></select>
         </div>
+        <div class="col-md-4">
+          <label for="id_costeador"
+            class="form-label fw-bold text-primary">Costeador</label>
+          <select name="id_costeador" id="id_costeador"
+            class="form-control select2"></select>
+        </div>
         <div class="col-md-3">
           <label for="logistica"
             class="form-label fw-bold text-primary">LOGÍSTICA</label>
@@ -911,6 +917,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   setupSelect2('#id_disenador_grafico', "{{ url_for('api_disenadores_graficos') }}", 'Seleccionar Diseñador Grafico', 'disenadores_graficos', 'id_empleado', 'nombre_empleado', false, false, true);
   setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado', false, false, true);
+  setupSelect2('#id_costeador', "{{ url_for('api_costeadores') }}", 'Seleccionar Costeador', 'costeadores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
@@ -965,6 +972,14 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       }
       var disenadorIndustrialOption = new Option(nombreCompletoDisenadorIndustrial.trim(), datosOpExistente.id_disenador_industrial, true, true);
       $('#id_disenador_industrial').append(disenadorIndustrialOption).trigger('change');
+    }
+    if (datosOpExistente.id_costeador && datosOpExistente.costeador) {
+      let nombreCompletoCosteador = datosOpExistente.costeador.nombre_empleado || '';
+      if (datosOpExistente.costeador.apellido_empleado) {
+        nombreCompletoCosteador += ' ' + datosOpExistente.costeador.apellido_empleado;
+      }
+      var costeadorOption = new Option(nombreCompletoCosteador.trim(), datosOpExistente.id_costeador, true, true);
+      $('#id_costeador').append(costeadorOption).trigger('change');
     }
 
     // Para Select2 estáticos: Estado, Logística

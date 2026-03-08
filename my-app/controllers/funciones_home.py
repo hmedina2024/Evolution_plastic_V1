@@ -1973,6 +1973,7 @@ def procesar_form_op(dataForm, files):
     urls_list = dataForm.getlist('urls[]') # Obtener lista de URLs
     id_disenador_grafico_str = dataForm.get('id_disenador_grafico')
     id_disenador_industrial_str = dataForm.get('id_disenador_industrial')
+    id_costeador_str = dataForm.get('id_costeador')
     app.logger.debug(f"Valor recibido para id_disenador_grafico: '{id_disenador_grafico_str}'")
     
     # --- Obtener campos para la notificación ---
@@ -2042,6 +2043,15 @@ def procesar_form_op(dataForm, files):
                 errores.append(f"Disenador Industrial con ID '{id_disenador_industrial_val}' no encontrado o fue eliminado.")
         except ValueError:
             errores.append("ID Diseñador Industrial debe ser un número entero válido.")
+            
+    id_costeador_val = None
+    if id_costeador_str and id_costeador_str.strip():
+        try:
+            id_costeador_val = int(id_costeador_str)
+            if not Empleados.query.filter_by(id_empleado=id_costeador_val, fecha_borrado=None).first():
+                errores.append(f"Costeador con ID '{id_costeador_val}' no encontrado o fue eliminado.")
+        except ValueError:
+            errores.append("ID Costeador debe ser un número entero válido.")
 
     fecha_val = None
     if not fecha_str or not fecha_str.strip():
@@ -2271,7 +2281,8 @@ def procesar_form_op(dataForm, files):
             estado_proyecto=estado_proyecto_val,
             id_usuario_registro=id_usuario_registro,
             id_disenador_grafico=id_disenador_grafico_val,
-            id_disenador_industrial=id_disenador_industrial_val
+            id_disenador_industrial=id_disenador_industrial_val,
+            id_costeador=id_costeador_val 
         )
         db.session.add(orden)
         db.session.flush()
@@ -2429,6 +2440,7 @@ def procesar_form_op(dataForm, files):
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
+                    costeador = db.session.query(Empleados).get(orden.id_costeador) if orden.id_costeador else None
                     
                     # CONFIGURACIÓN CORREO (cPanel / Colombia Hosting)
                     email_sender = 'sistema.datos@evolutionplastic.com'
@@ -2460,6 +2472,7 @@ def procesar_form_op(dataForm, files):
                     - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
                     - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
                     - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
+                    - Costeador: {costeador.nombre_empleado + ' ' + costeador.apellido_empleado if costeador else 'No asignado'}
                     - Versión: {orden.version}
 
                     Descripción:
@@ -2607,6 +2620,7 @@ def sql_detalles_op_bd(codigo_op):
         empleado_supervisor = aliased(Empleados)
         empleado_disenador_grafico = aliased(Empleados)
         empleado_disenador_industrial = aliased(Empleados)
+        empleado_costeador = aliased(Empleados)
 
         # Consulta con JOINs para obtener los nombres relacionados
         result = db.session.query(
@@ -2619,6 +2633,8 @@ def sql_detalles_op_bd(codigo_op):
                            empleado_disenador_grafico.apellido_empleado).label('nombre_disenador_grafico'),
             db.func.concat(empleado_disenador_industrial.nombre_empleado, ' ',
                            empleado_disenador_industrial.apellido_empleado).label('nombre_disenador_industrial'),
+            db.func.concat(empleado_costeador.nombre_empleado, ' ',
+                           empleado_costeador.apellido_empleado).label('nombre_costeador'),
             Users.name_surname.label('nombre_usuario_registro')
         ).outerjoin(
             Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
@@ -2631,6 +2647,8 @@ def sql_detalles_op_bd(codigo_op):
         ).outerjoin(
             empleado_disenador_industrial, OrdenProduccion.id_disenador_industrial == empleado_disenador_industrial.id_empleado
         ).outerjoin(
+            empleado_costeador, OrdenProduccion.id_costeador == empleado_costeador.id_empleado
+        ).outerjoin(
             Users, OrdenProduccion.id_usuario_registro == Users.id
         ).filter(
             OrdenProduccion.codigo_op == codigo_op,
@@ -2641,7 +2659,7 @@ def sql_detalles_op_bd(codigo_op):
             app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
             return None
 
-        orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_disenador_grafico, nombre_disenador_industrial, nombre_usuario_registro = result
+        orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_disenador_grafico, nombre_disenador_industrial,nombre_costeador, nombre_usuario_registro = result
 
         # 1. Procesos Globales de la Orden
         procesos_globales_nombres = []
@@ -2781,6 +2799,8 @@ def sql_detalles_op_bd(codigo_op):
             'nombre_disenador_grafico': nombre_disenador_grafico if nombre_disenador_grafico else 'Sin Disenador Grafico',
             'id_disenador_industrial': orden_obj.id_disenador_industrial, # Añadido por si es útil
             'nombre_disenador_industrial': nombre_disenador_industrial if nombre_disenador_industrial else 'Sin Disenador Industrial',
+            'id_costeador': orden_obj.id_costeador, # Añadido por si es útil
+            'nombre_costeador': nombre_costeador if nombre_costeador else 'Sin Costeador'
         }
         app.logger.debug(f"Detalles de la orden a retornar: {detalle_op_data}")
         return detalle_op_data
@@ -2798,6 +2818,7 @@ def obtener_datos_op_para_edicion(codigo_op):
             joinedload(OrdenProduccion.supervisor),
             joinedload(OrdenProduccion.disenador_grafico),
             joinedload(OrdenProduccion.disenador_industrial),
+            joinedload(OrdenProduccion.costeador),
             joinedload(OrdenProduccion.procesos_globales),
             joinedload(OrdenProduccion.renders),
             joinedload(OrdenProduccion.documentos),
@@ -2848,6 +2869,11 @@ def obtener_datos_op_para_edicion(codigo_op):
             'disenador_industrial': {
                 'nombre_empleado': orden.disenador_industrial.nombre_empleado if orden.disenador_industrial else '',
                 'apellido_empleado': orden.disenador_industrial.apellido_empleado if orden.disenador_industrial else ''
+            },
+            'id_costeador': orden.id_costeador,
+            'costeador': {
+                'nombre_empleado': orden.costeador.nombre_empleado if orden.costeador else '',
+                'apellido_empleado': orden.costeador.apellido_empleado if orden.costeador else ''
             },
             'fecha': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else '',
             'fecha_entrega': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else '',
@@ -2962,6 +2988,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     id_supervisor_str = dataForm.get('id_supervisor')
     id_disenador_grafico_str = dataForm.get('id_disenador_grafico')
     id_disenador_industrial_str = dataForm.get('id_disenador_industrial')
+    id_costeador_str = dataForm.get('id_costeador')
     cotizacion_val = dataForm.get('cotizacion')
     odi_val = dataForm.get('odi')
     referencia_val = dataForm.get('referencia')
@@ -3036,8 +3063,16 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             id_disenador_industrial_val = int(id_disenador_industrial_str) # Guardar para uso posterior
             if not Empleados.query.filter_by(id_empleado=id_disenador_industrial_val, fecha_borrado=None).first():
                 errores.append(f"Disenador Industrial con ID '{id_disenador_industrial_val}' no encontrado.")
-    
-    
+                
+    id_costeador_val = None # Es opcional
+    if id_costeador_str:
+        if not id_costeador_str.isdigit():
+            errores.append("ID Costeador inválido.")
+        else:
+            id_costeador_val = int(id_costeador_str) # Guardar para uso posterior
+            if not Empleados.query.filter_by(id_empleado=id_costeador_val, fecha_borrado=None).first():
+                errores.append(f"Costeador con ID '{id_costeador_val}' no encontrado.")
+
     if not cotizacion_val: errores.append("Cotización es requerida.")
     if not odi_val: errores.append("ODI es requerido.")
     if not descripcion_general_op_val: errores.append("Descripción General es requerida.")
@@ -3235,6 +3270,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             cambios['id_disenador_grafico'] = {'anterior': orden.id_disenador_grafico, 'nuevo': int(id_disenador_grafico_str) if id_disenador_grafico_str else None}    
         if id_disenador_industrial_str and orden.id_disenador_industrial != (int(id_disenador_industrial_str) if id_disenador_industrial_str else None):
             cambios['id_disenador_industrial'] = {'anterior': orden.id_disenador_industrial, 'nuevo': int(id_disenador_industrial_str) if id_disenador_industrial_str else None}
+        if id_costeador_str and orden.id_costeador != (int(id_costeador_str) if id_costeador_str else None):
+            cambios['id_costeador'] = {'anterior': orden.id_costeador, 'nuevo': int(id_costeador_str) if id_costeador_str else None}
         if cotizacion_val and orden.cotizacion != cotizacion_val:
             cambios['cotizacion'] = {'anterior': orden.cotizacion, 'nuevo': cotizacion_val}
         if odi_val and orden.odi != odi_val:
@@ -3280,6 +3317,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         orden.id_supervisor = id_supervisor_val
         orden.id_disenador_grafico = id_disenador_grafico_val
         orden.id_disenador_industrial = id_disenador_industrial_val
+        orden.id_costeador = id_costeador_val
         orden.cotizacion = cotizacion_val
         orden.odi = odi_val
         orden.referencia = referencia_val
@@ -3527,6 +3565,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     supervisor = db.session.query(Empleados).get(orden.id_supervisor) if orden.id_supervisor else None
                     disenador_grafico = db.session.query(Empleados).get(orden.id_disenador_grafico) if orden.id_disenador_grafico else None
                     disenador_industrial = db.session.query(Empleados).get(orden.id_disenador_industrial) if orden.id_disenador_industrial else None
+                    costeador = db.session.query(Empleados).get(orden.id_costeador) if orden.id_costeador else None
                     
                     # CONFIGURACIÓN CORREO (cPanel)
                     email_sender = 'sistema.datos@evolutionplastic.com'
@@ -3558,6 +3597,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     - Supervisor: {supervisor.nombre_empleado if supervisor else 'No asignado'}
                     - Diseñador Gráfico: {disenador_grafico.nombre_empleado + ' ' + disenador_grafico.apellido_empleado if disenador_grafico else 'No asignado'}
                     - Diseñador Industrial: {disenador_industrial.nombre_empleado + ' ' + disenador_industrial.apellido_empleado if disenador_industrial else 'No asignado'}
+                    - Costeador: {costeador.nombre_empleado + ' ' + costeador.apellido_empleado if costeador else 'No asignado'}
                     - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
                     - Versión: {orden.version}
 
@@ -4224,6 +4264,32 @@ def get_disenadores_industriales_paginados(page, per_page, search=None):
     except Exception as e:
         app.logger.error(f"Error en get_disenadores_industriales_paginados: {e}")
         return []
+    
+    
+def get_costeadores_paginados(page, per_page, search=None):
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Empleados).options(db.joinedload(Empleados.empresa), db.joinedload(Empleados.tipo_empleado_ref)).filter(
+            Empleados.fecha_borrado.is_(None),
+            # Filtrar por cargo
+            Empleados.cargo.in_(['ANALISTA DE COSTOS', 'AUXILIAR DE COSTOS'])
+        ).order_by(Empleados.id_empleado.desc())
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search),
+                    Empleados.apellido_empleado.like(search),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(
+                        search=search)
+                )
+            )
+        empleados = query.paginate(
+            page=page, per_page=per_page, error_out=False).items
+        return [{'id_empleado': e.id_empleado, 'nombre_empleado': f"{e.nombre_empleado} {e.apellido_empleado}"} for e in empleados]
+    except Exception as e:
+        app.logger.error(f"Error en get_costeadores_paginados: {e}")
+        return []
 
 
 def get_procesos_paginados(page, per_page, search):
@@ -4763,7 +4829,8 @@ def generar_pdf_op_func(detalle_op, codigo_op):
     data_personal = [
         [Paragraph('<b>Vendedor:</b>', style_normal), p_cell(detalle_op['empleado']), Paragraph('<b>Fecha Entrega:</b>', style_normal), p_cell(detalle_op['fecha_entrega'])],
         [Paragraph('<b>Diseñador Gráfico:</b>', style_normal), p_cell(detalle_op['nombre_disenador_grafico']), Paragraph('<b>Diseñador Ind.:</b>', style_normal), p_cell(detalle_op['nombre_disenador_industrial'])],
-        [Paragraph('<b>Supervisor:</b>', style_normal), p_cell(detalle_op['nombre_supervisor']), Paragraph('<b>Registrado por:</b>', style_normal), p_cell(detalle_op['usuario_registro'])]
+        [Paragraph('<b>Supervisor:</b>', style_normal), p_cell(detalle_op['nombre_supervisor']), Paragraph('<b>Costeado por:</b>', style_normal), p_cell(detalle_op['nombre_costeador'])],
+        [Paragraph('<b>Registrado por:</b>', style_normal), p_cell(detalle_op['usuario_registro']), Paragraph('<b>Fecha de registro:</b>', style_normal), p_cell(detalle_op['fecha_registro'])]
     ]
     t_personal = Table(data_personal, colWidths=[1.5*inch, 1.8*inch, 1.5*inch, 2.4*inch])
     t_personal.setStyle(TableStyle([

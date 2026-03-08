@@ -113,6 +113,13 @@
           <select name="id_disenador_industrial" id="id_disenador_industrial"
             class="form-control select2" required></select>
         </div>
+        <div class="col-md-4">
+          <label for="id_costeador"
+            class="form-label fw-bold text-primary">COSTEADOR<span
+              class="text-danger">*</span></label>
+          <select name="id_costeador" id="id_costeador"
+            class="form-control select2" required></select>
+        </div>
         <div class="col-md-3">
           <label for="logistica"
             class="form-label fw-bold text-primary">LOGÍSTICA</label>
@@ -816,6 +823,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   setupSelect2('#id_empleado', "{{ url_for('api_empleados') }}", 'Seleccionar Vendedor', 'empleados', 'id_empleado', 'nombre_empleado');
   setupSelect2('#id_disenador_grafico', "{{ url_for('api_disenadores_graficos') }}", 'Seleccionar Diseñador Grafico', 'disenadores_graficos', 'id_empleado', 'nombre_empleado', false, false, true);
   setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado', false, false, true);
+  setupSelect2('#id_costeador', "{{ url_for('api_costeadores') }}", 'Seleccionar Costeador', 'costeadores', 'id_empleado', 'nombre_empleado', false, false, true);
   setupSelect2('#id_supervisor', "{{ url_for('api_supervisores') }}", 'Seleccionar Supervisor', 'supervisores', 'id_empleado', 'nombre_empleado', false, false, true);
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
@@ -1687,6 +1695,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
 
     const disenadorIndustrialVal = $('#id_disenador_industrial').val();
     formData.append('id_disenador_industrial', disenadorIndustrialVal === null ? '' : disenadorIndustrialVal);
+
+    const costeadorVal = $('#id_costeador').val();
+    formData.append('id_costeador', costeadorVal === null ? '' : costeadorVal);
 
     // Manejo de procesos
     const opIdsProcesos = $('#op_ids_procesos').val();
