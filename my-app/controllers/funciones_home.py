@@ -4272,7 +4272,7 @@ def get_costeadores_paginados(page, per_page, search=None):
         query = db.session.query(Empleados).options(db.joinedload(Empleados.empresa), db.joinedload(Empleados.tipo_empleado_ref)).filter(
             Empleados.fecha_borrado.is_(None),
             # Filtrar por cargo
-            Empleados.cargo.in_(['ANALISTA DE COSTOS', 'AUXILIAR DE COSTOS'])
+            Empleados.cargo.in_(['ANALISTA DE COSTOS', 'AUXILIAR DE COSTOS','ASISTENTE COMERCIAL','VENDEDOR','GERENTE'])
         ).order_by(Empleados.id_empleado.desc())
         if search:
             search = f"%{search}%"
