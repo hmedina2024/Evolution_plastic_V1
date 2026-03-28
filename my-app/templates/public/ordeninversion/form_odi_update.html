@@ -1,0 +1,384 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Actualizar Orden de Inversión{% endblock %}
+
+{% block customCSS %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-warning text-dark text-center">
+    <h3 class="fw-bold">
+      <a href="/lista-de-odi" class="text-dark me-3">
+        <i class="bi bi-arrow-left-circle"></i>
+      </a>
+      ACTUALIZAR ORDEN DE INVERSIÓN: {{ odi_data.codigo_odi }}
+    </h3>
+  </div>
+  <div class="card-body p-4">
+
+    {# Datos de la ODI en JSON para poblar el formulario #}
+    <script id="odiDataJson" type="application/json">
+      {{ odi_data | tojson | safe if odi_data else '{}' }}
+    </script>
+
+    <form class="form-horizontal mx-auto needs-validation" method="POST"
+      action="{{ url_for('actualizar_odi', codigo_odi=odi_data.codigo_odi) }}"
+      autocomplete="off" enctype="multipart/form-data" id="actualizarOdiForm" novalidate>
+
+      <!-- ── SECCIÓN 1: Datos que se transfieren a la OP ── -->
+      <div class="alert alert-info py-2 mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        Los campos marcados con <span class="badge bg-primary">→OP</span>
+        se transfieren automáticamente a la Orden de Producción al seleccionar esta ODI.
+      </div>
+
+      <h5 class="text-success fw-bold mb-3"><i class="bi bi-link-45deg me-1"></i> Datos vinculados a la OP</h5>
+      <div class="row g-4">
+
+        <div class="col-md-4">
+          <label for="proyecto" class="form-label fw-bold text-primary">
+            PROYECTO <span class="badge bg-primary ms-1">→OP Referencia</span>
+            <span class="text-danger">*</span>
+          </label>
+          <input type="text" name="proyecto" id="proyecto" class="form-control text-uppercase"
+            placeholder="Nombre del proyecto" required>
+          <div class="invalid-feedback">Por favor, ingrese el nombre del proyecto.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label for="pieza" class="form-label fw-bold text-primary">
+            PIEZA <span class="badge bg-primary ms-1">→OP Producto</span>
+            <span class="text-danger">*</span>
+          </label>
+          <input type="text" name="pieza" id="pieza" class="form-control text-uppercase"
+            placeholder="Nombre de la pieza" required>
+          <div class="invalid-feedback">Por favor, ingrese el nombre de la pieza.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label for="id_cliente" class="form-label fw-bold text-primary">
+            CLIENTE <span class="badge bg-primary ms-1">→OP</span>
+            <span class="text-danger">*</span>
+          </label>
+          <select name="id_cliente" id="id_cliente" class="form-control select2" required></select>
+          <div class="invalid-feedback">Por favor, seleccione un cliente.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label for="id_empleado" class="form-label fw-bold text-primary">
+            COMERCIAL (Vendedor) <span class="badge bg-primary ms-1">→OP</span>
+            <span class="text-danger">*</span>
+          </label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
+          <div class="invalid-feedback">Por favor, seleccione un comercial.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label for="id_disenador_industrial" class="form-label fw-bold text-primary">
+            DISEÑADOR INDUSTRIAL <span class="badge bg-primary ms-1">→OP</span>
+          </label>
+          <select name="id_disenador_industrial" id="id_disenador_industrial"
+            class="form-control select2"></select>
+        </div>
+
+      </div>
+
+      <hr class="my-4">
+
+      <!-- ── SECCIÓN 2: Datos propios de la ODI ── -->
+      <h5 class="text-secondary fw-bold mb-3"><i class="bi bi-file-earmark-text me-1"></i> Datos propios de la ODI</h5>
+      <div class="row g-4">
+
+        <div class="col-md-3">
+          <label for="fecha_brif" class="form-label fw-bold text-primary">
+            FECHA BRIF <span class="text-danger">*</span>
+          </label>
+          <input class="form-control" type="date" name="fecha_brif" id="fecha_brif" required>
+          <div class="invalid-feedback">Por favor, ingrese la fecha de brif.</div>
+        </div>
+
+        <div class="col-md-3">
+          <label for="fecha_entrega" class="form-label fw-bold text-primary">FECHA ENTREGA</label>
+          <input class="form-control" type="date" name="fecha_entrega" id="fecha_entrega">
+        </div>
+
+        <div class="col-md-3">
+          <label for="fecha_produccion" class="form-label fw-bold text-primary">FECHA PRODUCCIÓN</label>
+          <input class="form-control" type="date" name="fecha_produccion" id="fecha_produccion">
+        </div>
+
+        <div class="col-md-3">
+          <label for="estado" class="form-label fw-bold text-primary">ESTADO <span class="text-danger">*</span></label>
+          <select name="estado" id="estado" class="form-control" required>
+            <option value="" disabled>Seleccionar Estado</option>
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="CERRADO">CERRADO</option>
+            <option value="ANULADO">ANULADO</option>
+          </select>
+          <div class="invalid-feedback">Por favor, seleccione un estado.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label for="diseno_o_producto" class="form-label fw-bold text-primary">DISEÑO O PRODUCTO</label>
+          <input type="text" name="diseno_o_producto" id="diseno_o_producto"
+            class="form-control" placeholder="Descripción del diseño o producto">
+        </div>
+
+        <!-- Documentos existentes -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-primary">
+            <i class="bi bi-paperclip me-1"></i> DOCUMENTOS EXISTENTES
+          </label>
+          <ul class="list-group" id="existingFileList"></ul>
+        </div>
+
+        <div class="col-md-6">
+          <label for="documentos" class="form-label fw-bold text-primary">
+            <i class="bi bi-upload me-1"></i> AGREGAR NUEVOS ARCHIVOS
+          </label>
+          <input class="form-control" type="file" name="documentos" id="documentos" accept="*" multiple>
+          <ul class="list-group mt-2" id="fileList"></ul>
+        </div>
+
+      </div>
+
+      <!-- Campos ocultos -->
+      <input type="hidden" name="ids_documentos_eliminar" id="ids_documentos_eliminar" value="">
+      <input type="hidden" name="submit_action" id="submit_action" value="save">
+
+      <div class="text-center mt-5">
+        <button type="button" class="btn btn-warning rounded-pill px-5" id="submitBtn">
+          <i class="bi bi-save me-2"></i> Actualizar ODI
+        </button>
+        <a href="/lista-de-odi" class="btn btn-secondary rounded-pill px-4 ms-3">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function () {
+
+  // ── Cargar datos existentes de la ODI ──
+  let datosOdi = {};
+  const odiDataEl = document.getElementById('odiDataJson');
+  if (odiDataEl) {
+    try { datosOdi = JSON.parse(odiDataEl.textContent); }
+    catch (e) { console.error('Error al parsear odiDataJson:', e); }
+  }
+
+  // ── Manejo de archivos nuevos ──
+  let selectedFiles = [];
+  let idsDocumentosEliminar = [];
+
+  const documentosInput = document.getElementById('documentos');
+  const fileListUl      = document.getElementById('fileList');
+  const existingListUl  = document.getElementById('existingFileList');
+
+  function renderNewFileList() {
+    fileListUl.innerHTML = '';
+    if (selectedFiles.length > 0) {
+      selectedFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2';
+        const span = document.createElement('span');
+        span.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+        li.appendChild(span);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-danger btn-sm py-0 px-1';
+        btn.innerHTML = '<i class="bi bi-trash" style="font-size:0.8rem;"></i>';
+        btn.addEventListener('click', () => { selectedFiles.splice(index, 1); renderNewFileList(); });
+        li.appendChild(btn);
+        fileListUl.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.className = 'list-group-item text-muted py-1 px-2';
+      li.textContent = 'Sin nuevos archivos.';
+      existingListUl.appendChild(li);
+    }
+  }
+
+  function renderExistingFiles() {
+    existingListUl.innerHTML = '';
+    if (datosOdi.documentos && datosOdi.documentos.length > 0) {
+      datosOdi.documentos.forEach(doc => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2';
+        li.id = `doc-item-${doc.id_documento_odi}`;
+
+        const link = document.createElement('a');
+        link.href = `/static/documentos_odi/${doc.documento_path}`;
+        link.target = '_blank';
+        link.textContent = doc.documento_nombre_original;
+        li.appendChild(link);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-danger btn-sm py-0 px-1';
+        btn.innerHTML = '<i class="bi bi-trash" style="font-size:0.8rem;"></i>';
+        btn.title = 'Eliminar este documento';
+        btn.addEventListener('click', function () {
+          if (confirm(`¿Eliminar "${doc.documento_nombre_original}"?`)) {
+            idsDocumentosEliminar.push(doc.id_documento_odi);
+            $('#ids_documentos_eliminar').val(idsDocumentosEliminar.join(','));
+            li.remove();
+          }
+        });
+        li.appendChild(btn);
+        existingListUl.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.className = 'list-group-item text-muted py-1 px-2';
+      li.textContent = 'Sin documentos existentes.';
+      existingListUl.appendChild(li);
+    }
+  }
+
+  if (documentosInput) {
+    documentosInput.addEventListener('change', function (e) {
+      Array.from(e.target.files).forEach(f => {
+        if (!selectedFiles.some(x => x.name === f.name)) selectedFiles.push(f);
+      });
+      renderNewFileList();
+      e.target.value = null;
+    });
+  }
+
+  renderExistingFiles();
+  renderNewFileList();
+
+  // ── Select2 helper ──
+  function setupSelect2(selector, url, placeholder, dataKey, keyId, keyText) {
+    const $s = $(selector);
+    if (!$s.length) return;
+    $s.select2({
+      placeholder, allowClear: true, minimumInputLength: 0,
+      dropdownAutoWidth: true, width: '100%',
+      ajax: {
+        url, dataType: 'json', delay: 250,
+        data: p => ({ search: p.term || '', page: p.page || 1, per_page: 10 }),
+        processResults: (data, p) => {
+          p.page = p.page || 1;
+          let items = [];
+          if (data && data[dataKey] && Array.isArray(data[dataKey])) {
+            items = data[dataKey].map(i => ({ id: i[keyId], text: i[keyText] || i[keyId] }));
+          } else if (data && data.results) { items = data.results; }
+          return { results: items, pagination: { more: data.pagination && data.pagination.more } };
+        }, cache: true
+      }
+    }).on('select2:open', () => {
+      setTimeout(() => { const sf = document.querySelector('.select2-container--open .select2-search__field'); if (sf) sf.focus(); }, 50);
+    });
+  }
+
+  setupSelect2('#id_cliente',              "{{ url_for('api_clientes') }}",              'Seleccionar Cliente',              'clientes',              'id_cliente',  'nombre_cliente');
+  setupSelect2('#id_empleado',             "{{ url_for('api_empleados') }}",             'Seleccionar Comercial',            'empleados',             'id_empleado', 'nombre_empleado');
+  setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado');
+
+  // ── Poblar formulario con datos existentes ──
+  if (datosOdi && Object.keys(datosOdi).length > 0) {
+    $('#proyecto').val(datosOdi.proyecto || '');
+    $('#pieza').val(datosOdi.pieza || '');
+    $('#fecha_brif').val(datosOdi.fecha_brif || '');
+    $('#fecha_entrega').val(datosOdi.fecha_entrega || '');
+    $('#fecha_produccion').val(datosOdi.fecha_produccion || '');
+    $('#diseno_o_producto').val(datosOdi.diseno_o_producto || '');
+    $('#estado').val(datosOdi.estado || '');
+
+    // Select2 con AJAX: Cliente
+    if (datosOdi.id_cliente && datosOdi.nombre_cliente) {
+      var opt = new Option(datosOdi.nombre_cliente, datosOdi.id_cliente, true, true);
+      $('#id_cliente').append(opt).trigger('change');
+    }
+    // Comercial
+    if (datosOdi.id_empleado && datosOdi.nombre_comercial) {
+      var opt2 = new Option(datosOdi.nombre_comercial, datosOdi.id_empleado, true, true);
+      $('#id_empleado').append(opt2).trigger('change');
+    }
+    // Diseñador Industrial
+    if (datosOdi.id_disenador_industrial && datosOdi.nombre_disenador_industrial) {
+      var opt3 = new Option(datosOdi.nombre_disenador_industrial, datosOdi.id_disenador_industrial, true, true);
+      $('#id_disenador_industrial').append(opt3).trigger('change');
+    }
+  }
+
+  // ── Convertir a mayúsculas ──
+  $('#proyecto, #pieza, #diseno_o_producto').on('input', function () {
+    $(this).val($(this).val().toUpperCase());
+  });
+
+  // ── Envío del formulario ──
+  let isSubmitting = false;
+
+  $('#submitBtn').on('click', function () {
+    $('#submit_action').val('save');
+    $('#actualizarOdiForm').submit();
+  });
+
+  $('#actualizarOdiForm').on('submit', function (e) {
+    e.preventDefault();
+    const form = this;
+
+    if (!form.checkValidity()) {
+      $(form).addClass('was-validated');
+      return false;
+    }
+
+    if (isSubmitting) return false;
+    isSubmitting = true;
+    $('#submitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Actualizando...');
+
+    const formData = new FormData();
+    formData.append('proyecto',                $('#proyecto').val());
+    formData.append('pieza',                   $('#pieza').val());
+    formData.append('id_cliente',              $('#id_cliente').val() || '');
+    formData.append('id_empleado',             $('#id_empleado').val() || '');
+    formData.append('id_disenador_industrial', $('#id_disenador_industrial').val() || '');
+    formData.append('fecha_brif',              $('#fecha_brif').val());
+    formData.append('fecha_entrega',           $('#fecha_entrega').val());
+    formData.append('fecha_produccion',        $('#fecha_produccion').val());
+    formData.append('diseno_o_producto',       $('#diseno_o_producto').val());
+    formData.append('estado',                  $('#estado').val());
+    formData.append('ids_documentos_eliminar', $('#ids_documentos_eliminar').val());
+    formData.append('submit_action',           $('#submit_action').val());
+
+    selectedFiles.forEach(f => formData.append('documentos', f, f.name));
+
+    $.ajax({
+      url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
+      success: function (response) {
+        if (response.status === 'success') {
+          alert(response.message || 'ODI actualizada con éxito.');
+          window.location.href = response.redirect_url || '/lista-de-odi';
+        } else {
+          alert('Error al actualizar la ODI: ' + (response.message || 'Error desconocido.'));
+        }
+      },
+      error: function (xhr) {
+        let msg = 'Error en la comunicación.';
+        try { const r = JSON.parse(xhr.responseText); if (r && r.message) msg = r.message; } catch (ex) {}
+        alert(msg);
+      },
+      complete: function () {
+        isSubmitting = false;
+        $('#submitBtn').prop('disabled', false).html('<i class="bi bi-save me-2"></i> Actualizar ODI');
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -239,6 +239,7 @@ class OrdenProduccion(db.Model):
     id_disenador_grafico = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
     id_disenador_industrial = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
     id_costeador = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    id_odi_fk = db.Column(db.Integer, db.ForeignKey('tbl_ordeninversion.id_odi'), nullable=True)
 
     # Relaciones existentes
     cliente = db.relationship('Clientes', backref='ordenes', lazy=True)
@@ -441,3 +442,56 @@ class CorreosFijos(db.Model):
     email = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.String(100), nullable=True)
     activo = db.Column(db.Boolean, default=True)
+
+
+# --- Modelo OrdenInversion (ODI) ---
+class OrdenInversion(db.Model):
+    __tablename__ = 'tbl_ordeninversion'
+
+    id_odi                  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    codigo_odi              = db.Column(db.String(50), nullable=False, unique=True)
+    # Campos que se transfieren a la OP al seleccionar la ODI
+    proyecto                = db.Column(db.String(200), nullable=True)   # → referencia en OP
+    pieza                   = db.Column(db.String(200), nullable=True)   # → producto en OP
+    id_cliente              = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
+    id_empleado             = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)  # Comercial
+    id_disenador_industrial = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    # Campos propios de la ODI (NO se transfieren a OP)
+    fecha_brif              = db.Column(db.Date, nullable=True)
+    diseno_o_producto       = db.Column(db.String(200), nullable=True)
+    fecha_entrega           = db.Column(db.Date, nullable=True)
+    fecha_produccion        = db.Column(db.Date, nullable=True)
+    estado                  = db.Column(db.String(50), nullable=True, default='ACTIVO')
+    fecha_registro          = db.Column(db.DateTime, default=func.now(), nullable=False)
+    id_usuario_registro     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    fecha_borrado           = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    cliente              = db.relationship('Clientes', backref='ordenes_inversion', lazy=True)
+    comercial            = db.relationship('Empleados', foreign_keys=[id_empleado],
+                                           backref='odi_comercial', lazy=True)
+    disenador_industrial = db.relationship('Empleados', foreign_keys=[id_disenador_industrial],
+                                           backref='odi_disenador_industrial', lazy=True)
+    usuario_registro     = db.relationship('Users', backref='odi_registradas', lazy=True)
+    documentos_odi       = db.relationship('DocumentosODI', backref='orden_inversion', lazy=True,
+                                           cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<OrdenInversion {self.codigo_odi}>'
+
+
+# --- Modelo DocumentosODI ---
+class DocumentosODI(db.Model):
+    __tablename__ = 'tbl_documentos_odi'
+
+    id_documento_odi        = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_odi                  = db.Column(db.Integer,
+                                        db.ForeignKey('tbl_ordeninversion.id_odi', ondelete='CASCADE'),
+                                        nullable=False)
+    documento_path          = db.Column(db.String(255), nullable=False)
+    documento_nombre_original = db.Column(db.String(255), nullable=False)
+    fecha_registro          = db.Column(db.DateTime, default=func.now(), nullable=False)
+    fecha_borrado           = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return f'<DocumentosODI {self.documento_nombre_original}>'

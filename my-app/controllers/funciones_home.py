@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones # Añadido OrdenProduccionURLs y OrdenPiezaEspecificaciones
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenInversion, DocumentosODI  # Añadido OrdenInversion y DocumentosODI
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -2444,7 +2444,7 @@ def procesar_form_op(dataForm, files):
                     
                     # CONFIGURACIÓN CORREO (cPanel / Colombia Hosting)
                     email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = '~a&l(=o5%*Nc'  # <--- ¡IMPORTANTE! COLOCA LA CORRECTA AQUÍ
+                    email_password = 'NataEvo:1'  # <--- ¡IMPORTANTE! COLOCA LA CORRECTA AQUÍ
                     smtp_server = 'mail.evolutionplastic.com'
                     smtp_port = 465
 
@@ -3569,7 +3569,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     
                     # CONFIGURACIÓN CORREO (cPanel)
                     email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = '~a&l(=o5%*Nc'  # <--- RECUERDA VERIFICAR ESTA CONTRASEÑA
+                    email_password = 'NataEvo:1'  # <--- RECUERDA VERIFICAR ESTA CONTRASEÑA
                     smtp_server = 'mail.evolutionplastic.com'
                     smtp_port = 465 
 
@@ -5116,3 +5116,546 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
                         app.logger.error(f"Background Error enviando a {email_destino}: {e}")
         except Exception as e_gen:
             app.logger.error(f"Background Error General SMTP: {e_gen}")
+
+
+# ============================================================
+# --- Funciones de Orden de Inversión (ODI) ---
+# ============================================================
+
+def generar_codigo_odi():
+    """Genera un código único para la ODI con formato ODI-YYYY-NNNN."""
+    try:
+        anio_actual = datetime.now().year
+        prefijo = f"ODI-{anio_actual}-"
+        # Buscar la última ODI del año actual
+        ultima_odi = db.session.query(OrdenInversion).filter(
+            OrdenInversion.codigo_odi.like(f"{prefijo}%"),
+            OrdenInversion.fecha_borrado.is_(None)
+        ).order_by(OrdenInversion.id_odi.desc()).first()
+
+        if ultima_odi:
+            try:
+                ultimo_numero = int(ultima_odi.codigo_odi.split('-')[-1])
+                nuevo_numero = ultimo_numero + 1
+            except (ValueError, IndexError):
+                nuevo_numero = 1
+        else:
+            nuevo_numero = 1
+
+        return f"{prefijo}{str(nuevo_numero).zfill(4)}"
+    except Exception as e:
+        app.logger.error(f"Error en generar_codigo_odi: {e}")
+        return f"ODI-{datetime.now().year}-0001"
+
+
+def validar_cod_odi(codigo_odi):
+    """Valida si un código ODI ya existe en la base de datos."""
+    try:
+        if not codigo_odi:
+            return False
+        odi = db.session.query(OrdenInversion).filter_by(
+            codigo_odi=codigo_odi, fecha_borrado=None).first()
+        return odi is not None
+    except Exception as e:
+        app.logger.error(f"Error en validar_cod_odi: {e}")
+        return False
+
+
+def procesar_form_odi(dataForm, files):
+    """Procesa el formulario de registro de una nueva ODI."""
+    errores = []
+    try:
+        # Obtener datos del formulario
+        proyecto = dataForm.get('proyecto', '').strip()
+        pieza = dataForm.get('pieza', '').strip()
+        id_cliente = dataForm.get('id_cliente')
+        id_empleado = dataForm.get('id_empleado')
+        id_disenador_industrial = dataForm.get('id_disenador_industrial')
+        fecha_brif_str = dataForm.get('fecha_brif', '').strip()
+        diseno_o_producto = dataForm.get('diseno_o_producto', '').strip()
+        fecha_entrega_str = dataForm.get('fecha_entrega', '').strip()
+        fecha_produccion_str = dataForm.get('fecha_produccion', '').strip()
+        estado = dataForm.get('estado', 'ACTIVO').strip()
+        id_usuario_registro = session.get('id')
+
+        # Generar código ODI automáticamente (igual que OP)
+        codigo_odi = generar_codigo_odi()
+        app.logger.info(f"Código ODI generado automáticamente: {codigo_odi}")
+
+        # Convertir fechas
+        fecha_brif = None
+        if fecha_brif_str:
+            try:
+                fecha_brif = datetime.strptime(fecha_brif_str, '%Y-%m-%d').date()
+            except ValueError:
+                errores.append('Formato de Fecha Brif inválido (use YYYY-MM-DD).')
+
+        fecha_entrega = None
+        if fecha_entrega_str:
+            try:
+                fecha_entrega = datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date()
+            except ValueError:
+                errores.append('Formato de Fecha Entrega inválido (use YYYY-MM-DD).')
+
+        fecha_produccion = None
+        if fecha_produccion_str:
+            try:
+                fecha_produccion = datetime.strptime(fecha_produccion_str, '%Y-%m-%d').date()
+            except ValueError:
+                errores.append('Formato de Fecha Producción inválido (use YYYY-MM-DD).')
+
+        if errores:
+            return jsonify({'status': 'error', 'message': ' | '.join(errores)}), 400
+
+        # Crear la ODI
+        nueva_odi = OrdenInversion(
+            codigo_odi=codigo_odi,
+            proyecto=proyecto if proyecto else None,
+            pieza=pieza if pieza else None,
+            id_cliente=int(id_cliente) if id_cliente else None,
+            id_empleado=int(id_empleado) if id_empleado else None,
+            id_disenador_industrial=int(id_disenador_industrial) if id_disenador_industrial else None,
+            fecha_brif=fecha_brif,
+            diseno_o_producto=diseno_o_producto if diseno_o_producto else None,
+            fecha_entrega=fecha_entrega,
+            fecha_produccion=fecha_produccion,
+            estado=estado,
+            id_usuario_registro=id_usuario_registro,
+            fecha_registro=datetime.now(LOCAL_TIMEZONE)
+        )
+        db.session.add(nueva_odi)
+        db.session.flush()  # Para obtener el id_odi generado
+
+        # Procesar archivos adjuntos (el JS envía con nombre 'documentos')
+        documentos_subidos = files.getlist('documentos')
+        basepath = os.path.abspath(os.path.dirname(__file__))
+        upload_folder = os.path.normpath(os.path.join(basepath, '../static/documentos_odi'))
+        os.makedirs(upload_folder, exist_ok=True)
+
+        for doc_file in documentos_subidos:
+            if doc_file and doc_file.filename:
+                try:
+                    es_valido, mensaje_validacion = validate_file(doc_file, ALLOWED_DOC_EXTENSIONS)
+                    if es_valido:
+                        import hashlib
+                        file_content = doc_file.read()
+                        file_hash = hashlib.sha256(file_content).hexdigest()
+                        extension = os.path.splitext(secure_filename(doc_file.filename))[1].lower()
+                        nombre_guardado = f"{file_hash}{extension}"
+                        ruta_completa = os.path.join(upload_folder, nombre_guardado)
+                        with open(ruta_completa, 'wb') as f:
+                            f.write(file_content)
+                        nuevo_doc = DocumentosODI(
+                            id_odi=nueva_odi.id_odi,
+                            documento_path=nombre_guardado,
+                            documento_nombre_original=doc_file.filename,
+                            fecha_registro=datetime.now(LOCAL_TIMEZONE)
+                        )
+                        db.session.add(nuevo_doc)
+                    else:
+                        app.logger.warning(f"Archivo ODI rechazado: {doc_file.filename} - {mensaje_validacion}")
+                except Exception as e_doc:
+                    app.logger.error(f"Error procesando documento ODI {doc_file.filename}: {e_doc}")
+
+        db.session.commit()
+        app.logger.info(f"ODI {codigo_odi} creada exitosamente con id_odi={nueva_odi.id_odi}")
+        return jsonify({
+            'status': 'success',
+            'message': f'Orden de Inversión {codigo_odi} registrada exitosamente.',
+            'codigo_odi': codigo_odi,
+            'redirect_url': url_for('detalle_odi', codigo_odi=codigo_odi)
+        }), 201
+
+    except IntegrityError as ie:
+        db.session.rollback()
+        app.logger.error(f"IntegrityError en procesar_form_odi: {ie}")
+        return jsonify({'status': 'error', 'message': 'Error de integridad: el código ODI ya existe o hay datos inválidos.'}), 400
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_form_odi: {e}")
+        return jsonify({'status': 'error', 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+
+def sql_lista_odi_bd(draw=1, start=0, length=10, search_codigo_odi=None, search_fecha=None, search_nombre_cliente=None, search_proyecto=None):
+    """Consulta server-side para DataTables de la lista de ODIs."""
+    try:
+        empleado_comercial = aliased(Empleados)
+
+        query = db.session.query(OrdenInversion).outerjoin(
+            Clientes, OrdenInversion.id_cliente == Clientes.id_cliente
+        ).outerjoin(
+            empleado_comercial, OrdenInversion.id_empleado == empleado_comercial.id_empleado
+        ).filter(OrdenInversion.fecha_borrado.is_(None))
+
+        # Filtros
+        if search_codigo_odi:
+            query = query.filter(OrdenInversion.codigo_odi.ilike(f"%{search_codigo_odi}%"))
+        if search_nombre_cliente:
+            query = query.filter(Clientes.nombre_cliente.ilike(f"%{search_nombre_cliente}%"))
+        if search_proyecto:
+            query = query.filter(OrdenInversion.proyecto.ilike(f"%{search_proyecto}%"))
+        if search_fecha:
+            try:
+                fecha_dt = datetime.strptime(search_fecha, '%Y-%m-%d')
+                query = query.filter(
+                    func.date(OrdenInversion.fecha_registro) == fecha_dt.date()
+                )
+            except ValueError:
+                pass
+
+        total_records = query.count()
+        odis = query.order_by(OrdenInversion.id_odi.desc()).offset(start).limit(length).all()
+
+        data = []
+        for odi in odis:
+            nombre_cliente = odi.cliente.nombre_cliente if odi.cliente else 'N/A'
+            nombre_comercial = ''
+            if odi.comercial:
+                nombre_comercial = f"{odi.comercial.nombre_empleado} {odi.comercial.apellido_empleado or ''}".strip()
+
+            fecha_brif_str = odi.fecha_brif.strftime('%d/%m/%Y') if odi.fecha_brif else 'N/A'
+            fecha_registro_str = odi.fecha_registro.strftime('%d/%m/%Y %H:%M') if odi.fecha_registro else 'N/A'
+
+            data.append({
+                'id_odi': odi.id_odi,
+                'codigo_odi': odi.codigo_odi,
+                'proyecto': odi.proyecto or 'N/A',
+                'pieza': odi.pieza or 'N/A',
+                'nombre_cliente': nombre_cliente,
+                'nombre_comercial': nombre_comercial,
+                'estado': odi.estado or 'ACTIVO',
+                'fecha_brif': fecha_brif_str,
+                'fecha_registro': fecha_registro_str,
+            })
+
+        return {
+            'draw': draw,
+            'recordsTotal': total_records,
+            'recordsFiltered': total_records,
+            'data': data
+        }
+
+    except Exception as e:
+        app.logger.error(f"Error en sql_lista_odi_bd: {e}")
+        return {'draw': draw, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': [], 'error': str(e)}
+
+
+def sql_detalles_odi_bd(codigo_odi):
+    """Obtiene los detalles completos de una ODI para la vista de detalles."""
+    try:
+        empleado_comercial = aliased(Empleados)
+        empleado_disenador = aliased(Empleados)
+
+        odi = db.session.query(OrdenInversion).filter(
+            OrdenInversion.codigo_odi == codigo_odi,
+            OrdenInversion.fecha_borrado.is_(None)
+        ).first()
+
+        if not odi:
+            return None
+
+        nombre_cliente = odi.cliente.nombre_cliente if odi.cliente else 'N/A'
+        nombre_comercial = ''
+        if odi.comercial:
+            nombre_comercial = f"{odi.comercial.nombre_empleado} {odi.comercial.apellido_empleado or ''}".strip()
+        nombre_disenador = ''
+        if odi.disenador_industrial:
+            nombre_disenador = f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip()
+
+        nombre_usuario_registro = ''
+        if odi.usuario_registro:
+            nombre_usuario_registro = odi.usuario_registro.email_user
+
+        documentos = []
+        for doc in odi.documentos_odi:
+            if doc.fecha_borrado is None:
+                documentos.append({
+                    'id_documento_odi': doc.id_documento_odi,
+                    'documento_path': doc.documento_path,
+                    'documento_nombre_original': doc.documento_nombre_original,
+                    'fecha_registro': doc.fecha_registro.strftime('%d/%m/%Y') if doc.fecha_registro else 'N/A'
+                })
+
+        # Buscar OPs vinculadas a esta ODI
+        ops_vinculadas = db.session.query(OrdenProduccion).filter(
+            OrdenProduccion.id_odi_fk == odi.id_odi,
+            OrdenProduccion.fecha_borrado.is_(None)
+        ).all()
+
+        ops_data = []
+        for op in ops_vinculadas:
+            ops_data.append({
+                'codigo_op': op.codigo_op,
+                'referencia': op.referencia or 'N/A',
+                'producto': op.producto or 'N/A',
+                'estado': op.estado or 'N/A',
+                'fecha_registro': op.fecha_registro.strftime('%d/%m/%Y') if op.fecha_registro else 'N/A'
+            })
+
+        return {
+            'id_odi': odi.id_odi,
+            'codigo_odi': odi.codigo_odi,
+            'proyecto': odi.proyecto or 'N/A',
+            'pieza': odi.pieza or 'N/A',
+            'id_cliente': odi.id_cliente,
+            'nombre_cliente': nombre_cliente,
+            'id_empleado': odi.id_empleado,
+            'nombre_comercial': nombre_comercial,
+            'id_disenador_industrial': odi.id_disenador_industrial,
+            'nombre_disenador_industrial': nombre_disenador,
+            'fecha_brif': odi.fecha_brif.strftime('%Y-%m-%d') if odi.fecha_brif else None,
+            'fecha_brif_display': odi.fecha_brif.strftime('%d/%m/%Y') if odi.fecha_brif else 'N/A',
+            'diseno_o_producto': odi.diseno_o_producto or 'N/A',
+            'fecha_entrega': odi.fecha_entrega.strftime('%Y-%m-%d') if odi.fecha_entrega else None,
+            'fecha_entrega_display': odi.fecha_entrega.strftime('%d/%m/%Y') if odi.fecha_entrega else 'N/A',
+            'fecha_produccion': odi.fecha_produccion.strftime('%Y-%m-%d') if odi.fecha_produccion else None,
+            'fecha_produccion_display': odi.fecha_produccion.strftime('%d/%m/%Y') if odi.fecha_produccion else 'N/A',
+            'estado': odi.estado or 'ACTIVO',
+            'fecha_registro': odi.fecha_registro.strftime('%d/%m/%Y %H:%M') if odi.fecha_registro else 'N/A',
+            'nombre_usuario_registro': nombre_usuario_registro,
+            'documentos': documentos,
+            'ops_vinculadas': ops_data
+        }
+
+    except Exception as e:
+        app.logger.error(f"Error en sql_detalles_odi_bd: {e}")
+        return None
+
+
+def obtener_datos_odi_para_edicion(codigo_odi):
+    """Obtiene los datos de una ODI para pre-poblar el formulario de edición."""
+    try:
+        odi = db.session.query(OrdenInversion).filter(
+            OrdenInversion.codigo_odi == codigo_odi,
+            OrdenInversion.fecha_borrado.is_(None)
+        ).first()
+
+        if not odi:
+            return {'status': 'error', 'message': f'ODI con código {codigo_odi} no encontrada.'}, 404
+
+        nombre_cliente = odi.cliente.nombre_cliente if odi.cliente else ''
+        nombre_comercial = ''
+        if odi.comercial:
+            nombre_comercial = f"{odi.comercial.nombre_empleado} {odi.comercial.apellido_empleado or ''}".strip()
+        nombre_disenador = ''
+        if odi.disenador_industrial:
+            nombre_disenador = f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip()
+
+        documentos = []
+        for doc in odi.documentos_odi:
+            if doc.fecha_borrado is None:
+                documentos.append({
+                    'id_documento_odi': doc.id_documento_odi,
+                    'documento_path': doc.documento_path,
+                    'documento_nombre_original': doc.documento_nombre_original,
+                })
+
+        datos = {
+            'id_odi': odi.id_odi,
+            'codigo_odi': odi.codigo_odi,
+            'proyecto': odi.proyecto or '',
+            'pieza': odi.pieza or '',
+            'id_cliente': odi.id_cliente,
+            'nombre_cliente': nombre_cliente,
+            'id_empleado': odi.id_empleado,
+            'nombre_comercial': nombre_comercial,
+            'id_disenador_industrial': odi.id_disenador_industrial,
+            'nombre_disenador_industrial': nombre_disenador,
+            'fecha_brif': odi.fecha_brif.strftime('%Y-%m-%d') if odi.fecha_brif else '',
+            'diseno_o_producto': odi.diseno_o_producto or '',
+            'fecha_entrega': odi.fecha_entrega.strftime('%Y-%m-%d') if odi.fecha_entrega else '',
+            'fecha_produccion': odi.fecha_produccion.strftime('%Y-%m-%d') if odi.fecha_produccion else '',
+            'estado': odi.estado or 'ACTIVO',
+            'documentos': documentos
+        }
+        return datos, 200
+
+    except Exception as e:
+        app.logger.error(f"Error en obtener_datos_odi_para_edicion: {e}")
+        return {'status': 'error', 'message': f'Error interno: {str(e)}'}, 500
+
+
+def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
+    """Procesa el formulario de actualización de una ODI existente."""
+    try:
+        odi = db.session.query(OrdenInversion).filter(
+            OrdenInversion.codigo_odi == codigo_odi,
+            OrdenInversion.fecha_borrado.is_(None)
+        ).first()
+
+        if not odi:
+            return {'success': False, 'message': f'ODI {codigo_odi} no encontrada.'}
+
+        # Actualizar campos
+        odi.proyecto = dataForm.get('proyecto', '').strip() or None
+        odi.pieza = dataForm.get('pieza', '').strip() or None
+
+        id_cliente = dataForm.get('id_cliente')
+        odi.id_cliente = int(id_cliente) if id_cliente else None
+
+        id_empleado = dataForm.get('id_empleado')
+        odi.id_empleado = int(id_empleado) if id_empleado else None
+
+        id_disenador_industrial = dataForm.get('id_disenador_industrial')
+        odi.id_disenador_industrial = int(id_disenador_industrial) if id_disenador_industrial else None
+
+        fecha_brif_str = dataForm.get('fecha_brif', '').strip()
+        if fecha_brif_str:
+            try:
+                odi.fecha_brif = datetime.strptime(fecha_brif_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        else:
+            odi.fecha_brif = None
+
+        odi.diseno_o_producto = dataForm.get('diseno_o_producto', '').strip() or None
+
+        fecha_entrega_str = dataForm.get('fecha_entrega', '').strip()
+        if fecha_entrega_str:
+            try:
+                odi.fecha_entrega = datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        else:
+            odi.fecha_entrega = None
+
+        fecha_produccion_str = dataForm.get('fecha_produccion', '').strip()
+        if fecha_produccion_str:
+            try:
+                odi.fecha_produccion = datetime.strptime(fecha_produccion_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        else:
+            odi.fecha_produccion = None
+
+        odi.estado = dataForm.get('estado', 'ACTIVO').strip()
+
+        # Procesar documentos a eliminar (el JS envía como string separado por comas)
+        ids_eliminar_str = dataForm.get('ids_documentos_eliminar', '').strip()
+        docs_a_eliminar = [x.strip() for x in ids_eliminar_str.split(',') if x.strip()] if ids_eliminar_str else []
+        if docs_a_eliminar:
+            basepath = os.path.abspath(os.path.dirname(__file__))
+            for id_doc_str in docs_a_eliminar:
+                try:
+                    id_doc = int(id_doc_str)
+                    doc = db.session.query(DocumentosODI).filter_by(
+                        id_documento_odi=id_doc, id_odi=odi.id_odi
+                    ).first()
+                    if doc:
+                        doc_full_path = os.path.normpath(
+                            os.path.join(basepath, '../static/documentos_odi', doc.documento_path)
+                        )
+                        if os.path.exists(doc_full_path):
+                            os.remove(doc_full_path)
+                        doc.fecha_borrado = datetime.now(LOCAL_TIMEZONE)
+                except Exception as e_del:
+                    app.logger.error(f"Error eliminando documento ODI id={id_doc_str}: {e_del}")
+
+        # Procesar nuevos documentos (el JS envía con nombre 'documentos')
+        nuevos_docs = files.getlist('documentos')
+        basepath = os.path.abspath(os.path.dirname(__file__))
+        upload_folder = os.path.normpath(os.path.join(basepath, '../static/documentos_odi'))
+        os.makedirs(upload_folder, exist_ok=True)
+
+        for doc_file in nuevos_docs:
+            if doc_file and doc_file.filename:
+                try:
+                    es_valido, mensaje_validacion = validate_file(doc_file, ALLOWED_DOC_EXTENSIONS)
+                    if es_valido:
+                        import hashlib
+                        file_content = doc_file.read()
+                        file_hash = hashlib.sha256(file_content).hexdigest()
+                        extension = os.path.splitext(secure_filename(doc_file.filename))[1].lower()
+                        nombre_guardado = f"{file_hash}{extension}"
+                        ruta_completa = os.path.join(upload_folder, nombre_guardado)
+                        with open(ruta_completa, 'wb') as f:
+                            f.write(file_content)
+                        nuevo_doc = DocumentosODI(
+                            id_odi=odi.id_odi,
+                            documento_path=nombre_guardado,
+                            documento_nombre_original=doc_file.filename,
+                            fecha_registro=datetime.now(LOCAL_TIMEZONE)
+                        )
+                        db.session.add(nuevo_doc)
+                    else:
+                        app.logger.warning(f"Archivo ODI rechazado en actualización: {doc_file.filename} - {mensaje_validacion}")
+                except Exception as e_doc:
+                    app.logger.error(f"Error procesando nuevo documento ODI {doc_file.filename}: {e_doc}")
+
+        db.session.commit()
+        app.logger.info(f"ODI {codigo_odi} actualizada exitosamente.")
+        return {
+            'status': 'success',
+            'message': f'Orden de Inversión {codigo_odi} actualizada exitosamente.',
+            'redirect_url': url_for('detalle_odi', codigo_odi=codigo_odi)
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_actualizar_form_odi: {e}")
+        return {'status': 'error', 'message': f'Error interno del servidor: {str(e)}'}
+
+
+def eliminar_odi(id_odi):
+    """Elimina (soft delete) una ODI por su id."""
+    try:
+        odi = db.session.query(OrdenInversion).filter_by(id_odi=id_odi).first()
+        if not odi:
+            app.logger.warning(f"No se encontró la ODI con id_odi: {id_odi}")
+            return 0
+
+        odi.fecha_borrado = datetime.now(LOCAL_TIMEZONE)
+        db.session.commit()
+        app.logger.info(f"ODI con id_odi={id_odi} marcada como eliminada.")
+        return 1
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_odi: {e}")
+        return 0
+
+
+def get_odis_paginados(page=1, per_page=10, search=''):
+    """Retorna ODIs paginadas para Select2 (uso en formularios OP u otros)."""
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(OrdenInversion).filter(
+            OrdenInversion.fecha_borrado.is_(None)
+        )
+        if search:
+            query = query.filter(
+                or_(
+                    OrdenInversion.codigo_odi.ilike(f"%{search}%"),
+                    OrdenInversion.proyecto.ilike(f"%{search}%"),
+                    OrdenInversion.pieza.ilike(f"%{search}%")
+                )
+            )
+        total = query.count()
+        odis = query.order_by(OrdenInversion.id_odi.desc()).offset(offset).limit(per_page).all()
+
+        results = []
+        for odi in odis:
+            texto = odi.codigo_odi
+            if odi.proyecto:
+                texto += f" - {odi.proyecto}"
+            results.append({
+                'id': odi.id_odi,
+                'text': texto,
+                'codigo_odi': odi.codigo_odi,
+                'proyecto': odi.proyecto or '',
+                'pieza': odi.pieza or '',
+                'id_cliente': odi.id_cliente,
+                'nombre_cliente': odi.cliente.nombre_cliente if odi.cliente else '',
+                'id_empleado': odi.id_empleado,
+                'nombre_comercial': f"{odi.comercial.nombre_empleado} {odi.comercial.apellido_empleado or ''}".strip() if odi.comercial else '',
+                'id_disenador_industrial': odi.id_disenador_industrial,
+                'nombre_disenador': f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip() if odi.disenador_industrial else '',
+            })
+
+        return {
+            'results': results,
+            'pagination': {'more': (offset + per_page) < total}
+        }
+    except Exception as e:
+        app.logger.error(f"Error en get_odis_paginados: {e}")
+        return {'results': [], 'pagination': {'more': False}}

@@ -62,7 +62,23 @@
               >
                 <i class="bi bi-file-minus-fill me-2"></i> Lista de OP
               </a>
+            </li>            
+            <li>
+              <a
+                href="{{ url_for('viewFormOdi') }}"
+                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-odi' %} active {% endif %}"
+              >
+                <i class="bi bi-file-minus me-2"></i> Registro ODI
+              </a>
             </li>
+            <li>
+              <a
+                href="/lista-de-odi"
+                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-odi' %} active {% endif %}"
+              >
+                <i class="bi bi-file-minus-fill me-2"></i> Lista de ODI
+              </a>
+            </li>            
             {% endif %}
             <li>
               <a

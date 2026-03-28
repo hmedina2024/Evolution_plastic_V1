@@ -33,7 +33,11 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
                                         obtener_datos_op_para_edicion, # Importar la nueva función
-                                        get_all_empleados,generar_pdf_op_func, obtener_ultima_fecha_fin_empleado
+                                        get_all_empleados,generar_pdf_op_func, obtener_ultima_fecha_fin_empleado,
+                                        # Funciones ODI
+                                        generar_codigo_odi, validar_cod_odi, procesar_form_odi, sql_lista_odi_bd,
+                                        sql_detalles_odi_bd, obtener_datos_odi_para_edicion, procesar_actualizar_form_odi,
+                                        eliminar_odi, get_odis_paginados
                                         )
 
 PATH_URL = "public/empleados"
@@ -791,7 +795,7 @@ def borrar_operacion(id_operacion):
         flash('La operacion fue eliminada correctamente', 'success')
         return redirect(url_for('lista_operaciones'))
 
-# Orden de Producción
+# Orden de Producción y Orden de Inversión
 
 
 @app.route('/registrar-op', methods=['GET'])
@@ -805,6 +809,14 @@ def viewFormOp():
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+    
+@app.route('/registrar-odi', methods=['GET'])
+def viewFormOdi():
+    if 'conectado' in session:
+        return render_template('public/ordeninversion/form_odi.html')
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
 
 
 @app.route('/validar-codigo-op', methods=['POST'])
@@ -815,6 +827,15 @@ def validate_cod_op():
     else:
         return jsonify({'exists': False})
 
+
+
+@app.route('/validar-codigo-odi', methods=['POST'])
+def validate_cod_odi():
+    codigo_odi = request.form.get('documento')
+    if validar_cod_odi(codigo_odi):
+        return jsonify({'exists': True})
+    else:
+        return jsonify({'exists': False})
 
 @app.route('/form-registrar-op', methods=['POST'])
 def form_op():
@@ -832,12 +853,37 @@ def form_op():
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
+    
+@app.route('/form-registrar-odi', methods=['POST'])
+def form_odi():
+    if 'conectado' in session:
+        try:
+            # procesar_form_odi ahora devuelve una tupla (respuesta_json, status_code)
+            respuesta_json, status_code = procesar_form_odi(request.form, request.files)
+            return respuesta_json, status_code
+        except RequestEntityTooLarge:
+            app.logger.error("Error: Archivo demasiado grande en /form-registrar-odi")
+            return jsonify({'status': 'error', 'message': 'Uno o más archivos exceden el tamaño máximo permitido (5MB).'}), 413
+        except Exception as e:
+            app.logger.error(f"Error inesperado en /form-registrar-odi: {str(e)}")
+            return jsonify({'status': 'error', 'message': 'Ocurrió un error inesperado en el servidor.'}), 500
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
 
 
 @app.route('/lista-de-op', methods=['GET'])
 def lista_op():
     if 'conectado' in session:
         return render_template('public/ordenproduccion/lista_op.html')
+    else:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+    
+@app.route('/lista-de-odi', methods=['GET'])
+def lista_odi():
+    if 'conectado' in session:
+        return render_template('public/ordeninversion/lista_odi.html')
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -856,6 +902,24 @@ def detalle_op(codigo_op=None):
     app.logger.debug(f"Obteniendo detalles para codigo_op: {codigo_op}")
     detalle_op = sql_detalles_op_bd(codigo_op)
     return render_template('public/ordenproduccion/detalles_op.html', detalle_op=detalle_op)
+
+
+@app.route("/detalles-odi/<string:codigo_odi>", methods=['GET'])
+def detalle_odi(codigo_odi=None):
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+    if codigo_odi is None:
+        flash('Código de orden no proporcionado.', 'error')
+        return redirect(url_for('inicio'))
+
+    app.logger.debug(f"Obteniendo detalles para codigo_odi: {codigo_odi}")
+    detalle_odi = sql_detalles_odi_bd(codigo_odi)
+    if not detalle_odi:
+        flash('Orden de Inversión no encontrada.', 'error')
+        return redirect(url_for('lista_odi'))
+    return render_template('public/ordeninversion/detalles_odi.html', detalle_odi=detalle_odi)
 
 
 @app.route("/editar-op/<string:codigo_op>", methods=['GET'])
@@ -899,11 +963,63 @@ def viewEditarop(codigo_op=None): # Esta será la única función para esta ruta
     return render_template('public/ordenproduccion/form_op_update.html',
                            op_data=datos_op, # Cambiado de datos_op a op_data
                            page_title=page_title)
+    
+    
+@app.route("/editar-odi/<string:codigo_odi>", methods=['GET'])
+def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ruta
+    if 'conectado' not in session or not session.get('conectado'):
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+    if codigo_odi is None:
+        flash('Código de orden no proporcionado.', 'error')
+        return redirect(url_for('inicio'))
+
+    app.logger.debug(f"Accediendo a editar ODI con codigo_odi: {codigo_odi}")
+    # Asegúrate de que la función obtener_datos_odi_para_edicion esté importada correctamente al inicio del archivo.
+    # from controllers.funciones_home import obtener_datos_odi_para_edicion
+    resultado_carga = obtener_datos_odi_para_edicion(codigo_odi)
+    
+    datos_odi = None
+    if isinstance(resultado_carga, tuple) and len(resultado_carga) == 2:
+        datos_odi = resultado_carga[0]
+        status_code = resultado_carga[1]
+        if status_code != 200:
+            flash(datos_odi.get('message', 'Error al cargar la orden de inversión para edición.'), 'danger')
+            return redirect(url_for('lista_odi'))
+    elif isinstance(resultado_carga, dict) and 'status' in resultado_carga and resultado_carga['status'] == 'error':
+        flash(resultado_carga.get('message', 'Error al cargar la orden de inversión para edición.'), 'danger')
+        return redirect(url_for('lista_odi'))
+    elif isinstance(resultado_carga, dict): # Si solo devuelve el dict de datos (caso no esperado pero cubierto)
+         datos_odi = resultado_carga
+    else:
+        flash('Respuesta inesperada al cargar datos de la orden.', 'danger')
+        return redirect(url_for('lista_odi'))
+
+    if not datos_odi: # Chequeo adicional por si algo falló en la asignación anterior
+        flash('Orden de producción no encontrada o error fatal al cargar sus datos.', 'danger')
+        return redirect(url_for('lista_odi'))
+ 
+    # La variable datos_odi ya contiene toda la información estructurada necesaria.
+    page_title = f"Editar Orden de Inversión #{datos_odi.get('codigo_odi', '')}"
+    
+    return render_template('public/ordeninversion/form_odi_update.html',
+                           odi_data=datos_odi,
+                           page_title=page_title)
  
 @app.route('/actualizar-op/<string:codigo_op>', methods=['POST'])
 def actualizar_op(codigo_op):
     # Pasar codigo_op a la función de procesamiento
     result_data = procesar_actualizar_form_op(codigo_op, request.form, request.files)
+    if isinstance(result_data, dict):
+        return jsonify(result_data)
+    else:
+        return jsonify({'success': False, 'message': 'Error desconocido al procesar la solicitud'})
+    
+@app.route('/actualizar-odi/<string:codigo_odi>', methods=['POST'])
+def actualizar_odi(codigo_odi):
+    # Pasar codigo_odi a la función de procesamiento
+    result_data = procesar_actualizar_form_odi(codigo_odi, request.form, request.files)
     if isinstance(result_data, dict):
         return jsonify(result_data)
     else:
@@ -922,6 +1038,20 @@ def borrar_op(id_op):
         flash('No se pudo eliminar la orden de producción.', 'error')
 
     return redirect(url_for('lista_op'))
+
+@app.route('/borrar-odi/<int:id_odi>', methods=['GET'])
+def borrar_odi(id_odi):
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+    resultado = eliminar_odi(id_odi)
+    if resultado == 1:
+        flash('Orden de inversión eliminada correctamente.', 'success')
+    else:
+        flash('No se pudo eliminar la orden de inversión.', 'error')
+
+    return redirect(url_for('lista_odi'))
 
 
 @app.route('/buscando-ordenes-produccion', methods=['POST'])
@@ -947,6 +1077,34 @@ def buscando_ordenes_produccion():
         search_fecha=search_fecha,
         search_nombre_cliente=search_nombre_cliente,
         search_producto=search_producto
+    )
+
+    return jsonify(result)
+
+
+@app.route('/buscando-ordenes-inversion', methods=['POST'])
+def buscando_ordenes_inversion():
+    if 'conectado' not in session:
+        return jsonify({"error": "No autorizado", "data": []}), 401
+
+    # Obtener parámetros enviados por DataTables
+    draw = request.json.get('draw', 1)
+    start = request.json.get('start', 0)
+    length = request.json.get('length', 10)
+    search_codigo_odi = request.json.get('codigo_odi', '')
+    search_fecha = request.json.get('fecha', '')
+    search_nombre_cliente = request.json.get('nombre_cliente', '')
+    search_proyecto = request.json.get('proyecto', '')
+
+    # Llamar a la función ajustada
+    result = sql_lista_odi_bd(
+        draw=draw,
+        start=start,
+        length=length,
+        search_codigo_odi=search_codigo_odi,
+        search_fecha=search_fecha,
+        search_nombre_cliente=search_nombre_cliente,
+        search_proyecto=search_proyecto
     )
 
     return jsonify(result)
@@ -1323,6 +1481,18 @@ def api_ordenes_produccion():
     ordenes_data, total_ordenes = get_ordenes_paginadas(page, per_page, search)
     more = (page * per_page) < total_ordenes
     return jsonify({'ordenes': ordenes_data, 'pagination': {'more': more}, 'total': total_ordenes})
+
+
+@app.route('/api/ordenes-inversion', methods=['GET'])
+def api_ordenes_inversion():
+    """API para Select2: retorna ODIs paginadas con búsqueda."""
+    if 'conectado' not in session:
+        return jsonify({'results': [], 'pagination': {'more': False}}), 401
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    result = get_odis_paginados(page, per_page, search)
+    return jsonify(result)
 
 
 @app.route('/api/clientes', methods=['GET'])
