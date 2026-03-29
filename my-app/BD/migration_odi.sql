@@ -1,15 +1,15 @@
 -- ============================================================
--- MIGRACIÓN: Módulo Órdenes de Inversión (ODI)
+-- MIGRACIÓN: Módulo Órdenes de Diseño Industrial (ODI)
 -- Fecha: 2026-03-24
 -- Descripción: Crea las tablas necesarias para el módulo ODI
 --              y agrega la relación con las Órdenes de Producción
 -- ============================================================
 
 -- ------------------------------------------------------------
--- TABLA PRINCIPAL: tbl_ordeninversion
--- Almacena las Órdenes de Inversión (ODI)
+-- TABLA PRINCIPAL: tbl_ordendisenoindustrial
+-- Almacena las Órdenes de Diseño Industrial (ODI)
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `tbl_ordeninversion` (
+CREATE TABLE IF NOT EXISTS `tbl_ordendisenoindustrial` (
   `id_odi`                  INT           NOT NULL AUTO_INCREMENT,
   `codigo_odi`              VARCHAR(50)   NOT NULL UNIQUE COMMENT 'Código único de la ODI, ej: ODI-2024-001',
   `proyecto`                VARCHAR(200)  NULL     COMMENT 'Equivalente a Referencia en OP. Se lleva automáticamente a la OP.',
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `tbl_ordeninversion` (
     REFERENCES `users` (`id`)
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Órdenes de Inversión (ODI). Los campos proyecto, pieza, id_cliente, id_empleado e id_disenador_industrial se transfieren automáticamente a la OP cuando se selecciona una ODI.';
+  COMMENT='Órdenes de Diseño Industrial (ODI). Los campos proyecto, pieza, id_cliente, id_empleado e id_disenador_industrial se transfieren automáticamente a la OP cuando se selecciona una ODI.';
 
 
 -- ------------------------------------------------------------
@@ -67,10 +67,10 @@ CREATE TABLE IF NOT EXISTS `tbl_documentos_odi` (
   KEY `fk_doc_odi_idx` (`id_odi`),
   CONSTRAINT `fk_doc_odi`
     FOREIGN KEY (`id_odi`)
-    REFERENCES `tbl_ordeninversion` (`id_odi`)
+    REFERENCES `tbl_ordendisenoindustrial` (`id_odi`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Documentos adjuntos de las Órdenes de Inversión';
+  COMMENT='Documentos adjuntos de las Órdenes de Diseño Industrial';
 
 
 -- ------------------------------------------------------------
@@ -83,18 +83,18 @@ CREATE TABLE IF NOT EXISTS `tbl_documentos_odi` (
 -- Verificar si la columna id_odi ya existe antes de agregarla
 -- (Si ya existe como VARCHAR, se puede dejar o migrar a INT FK)
 -- NOTA: La columna 'odi' ya existe en tbl_ordenproduccion como VARCHAR(50).
--- Agregamos una nueva columna 'id_odi_fk' como FK a tbl_ordeninversion.
+-- Agregamos una nueva columna 'id_odi_fk' como FK a tbl_ordendisenoindustrial.
 -- La columna 'odi' existente se puede usar para el código textual de la ODI.
 
 ALTER TABLE `tbl_ordenproduccion`
   ADD COLUMN IF NOT EXISTS `id_odi_fk` INT NULL
-    COMMENT 'FK a tbl_ordeninversion. Cuando se selecciona una ODI, los campos referencia, producto, id_cliente, id_empleado e id_disenador_industrial se llenan automáticamente.'
+    COMMENT 'FK a tbl_ordendisenoindustrial. Cuando se selecciona una ODI, los campos referencia, producto, id_cliente, id_empleado e id_disenador_industrial se llenan automáticamente.'
     AFTER `odi`;
 
 ALTER TABLE `tbl_ordenproduccion`
   ADD CONSTRAINT `fk_op_odi`
     FOREIGN KEY IF NOT EXISTS (`id_odi_fk`)
-    REFERENCES `tbl_ordeninversion` (`id_odi`)
+    REFERENCES `tbl_ordendisenoindustrial` (`id_odi`)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
 
@@ -110,7 +110,7 @@ ALTER TABLE `tbl_ordenproduccion`
 -- DATOS DE EJEMPLO (opcional, comentado)
 -- ------------------------------------------------------------
 /*
-INSERT INTO `tbl_ordeninversion`
+INSERT INTO `tbl_ordendisenoindustrial`
   (`codigo_odi`, `proyecto`, `pieza`, `id_cliente`, `id_empleado`, `id_disenador_industrial`,
    `fecha_brif`, `diseno_o_producto`, `fecha_entrega`, `fecha_produccion`, `estado`, `id_usuario_registro`)
 VALUES

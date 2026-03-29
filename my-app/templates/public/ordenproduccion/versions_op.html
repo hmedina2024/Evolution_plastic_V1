@@ -1,0 +1,46 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Historial de Cambios de OP{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+    <div class="card-header bg-primary text-white text-center">
+        <h3 class="fw-bold">Historial de Cambios de OP (ID: {{ id_op }}, Código: {{ orden.codigo_op }})</h3>
+    </div>
+    <div class="card-body p-4">
+        {% if logs %}
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Versión</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Cambios</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.version_number }}</td>
+                    <td>{{ log.fecha_update.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.usuario.name_surname if log.usuario else 'Desconocido' }}</td>
+                    <td>
+                        {% if log.cambios %}
+                        <pre>{{ log.cambios | safe }}</pre>
+                        {% else %}
+                        Sin cambios registrados
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted">No hay cambios registrados para esta Orden de Producción.</p>
+        {% endif %}
+        <div class="text-center mt-3">
+            <a href="{{ url_for('detalle_op', id_op=id_op) }}" class="btn btn-primary">Volver a Detalle</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

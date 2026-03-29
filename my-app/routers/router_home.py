@@ -795,7 +795,7 @@ def borrar_operacion(id_operacion):
         flash('La operacion fue eliminada correctamente', 'success')
         return redirect(url_for('lista_operaciones'))
 
-# Orden de Producción y Orden de Inversión
+# Orden de Producción y Ordenes de Diseño Industrial
 
 
 @app.route('/registrar-op', methods=['GET'])
@@ -813,7 +813,7 @@ def viewFormOp():
 @app.route('/registrar-odi', methods=['GET'])
 def viewFormOdi():
     if 'conectado' in session:
-        return render_template('public/ordeninversion/form_odi.html')
+        return render_template('public/ordendisenoindustrial/form_odi.html')
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -883,7 +883,7 @@ def lista_op():
 @app.route('/lista-de-odi', methods=['GET'])
 def lista_odi():
     if 'conectado' in session:
-        return render_template('public/ordeninversion/lista_odi.html')
+        return render_template('public/ordendisenoindustrial/lista_odi.html')
     else:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -917,9 +917,9 @@ def detalle_odi(codigo_odi=None):
     app.logger.debug(f"Obteniendo detalles para codigo_odi: {codigo_odi}")
     detalle_odi = sql_detalles_odi_bd(codigo_odi)
     if not detalle_odi:
-        flash('Orden de Inversión no encontrada.', 'error')
+        flash('Orden de Diseño Industrial no encontrada.', 'error')
         return redirect(url_for('lista_odi'))
-    return render_template('public/ordeninversion/detalles_odi.html', detalle_odi=detalle_odi)
+    return render_template('public/ordendisenoindustrial/detalles_odi.html', detalle_odi=detalle_odi)
 
 
 @app.route("/editar-op/<string:codigo_op>", methods=['GET'])
@@ -985,10 +985,10 @@ def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ru
         datos_odi = resultado_carga[0]
         status_code = resultado_carga[1]
         if status_code != 200:
-            flash(datos_odi.get('message', 'Error al cargar la orden de inversión para edición.'), 'danger')
+            flash(datos_odi.get('message', 'Error al cargar la orden de diseño industrial para edición.'), 'danger')
             return redirect(url_for('lista_odi'))
     elif isinstance(resultado_carga, dict) and 'status' in resultado_carga and resultado_carga['status'] == 'error':
-        flash(resultado_carga.get('message', 'Error al cargar la orden de inversión para edición.'), 'danger')
+        flash(resultado_carga.get('message', 'Error al cargar la orden de diseño industrial para edición.'), 'danger')
         return redirect(url_for('lista_odi'))
     elif isinstance(resultado_carga, dict): # Si solo devuelve el dict de datos (caso no esperado pero cubierto)
          datos_odi = resultado_carga
@@ -997,13 +997,13 @@ def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ru
         return redirect(url_for('lista_odi'))
 
     if not datos_odi: # Chequeo adicional por si algo falló en la asignación anterior
-        flash('Orden de producción no encontrada o error fatal al cargar sus datos.', 'danger')
+        flash('Orden de diseño industrial no encontrada o error fatal al cargar sus datos.', 'danger')
         return redirect(url_for('lista_odi'))
  
     # La variable datos_odi ya contiene toda la información estructurada necesaria.
-    page_title = f"Editar Orden de Inversión #{datos_odi.get('codigo_odi', '')}"
+    page_title = f"Editar Ordenes de Diseño Industrial #{datos_odi.get('codigo_odi', '')}"
     
-    return render_template('public/ordeninversion/form_odi_update.html',
+    return render_template('public/ordendisenoindustrial/form_odi_update.html',
                            odi_data=datos_odi,
                            page_title=page_title)
  
@@ -1047,9 +1047,9 @@ def borrar_odi(id_odi):
 
     resultado = eliminar_odi(id_odi)
     if resultado == 1:
-        flash('Orden de inversión eliminada correctamente.', 'success')
+        flash('Orden de diseño industrial eliminada correctamente.', 'success')
     else:
-        flash('No se pudo eliminar la orden de inversión.', 'error')
+        flash('No se pudo eliminar la orden de diseño industrial.', 'error')
 
     return redirect(url_for('lista_odi'))
 
@@ -1082,8 +1082,8 @@ def buscando_ordenes_produccion():
     return jsonify(result)
 
 
-@app.route('/buscando-ordenes-inversion', methods=['POST'])
-def buscando_ordenes_inversion():
+@app.route('/buscando-ordenes-diseno-industrial', methods=['POST'])
+def buscando_ordenes_diseno_industrial():
     if 'conectado' not in session:
         return jsonify({"error": "No autorizado", "data": []}), 401
 
@@ -1483,8 +1483,8 @@ def api_ordenes_produccion():
     return jsonify({'ordenes': ordenes_data, 'pagination': {'more': more}, 'total': total_ordenes})
 
 
-@app.route('/api/ordenes-inversion', methods=['GET'])
-def api_ordenes_inversion():
+@app.route('/api/ordenes-diseno-industrial', methods=['GET'])
+def api_ordenes_diseno_industrial():
     """API para Select2: retorna ODIs paginadas con búsqueda."""
     if 'conectado' not in session:
         return jsonify({'results': [], 'pagination': {'more': False}}), 401

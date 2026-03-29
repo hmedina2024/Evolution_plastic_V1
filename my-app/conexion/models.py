@@ -239,8 +239,8 @@ class OrdenProduccion(db.Model):
     id_disenador_grafico = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
     id_disenador_industrial = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
     id_costeador = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
-    id_odi_fk = db.Column(db.Integer, db.ForeignKey('tbl_ordeninversion.id_odi'), nullable=True)
-
+    id_odi_fk = db.Column(db.Integer, db.ForeignKey('tbl_ordendisenoindustrial.id_odi'), nullable=True)
+    
     # Relaciones existentes
     cliente = db.relationship('Clientes', backref='ordenes', lazy=True)
     empleado = db.relationship('Empleados', foreign_keys=[id_empleado], backref='ordenes_empleado', lazy=True)
@@ -444,9 +444,9 @@ class CorreosFijos(db.Model):
     activo = db.Column(db.Boolean, default=True)
 
 
-# --- Modelo OrdenInversion (ODI) ---
-class OrdenInversion(db.Model):
-    __tablename__ = 'tbl_ordeninversion'
+# --- Modelo OrdenDisenoIndustrial (ODI) ---
+class OrdenDisenoIndustrial(db.Model):
+    __tablename__ = 'tbl_ordendisenoindustrial'
 
     id_odi                  = db.Column(db.Integer, primary_key=True, autoincrement=True)
     codigo_odi              = db.Column(db.String(50), nullable=False, unique=True)
@@ -467,17 +467,17 @@ class OrdenInversion(db.Model):
     fecha_borrado           = db.Column(db.DateTime, nullable=True)
 
     # Relaciones
-    cliente              = db.relationship('Clientes', backref='ordenes_inversion', lazy=True)
+    cliente              = db.relationship('Clientes', backref='ordenes_diseno_industrial', lazy=True)
     comercial            = db.relationship('Empleados', foreign_keys=[id_empleado],
                                            backref='odi_comercial', lazy=True)
     disenador_industrial = db.relationship('Empleados', foreign_keys=[id_disenador_industrial],
                                            backref='odi_disenador_industrial', lazy=True)
     usuario_registro     = db.relationship('Users', backref='odi_registradas', lazy=True)
-    documentos_odi       = db.relationship('DocumentosODI', backref='orden_inversion', lazy=True,
+    documentos_odi       = db.relationship('DocumentosODI', backref='orden_diseno_industrial', lazy=True,
                                            cascade='all, delete-orphan')
 
     def __repr__(self):
-        return f'<OrdenInversion {self.codigo_odi}>'
+        return f'<OrdenDisenoIndustrial {self.codigo_odi}>'
 
 
 # --- Modelo DocumentosODI ---
@@ -486,7 +486,7 @@ class DocumentosODI(db.Model):
 
     id_documento_odi        = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_odi                  = db.Column(db.Integer,
-                                        db.ForeignKey('tbl_ordeninversion.id_odi', ondelete='CASCADE'),
+                                        db.ForeignKey('tbl_ordendisenoindustrial.id_odi', ondelete='CASCADE'),
                                         nullable=False)
     documento_path          = db.Column(db.String(255), nullable=False)
     documento_nombre_original = db.Column(db.String(255), nullable=False)

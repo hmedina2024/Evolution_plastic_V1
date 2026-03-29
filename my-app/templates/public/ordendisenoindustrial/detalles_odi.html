@@ -1,5 +1,5 @@
 {% extends 'public/base_cpanel.html' %}
-{% block title %}Detalles de Orden de Inversión{% endblock %}
+{% block title %}Detalles de Orden de Diseño industrial{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
@@ -13,7 +13,7 @@
       <a href="/lista-de-odi" class="text-white me-3">
         <i class="bi bi-arrow-left-circle"></i>
       </a>
-      ORDEN DE INVERSIÓN: {{ detalle_odi.codigo_odi }}
+      ORDEN DE DISEÑO INDUSTRIAL: {{ detalle_odi.codigo_odi }}
     </h3>
   </div>
   <div class="card-body p-4">
@@ -178,7 +178,7 @@
 {% else %}
 <div class="card shadow-sm" style="border-radius: 10px;">
   <div class="card-header bg-success text-white text-center">
-    <h3 class="fw-bold">ORDEN DE INVERSIÓN</h3>
+    <h3 class="fw-bold">ORDEN DE DISEÑO INDUSTRIAL</h3>
   </div>
   <div class="card-body p-4 text-center">
     <h2>No existe la ODI solicitada 😭</h2>

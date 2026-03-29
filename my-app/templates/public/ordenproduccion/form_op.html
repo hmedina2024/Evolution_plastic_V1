@@ -23,10 +23,10 @@
       <div class="row g-4">
         <div class="col-md-2 position-relative">
           <label for="fecha" class="form-label fw-bold text-primary">Fecha
-            Creación: <span class="text-danger">*</span></label>
+            Creación:</label>
           <input class="form-control" type="date" name="fecha" id="fecha"
-            required>
-          <div class="invalid-feedback">Por favor, ingrese la fecha.</div>
+            readonly style="background-color:#e9ecef; cursor:not-allowed;">
+          <small class="text-muted">Se asigna automáticamente</small>
         </div>
         <div class="col-md-2 position-relative">
           <label for="fecha_entrega"
@@ -57,11 +57,34 @@
             class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese la cotización.</div>
         </div>
-        <div class="col-md-2">
-          <label for="odi" class="form-label fw-bold text-primary">ODI <span
-              class="text-danger">*</span></label>
-          <input type="text" name="odi" id="odi" class="form-control" required>
-          <div class="invalid-feedback">Por favor, ingrese el ODI.</div>
+        <!-- ── CAMPO ODI ── -->
+        <div class="col-md-4" id="odi_bloque">
+          <label class="form-label fw-bold text-primary">
+            ODI
+            <span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;">Vinculación</span>
+          </label>
+
+          <!-- Select2 ODI -->
+          <select id="id_odi_fk" class="form-control select2 mb-1" style="width:100%;">
+            <option value="">-- Sin ODI (se asignará después) --</option>
+          </select>
+
+          <!-- Checkbox No aplica -->
+          <div class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="odi_no_aplica" name="odi_no_aplica" value="1">
+            <label class="form-check-label text-secondary" for="odi_no_aplica" style="font-size:0.85rem;">
+              <i class="bi bi-x-circle me-1"></i> No aplica ODI — llenar campos manualmente
+            </label>
+          </div>
+
+          <!-- Aviso estado actual -->
+          <div id="odi_estado_aviso" class="mt-1" style="font-size:0.78rem;">
+            <span class="text-warning"><i class="bi bi-clock me-1"></i>Sin ODI asignada — los campos vinculados se habilitarán al asignar una ODI o marcar "No aplica".</span>
+          </div>
+
+          <!-- Campos ocultos -->
+          <input type="hidden" name="odi" id="odi_codigo_texto" value="">
+          <input type="hidden" name="id_odi_fk" id="id_odi_fk_hidden" value="">
         </div>
         <div class="col-md-4">
           <label for="id_cliente" class="form-label fw-bold text-primary">NOMBRE
@@ -678,6 +701,148 @@
 <script>
 $(document).ready(function () {
   console.log("Document ready y script de form_op.html (con procesos globales) INICIADO.");
+
+  // ── FECHA CREACIÓN AUTOMÁTICA (hoy, no editable) ──
+  (function setFechaHoy() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm   = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd   = String(hoy.getDate()).padStart(2, '0');
+    $('#fecha').val(`${yyyy}-${mm}-${dd}`);
+  })();
+
+  // ── CAMPOS VINCULADOS A ODI ──
+  // Bloqueados por defecto; se liberan solo con "No aplica ODI"
+  var CAMPOS_ODI_VINCULADOS = ['#referencia', '#producto'];
+  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial'];
+
+  function bloquearCamposODI() {
+    CAMPOS_ODI_VINCULADOS.forEach(function(sel) {
+      $(sel).prop('readonly', true).css({'background-color':'#e9ecef','cursor':'not-allowed'});
+    });
+    SELECT2_ODI_VINCULADOS.forEach(function(sel) {
+      $(sel).prop('disabled', true);
+      $(sel).next('.select2-container').find('.select2-selection').css({'background-color':'#e9ecef','cursor':'not-allowed'});
+    });
+  }
+
+  function liberarCamposODI() {
+    CAMPOS_ODI_VINCULADOS.forEach(function(sel) {
+      $(sel).prop('readonly', false).css({'background-color':'','cursor':''});
+    });
+    SELECT2_ODI_VINCULADOS.forEach(function(sel) {
+      $(sel).prop('disabled', false);
+      $(sel).next('.select2-container').find('.select2-selection').css({'background-color':'','cursor':''});
+    });
+  }
+
+  function limpiarCamposODI() {
+    $('#referencia').val('');
+    $('#producto').val('');
+    $('#id_cliente').val(null).trigger('change');
+    $('#id_empleado').val(null).trigger('change');
+    $('#id_disenador_industrial').val(null).trigger('change');
+    $('#id_odi_fk_hidden').val('');
+    $('#odi_codigo_texto').val('');
+  }
+
+  function actualizarAvisoODI(estado) {
+    var $aviso = $('#odi_estado_aviso');
+    if (estado === 'sin_odi') {
+      $aviso.html('<span class="text-warning"><i class="bi bi-clock me-1"></i>Sin ODI asignada — los campos vinculados se habilitarán al asignar una ODI o marcar "No aplica".</span>');
+    } else if (estado === 'con_odi') {
+      $aviso.html('<span class="text-success"><i class="bi bi-check-circle me-1"></i>ODI vinculada — campos completados automáticamente (no editables).</span>');
+    } else if (estado === 'no_aplica') {
+      $aviso.html('<span class="text-info"><i class="bi bi-pencil me-1"></i>Sin ODI — complete los campos manualmente.</span>');
+    }
+  }
+
+  // ── INICIALIZACIÓN: campos bloqueados por defecto ──
+  bloquearCamposODI();
+  actualizarAvisoODI('sin_odi');
+
+  // ── CHECKBOX "No aplica ODI" ──
+  $('#odi_no_aplica').on('change', function() {
+    if ($(this).is(':checked')) {
+      // Desactivar y limpiar el Select2 ODI
+      $('#id_odi_fk').val(null).trigger('change');
+      limpiarCamposODI();
+      // Liberar campos para edición manual
+      liberarCamposODI();
+      actualizarAvisoODI('no_aplica');
+    } else {
+      // Volver a bloquear campos
+      bloquearCamposODI();
+      actualizarAvisoODI('sin_odi');
+    }
+  });
+
+  // ── SELECT2 ODI ──
+  $('#id_odi_fk').select2({
+    placeholder: 'Buscar ODI por código o proyecto...',
+    allowClear: true,
+    minimumInputLength: 0,
+    dropdownAutoWidth: true,
+    width: '100%',
+    ajax: {
+      url: "{{ url_for('api_ordenes_diseno_industrial') }}",
+      dataType: 'json',
+      delay: 300,
+      data: function(params) {
+        return { search: params.term || '', page: params.page || 1, per_page: 10 };
+      },
+      processResults: function(data, params) {
+        params.page = params.page || 1;
+        return {
+          results: data.results || [],
+          pagination: { more: data.pagination && data.pagination.more }
+        };
+      },
+      cache: true
+    }
+  }).on('select2:open', function() {
+    setTimeout(function() {
+      var sf = document.querySelector('.select2-container--open .select2-search__field');
+      if (sf) sf.focus();
+    }, 50);
+  }).on('select2:select', function(e) {
+    var d = e.params.data;
+    if (!d) return;
+
+    // Desmarcar "No aplica" si estaba marcado
+    $('#odi_no_aplica').prop('checked', false);
+
+    // Guardar id y código en campos ocultos
+    $('#id_odi_fk_hidden').val(d.id || '');
+    $('#odi_codigo_texto').val(d.codigo_odi || '');
+
+    // Auto-rellenar campos con datos de la ODI
+    $('#referencia').val(d.proyecto || '');
+    $('#producto').val(d.pieza || '');
+
+    if (d.id_cliente && d.nombre_cliente) {
+      var optC = new Option(d.nombre_cliente, d.id_cliente, true, true);
+      $('#id_cliente').empty().append(optC).trigger('change');
+    }
+    if (d.id_empleado && d.nombre_comercial) {
+      var optV = new Option(d.nombre_comercial, d.id_empleado, true, true);
+      $('#id_empleado').empty().append(optV).trigger('change');
+    }
+    if (d.id_disenador_industrial && d.nombre_disenador) {
+      var optD = new Option(d.nombre_disenador, d.id_disenador_industrial, true, true);
+      $('#id_disenador_industrial').empty().append(optD).trigger('change');
+    }
+
+    // Bloquear campos (datos vienen de la ODI, no editables)
+    bloquearCamposODI();
+    actualizarAvisoODI('con_odi');
+
+  }).on('select2:unselect', function() {
+    // Al deseleccionar ODI, limpiar y volver a bloquear
+    limpiarCamposODI();
+    bloquearCamposODI();
+    actualizarAvisoODI('sin_odi');
+  });
 
   // --- INICIO: Lógica para "Cargar Documentos" ---
   let selectedFiles = []; 
@@ -1665,7 +1830,9 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     formData.append('fecha_entrega', $('#fecha_entrega').val());
     formData.append('version', $('#version').val());
     formData.append('cotizacion', $('#cotizacion').val());
-    formData.append('odi', $('#odi').val());
+    formData.append('odi', $('#odi_codigo_texto').val());
+    formData.append('id_odi_fk', $('#id_odi_fk_hidden').val() || '');
+    formData.append('odi_no_aplica', $('#odi_no_aplica').is(':checked') ? '1' : '');
     formData.append('id_cliente', $('#id_cliente').val());
     formData.append('producto', $('#producto').val());
     formData.append('cantidad', $('#cantidad').val());

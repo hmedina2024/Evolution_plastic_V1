@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenInversion, DocumentosODI  # Añadido OrdenInversion y DocumentosODI
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI  # Añadido OrdenDiseñoIndustrial y DocumentosODI
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -1965,6 +1965,7 @@ def procesar_form_op(dataForm, files):
     medida_val = dataForm.get('medida')
     referencia_val = dataForm.get('referencia')
     odi_val = dataForm.get('odi')
+    id_odi_fk_str = dataForm.get('id_odi_fk', '').strip()
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
     logistica_val = dataForm.get('logistica') # Obtener logística
@@ -2053,14 +2054,9 @@ def procesar_form_op(dataForm, files):
         except ValueError:
             errores.append("ID Costeador debe ser un número entero válido.")
 
-    fecha_val = None
-    if not fecha_str or not fecha_str.strip():
-        errores.append("La Fecha de la OP es requerida.")
-    else:
-        try:
-            fecha_val = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        except ValueError:
-            errores.append("Formato de Fecha inválido (Use YYYY-MM-DD).")
+    # Fecha: siempre se usa la fecha actual del servidor (no editable por el usuario)
+    fecha_val = datetime.now(LOCAL_TIMEZONE).date()
+    app.logger.info(f"Fecha OP asignada automáticamente por el servidor: {fecha_val}")
 
     fecha_entrega_val = None
     if not fecha_entrega_str or not fecha_entrega_str.strip():
@@ -2076,8 +2072,7 @@ def procesar_form_op(dataForm, files):
 
     if not estado_val or not estado_val.strip():
         errores.append("El Estado de la OP es requerido.")
-    if not odi_val or not odi_val.strip():
-        errores.append("El ODI es requerido.")
+    # ODI es opcional — no se valida como requerida
     if not descripcion_general_op_val or not descripcion_general_op_val.strip():
         errores.append("La Descripción General de la OP es requerida.")
     
@@ -2259,6 +2254,25 @@ def procesar_form_op(dataForm, files):
         nuevo_codigo_op_generado = generar_codigo_op() # Generar el nuevo código OP
         app.logger.info(f"Nuevo Código OP generado: {nuevo_codigo_op_generado}")
 
+        # Procesar id_odi_fk (opcional)
+        id_odi_fk_val = None
+        if id_odi_fk_str:
+            try:
+                id_odi_fk_val = int(id_odi_fk_str)
+                odi_obj = db.session.query(OrdenDisenoIndustrial).filter_by(
+                    id_odi=id_odi_fk_val, fecha_borrado=None).first()
+                if not odi_obj:
+                    app.logger.warning(f"ODI con id={id_odi_fk_val} no encontrada, se guardará sin ODI.")
+                    id_odi_fk_val = None
+                    odi_val = None
+                else:
+                    # Usar el código textual de la ODI si no vino del form
+                    if not odi_val:
+                        odi_val = odi_obj.codigo_odi
+            except ValueError:
+                app.logger.warning(f"id_odi_fk inválido: '{id_odi_fk_str}', se ignorará.")
+                id_odi_fk_val = None
+
         orden = OrdenProduccion(
             codigo_op=nuevo_codigo_op_generado,
             id_cliente=id_cliente_val,
@@ -2274,7 +2288,7 @@ def procesar_form_op(dataForm, files):
             id_supervisor=id_supervisor_val,
             fecha=fecha_val,
             fecha_entrega=fecha_entrega_val,
-            descripcion_general=descripcion_general_op_val, # Punto común de error, verificar este nombre
+            descripcion_general=descripcion_general_op_val,
             empaque=empaque_val,
             logistica=logistica_val,
             instructivo=instructivo_val,
@@ -2282,7 +2296,8 @@ def procesar_form_op(dataForm, files):
             id_usuario_registro=id_usuario_registro,
             id_disenador_grafico=id_disenador_grafico_val,
             id_disenador_industrial=id_disenador_industrial_val,
-            id_costeador=id_costeador_val 
+            id_costeador=id_costeador_val,
+            id_odi_fk=id_odi_fk_val
         )
         db.session.add(orden)
         db.session.flush()
@@ -2850,6 +2865,7 @@ def obtener_datos_op_para_edicion(codigo_op):
             'medida': orden.medida or '',
             'referencia': orden.referencia or '',
             'odi': orden.odi or '',
+            'id_odi_fk': orden.id_odi_fk,
             'id_empleado': orden.id_empleado,
             'empleado': {
                 'nombre_empleado': orden.empleado.nombre_empleado if orden.empleado else '',
@@ -2991,6 +3007,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     id_costeador_str = dataForm.get('id_costeador')
     cotizacion_val = dataForm.get('cotizacion')
     odi_val = dataForm.get('odi')
+    id_odi_fk_str = dataForm.get('id_odi_fk', '').strip()
     referencia_val = dataForm.get('referencia')
     descripcion_general_op_val = dataForm.get('descripcion_general_op')
     empaque_val = dataForm.get('empaque')
@@ -3274,8 +3291,28 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             cambios['id_costeador'] = {'anterior': orden.id_costeador, 'nuevo': int(id_costeador_str) if id_costeador_str else None}
         if cotizacion_val and orden.cotizacion != cotizacion_val:
             cambios['cotizacion'] = {'anterior': orden.cotizacion, 'nuevo': cotizacion_val}
+        # Procesar id_odi_fk (opcional)
+        id_odi_fk_val = None
+        if id_odi_fk_str:
+            try:
+                id_odi_fk_val = int(id_odi_fk_str)
+                odi_obj = db.session.query(OrdenDisenoIndustrial).filter_by(
+                    id_odi=id_odi_fk_val, fecha_borrado=None).first()
+                if not odi_obj:
+                    app.logger.warning(f"ODI con id={id_odi_fk_val} no encontrada en actualización, se guardará sin ODI.")
+                    id_odi_fk_val = None
+                    odi_val = None
+                else:
+                    if not odi_val:
+                        odi_val = odi_obj.codigo_odi
+            except ValueError:
+                app.logger.warning(f"id_odi_fk inválido en actualización: '{id_odi_fk_str}', se ignorará.")
+                id_odi_fk_val = None
+
         if odi_val and orden.odi != odi_val:
             cambios['odi'] = {'anterior': orden.odi, 'nuevo': odi_val}
+        if id_odi_fk_val != orden.id_odi_fk:
+            cambios['id_odi_fk'] = {'anterior': orden.id_odi_fk, 'nuevo': id_odi_fk_val}
         if referencia_val != orden.referencia:
             cambios['referencia'] = {'anterior': orden.referencia, 'nuevo': referencia_val}
         if descripcion_general_op_val and orden.descripcion_general != descripcion_general_op_val:
@@ -3320,6 +3357,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         orden.id_costeador = id_costeador_val
         orden.cotizacion = cotizacion_val
         orden.odi = odi_val
+        orden.id_odi_fk = id_odi_fk_val
         orden.referencia = referencia_val
         orden.descripcion_general = descripcion_general_op_val
         orden.empaque = empaque_val
@@ -5119,7 +5157,7 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
 
 
 # ============================================================
-# --- Funciones de Orden de Inversión (ODI) ---
+# --- Funciones de Ordenes de Diseño Industrial (ODI) ---
 # ============================================================
 
 def generar_codigo_odi():
@@ -5128,10 +5166,10 @@ def generar_codigo_odi():
         anio_actual = datetime.now().year
         prefijo = f"ODI-{anio_actual}-"
         # Buscar la última ODI del año actual
-        ultima_odi = db.session.query(OrdenInversion).filter(
-            OrdenInversion.codigo_odi.like(f"{prefijo}%"),
-            OrdenInversion.fecha_borrado.is_(None)
-        ).order_by(OrdenInversion.id_odi.desc()).first()
+        ultima_odi = db.session.query(OrdenDisenoIndustrial).filter(
+            OrdenDisenoIndustrial.codigo_odi.like(f"{prefijo}%"),
+            OrdenDisenoIndustrial.fecha_borrado.is_(None)
+        ).order_by(OrdenDisenoIndustrial.id_odi.desc()).first()
 
         if ultima_odi:
             try:
@@ -5153,7 +5191,7 @@ def validar_cod_odi(codigo_odi):
     try:
         if not codigo_odi:
             return False
-        odi = db.session.query(OrdenInversion).filter_by(
+        odi = db.session.query(OrdenDisenoIndustrial).filter_by(
             codigo_odi=codigo_odi, fecha_borrado=None).first()
         return odi is not None
     except Exception as e:
@@ -5208,7 +5246,7 @@ def procesar_form_odi(dataForm, files):
             return jsonify({'status': 'error', 'message': ' | '.join(errores)}), 400
 
         # Crear la ODI
-        nueva_odi = OrdenInversion(
+        nueva_odi = OrdenDisenoIndustrial(
             codigo_odi=codigo_odi,
             proyecto=proyecto if proyecto else None,
             pieza=pieza if pieza else None,
@@ -5261,7 +5299,7 @@ def procesar_form_odi(dataForm, files):
         app.logger.info(f"ODI {codigo_odi} creada exitosamente con id_odi={nueva_odi.id_odi}")
         return jsonify({
             'status': 'success',
-            'message': f'Orden de Inversión {codigo_odi} registrada exitosamente.',
+            'message': f'Orden de Diseño Industrial {codigo_odi} registrada exitosamente.',
             'codigo_odi': codigo_odi,
             'redirect_url': url_for('detalle_odi', codigo_odi=codigo_odi)
         }), 201
@@ -5281,30 +5319,30 @@ def sql_lista_odi_bd(draw=1, start=0, length=10, search_codigo_odi=None, search_
     try:
         empleado_comercial = aliased(Empleados)
 
-        query = db.session.query(OrdenInversion).outerjoin(
-            Clientes, OrdenInversion.id_cliente == Clientes.id_cliente
+        query = db.session.query(OrdenDisenoIndustrial).outerjoin(
+            Clientes, OrdenDisenoIndustrial.id_cliente == Clientes.id_cliente
         ).outerjoin(
-            empleado_comercial, OrdenInversion.id_empleado == empleado_comercial.id_empleado
-        ).filter(OrdenInversion.fecha_borrado.is_(None))
+            empleado_comercial, OrdenDisenoIndustrial.id_empleado == empleado_comercial.id_empleado
+        ).filter(OrdenDisenoIndustrial.fecha_borrado.is_(None))
 
         # Filtros
         if search_codigo_odi:
-            query = query.filter(OrdenInversion.codigo_odi.ilike(f"%{search_codigo_odi}%"))
+            query = query.filter(OrdenDisenoIndustrial.codigo_odi.ilike(f"%{search_codigo_odi}%"))
         if search_nombre_cliente:
             query = query.filter(Clientes.nombre_cliente.ilike(f"%{search_nombre_cliente}%"))
         if search_proyecto:
-            query = query.filter(OrdenInversion.proyecto.ilike(f"%{search_proyecto}%"))
+            query = query.filter(OrdenDisenoIndustrial.proyecto.ilike(f"%{search_proyecto}%"))
         if search_fecha:
             try:
                 fecha_dt = datetime.strptime(search_fecha, '%Y-%m-%d')
                 query = query.filter(
-                    func.date(OrdenInversion.fecha_registro) == fecha_dt.date()
+                    func.date(OrdenDisenoIndustrial.fecha_registro) == fecha_dt.date()
                 )
             except ValueError:
                 pass
 
         total_records = query.count()
-        odis = query.order_by(OrdenInversion.id_odi.desc()).offset(start).limit(length).all()
+        odis = query.order_by(OrdenDisenoIndustrial.id_odi.desc()).offset(start).limit(length).all()
 
         data = []
         for odi in odis:
@@ -5346,9 +5384,9 @@ def sql_detalles_odi_bd(codigo_odi):
         empleado_comercial = aliased(Empleados)
         empleado_disenador = aliased(Empleados)
 
-        odi = db.session.query(OrdenInversion).filter(
-            OrdenInversion.codigo_odi == codigo_odi,
-            OrdenInversion.fecha_borrado.is_(None)
+        odi = db.session.query(OrdenDisenoIndustrial).filter(
+            OrdenDisenoIndustrial.codigo_odi == codigo_odi,
+            OrdenDisenoIndustrial.fecha_borrado.is_(None)
         ).first()
 
         if not odi:
@@ -5425,9 +5463,9 @@ def sql_detalles_odi_bd(codigo_odi):
 def obtener_datos_odi_para_edicion(codigo_odi):
     """Obtiene los datos de una ODI para pre-poblar el formulario de edición."""
     try:
-        odi = db.session.query(OrdenInversion).filter(
-            OrdenInversion.codigo_odi == codigo_odi,
-            OrdenInversion.fecha_borrado.is_(None)
+        odi = db.session.query(OrdenDisenoIndustrial).filter(
+            OrdenDisenoIndustrial.codigo_odi == codigo_odi,
+            OrdenDisenoIndustrial.fecha_borrado.is_(None)
         ).first()
 
         if not odi:
@@ -5478,9 +5516,9 @@ def obtener_datos_odi_para_edicion(codigo_odi):
 def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
     """Procesa el formulario de actualización de una ODI existente."""
     try:
-        odi = db.session.query(OrdenInversion).filter(
-            OrdenInversion.codigo_odi == codigo_odi,
-            OrdenInversion.fecha_borrado.is_(None)
+        odi = db.session.query(OrdenDisenoIndustrial).filter(
+            OrdenDisenoIndustrial.codigo_odi == codigo_odi,
+            OrdenDisenoIndustrial.fecha_borrado.is_(None)
         ).first()
 
         if not odi:
@@ -5586,7 +5624,7 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
         app.logger.info(f"ODI {codigo_odi} actualizada exitosamente.")
         return {
             'status': 'success',
-            'message': f'Orden de Inversión {codigo_odi} actualizada exitosamente.',
+            'message': f'Orden de Diseño Industrial {codigo_odi} actualizada exitosamente.',
             'redirect_url': url_for('detalle_odi', codigo_odi=codigo_odi)
         }
 
@@ -5599,7 +5637,7 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
 def eliminar_odi(id_odi):
     """Elimina (soft delete) una ODI por su id."""
     try:
-        odi = db.session.query(OrdenInversion).filter_by(id_odi=id_odi).first()
+        odi = db.session.query(OrdenDisenoIndustrial).filter_by(id_odi=id_odi).first()
         if not odi:
             app.logger.warning(f"No se encontró la ODI con id_odi: {id_odi}")
             return 0
@@ -5619,19 +5657,19 @@ def get_odis_paginados(page=1, per_page=10, search=''):
     """Retorna ODIs paginadas para Select2 (uso en formularios OP u otros)."""
     try:
         offset = (page - 1) * per_page
-        query = db.session.query(OrdenInversion).filter(
-            OrdenInversion.fecha_borrado.is_(None)
+        query = db.session.query(OrdenDisenoIndustrial).filter(
+            OrdenDisenoIndustrial.fecha_borrado.is_(None)
         )
         if search:
             query = query.filter(
                 or_(
-                    OrdenInversion.codigo_odi.ilike(f"%{search}%"),
-                    OrdenInversion.proyecto.ilike(f"%{search}%"),
-                    OrdenInversion.pieza.ilike(f"%{search}%")
+                    OrdenDisenoIndustrial.codigo_odi.ilike(f"%{search}%"),
+                    OrdenDisenoIndustrial.proyecto.ilike(f"%{search}%"),
+                    OrdenDisenoIndustrial.pieza.ilike(f"%{search}%")
                 )
             )
         total = query.count()
-        odis = query.order_by(OrdenInversion.id_odi.desc()).offset(offset).limit(per_page).all()
+        odis = query.order_by(OrdenDisenoIndustrial.id_odi.desc()).offset(offset).limit(per_page).all()
 
         results = []
         for odi in odis:
