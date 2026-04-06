@@ -58,11 +58,10 @@
           <div class="invalid-feedback">Por favor, ingrese la cotización.</div>
         </div>
         <!-- ── CAMPO ODI ── -->
-        <div class="col-md-4" id="odi_bloque">
+        <div class="col-md-2" id="odi_bloque">
           <label class="form-label fw-bold text-primary">
             ODI
-            <span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;">Vinculación</span>
-          </label>
+            </label>
 
           <!-- Select2 ODI -->
           <select id="id_odi_fk" class="form-control select2 mb-1" style="width:100%;">
@@ -73,14 +72,14 @@
           <div class="form-check mt-1">
             <input class="form-check-input" type="checkbox" id="odi_no_aplica" name="odi_no_aplica" value="1">
             <label class="form-check-label text-secondary" for="odi_no_aplica" style="font-size:0.85rem;">
-              <i class="bi bi-x-circle me-1"></i> No aplica ODI — llenar campos manualmente
+              <i class="bi bi-x-circle me-1"></i> No aplica ODI
             </label>
           </div>
 
-          <!-- Aviso estado actual -->
+          <!-- Aviso estado actual
           <div id="odi_estado_aviso" class="mt-1" style="font-size:0.78rem;">
             <span class="text-warning"><i class="bi bi-clock me-1"></i>Sin ODI asignada — los campos vinculados se habilitarán al asignar una ODI o marcar "No aplica".</span>
-          </div>
+          </div> -->
 
           <!-- Campos ocultos -->
           <input type="hidden" name="odi" id="odi_codigo_texto" value="">

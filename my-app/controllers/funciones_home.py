@@ -3091,7 +3091,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                 errores.append(f"Costeador con ID '{id_costeador_val}' no encontrado.")
 
     if not cotizacion_val: errores.append("Cotización es requerida.")
-    if not odi_val: errores.append("ODI es requerido.")
+    # ODI es opcional — no se valida como requerida
     if not descripcion_general_op_val: errores.append("Descripción General es requerida.")
     if not estado_val: errores.append("Estado es requerido.")
     # Logística es opcional, no requiere validación de existencia aquí si puede ser nulo/vacío.
@@ -5213,8 +5213,8 @@ def procesar_form_odi(dataForm, files):
         diseno_o_producto = dataForm.get('diseno_o_producto', '').strip()
         fecha_entrega_str = dataForm.get('fecha_entrega', '').strip()
         fecha_produccion_str = dataForm.get('fecha_produccion', '').strip()
-        estado = dataForm.get('estado', 'ACTIVO').strip()
-        id_usuario_registro = session.get('id')
+        estado = "ACTIVO"
+        id_usuario_registro = session.get('user_id')
 
         # Generar código ODI automáticamente (igual que OP)
         codigo_odi = generar_codigo_odi()
@@ -5400,10 +5400,11 @@ def sql_detalles_odi_bd(codigo_odi):
         if odi.disenador_industrial:
             nombre_disenador = f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip()
 
+        
         nombre_usuario_registro = ''
         if odi.usuario_registro:
-            nombre_usuario_registro = odi.usuario_registro.email_user
-
+            nombre_usuario_registro = odi.usuario_registro.name_surname
+        
         documentos = []
         for doc in odi.documentos_odi:
             if doc.fecha_borrado is None:
@@ -5452,7 +5453,8 @@ def sql_detalles_odi_bd(codigo_odi):
             'fecha_registro': odi.fecha_registro.strftime('%d/%m/%Y %H:%M') if odi.fecha_registro else 'N/A',
             'nombre_usuario_registro': nombre_usuario_registro,
             'documentos': documentos,
-            'ops_vinculadas': ops_data
+            'ops_vinculadas': ops_data,
+            'ops_relacionadas': ops_data
         }
 
     except Exception as e:

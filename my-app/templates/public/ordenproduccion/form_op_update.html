@@ -64,7 +64,7 @@
             class="form-control" required>
           <div class="invalid-feedback">Por favor, ingrese la cotización.</div>
         </div>
-        <div class="col-md-4" id="odi_bloque">
+        <div class="col-md-2" id="odi_bloque">
           <label class="form-label fw-bold text-primary">
             ODI
             <span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;">Vinculación</span>
@@ -79,14 +79,14 @@
           <div class="form-check mt-1">
             <input class="form-check-input" type="checkbox" id="odi_no_aplica" name="odi_no_aplica" value="1">
             <label class="form-check-label text-secondary" for="odi_no_aplica" style="font-size:0.85rem;">
-              <i class="bi bi-x-circle me-1"></i> No aplica ODI — llenar campos manualmente
+              <i class="bi bi-x-circle me-1"></i> No aplica ODI
             </label>
           </div>
 
-          <!-- Aviso estado actual -->
+          <!-- Aviso estado actual
           <div id="odi_estado_aviso" class="mt-1" style="font-size:0.78rem;">
             <span class="text-warning"><i class="bi bi-clock me-1"></i>Sin ODI asignada — los campos vinculados se habilitarán al asignar una ODI o marcar "No aplica".</span>
-          </div>
+          </div> -->
 
           <!-- Campos ocultos -->
           <input type="hidden" name="odi" id="odi_codigo_texto" value="">
@@ -2253,6 +2253,22 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     
     const formData = new FormData(form); // Recoge campos normales, pero el input 'documentos' podría estar vacío debido al .value = null
     formData.append('estado_proyecto', $('#estado_proyecto').val());
+
+    // ── CAMPOS QUE PUEDEN ESTAR DISABLED (no los recoge FormData automáticamente) ──
+    // Si el campo está disabled (bloqueado por lógica ODI), FormData(form) no lo incluye.
+    // Los agregamos manualmente usando el valor actual del elemento.
+    if ($('#id_cliente').prop('disabled')) {
+      formData.set('id_cliente', $('#id_cliente').val() || '');
+    }
+    if ($('#id_empleado').prop('disabled')) {
+      formData.set('id_empleado', $('#id_empleado').val() || '');
+    }
+    if ($('#id_disenador_industrial').prop('disabled')) {
+      formData.set('id_disenador_industrial', $('#id_disenador_industrial').val() || '');
+    }
+    // Asegurar que los campos ocultos ODI siempre se envíen correctamente
+    formData.set('odi', $('#odi_codigo_texto').val() || '');
+    formData.set('id_odi_fk', $('#id_odi_fk_hidden').val() || '');
 
     // Eliminar el campo 'documentos' que FormData(form) podría haber tomado (probablemente vacío)
     // para asegurar que solo usemos los de selectedFiles.
