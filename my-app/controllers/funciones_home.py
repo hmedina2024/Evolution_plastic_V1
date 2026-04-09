@@ -5161,29 +5161,23 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
 # ============================================================
 
 def generar_codigo_odi():
-    """Genera un código único para la ODI con formato ODI-YYYY-NNNN."""
+    """Genera el siguiente número consecutivo para ODI"""
     try:
-        anio_actual = datetime.now().year
-        prefijo = f"ODI-{anio_actual}-"
-        # Buscar la última ODI del año actual
-        ultima_odi = db.session.query(OrdenDisenoIndustrial).filter(
-            OrdenDisenoIndustrial.codigo_odi.like(f"{prefijo}%"),
-            OrdenDisenoIndustrial.fecha_borrado.is_(None)
-        ).order_by(OrdenDisenoIndustrial.id_odi.desc()).first()
+        ultima_odi = db.session.query(OrdenDisenoIndustrial)\
+            .filter(OrdenDisenoIndustrial.fecha_borrado.is_(None))\
+            .order_by(OrdenDisenoIndustrial.codigo_odi.desc())\
+            .first()
 
-        if ultima_odi:
-            try:
-                ultimo_numero = int(ultima_odi.codigo_odi.split('-')[-1])
-                nuevo_numero = ultimo_numero + 1
-            except (ValueError, IndexError):
-                nuevo_numero = 1
+        if ultima_odi and ultima_odi.codigo_odi:
+            nuevo_numero = int(ultima_odi.codigo_odi) + 1
         else:
             nuevo_numero = 1
 
-        return f"{prefijo}{str(nuevo_numero).zfill(4)}"
+        return str(nuevo_numero)
+
     except Exception as e:
         app.logger.error(f"Error en generar_codigo_odi: {e}")
-        return f"ODI-{datetime.now().year}-0001"
+        return "1"
 
 
 def validar_cod_odi(codigo_odi):
@@ -5676,8 +5670,6 @@ def get_odis_paginados(page=1, per_page=10, search=''):
         results = []
         for odi in odis:
             texto = odi.codigo_odi
-            if odi.proyecto:
-                texto += f" - {odi.proyecto}"
             results.append({
                 'id': odi.id_odi,
                 'text': texto,
