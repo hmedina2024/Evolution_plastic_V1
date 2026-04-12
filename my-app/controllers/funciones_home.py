@@ -3032,13 +3032,17 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             if datetime.strptime(fecha_entrega_str, '%Y-%m-%d').date() < datetime.strptime(fecha_str, '%Y-%m-%d').date():
                 errores.append("La Fecha de Entrega no puede ser anterior a la Fecha.")
         except ValueError: pass # Error de formato ya cubierto
-
-    if not id_cliente_str or not id_cliente_str.isdigit():
-        errores.append("Cliente es requerido y debe ser un ID válido.")
-    else:
-        id_cliente_val = int(id_cliente_str) # Guardar para uso posterior si es válido
-        if not Clientes.query.filter_by(id_cliente=id_cliente_val, fecha_borrado=None).first():
-            errores.append(f"Cliente con ID '{id_cliente_val}' no encontrado.")
+           
+    id_cliente_val = None
+    if id_cliente_str and id_cliente_str.strip():
+        try:
+            val = int(id_cliente_str)
+            if val != orden.id_cliente:   # ← clave
+                if not Clientes.query.filter_by(id_cliente=val, fecha_borrado=None).first():
+                    errores.append(f"Cliente con ID '{val}' no encontrado.")
+            id_cliente_val = val
+        except ValueError:
+            errores.append("ID Cliente debe ser un número entero válido.")
     
     if not producto_op_val: errores.append("Producto es requerido.")
     
@@ -3047,48 +3051,65 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     else:
         cantidad_op_val = int(cantidad_op_str) # Convertir para uso posterior
     
-    if not id_empleado_str or not id_empleado_str.isdigit():
-        errores.append("Vendedor es requerido y debe ser un ID válido.")
-    else:
-        id_empleado_val = int(id_empleado_str) # Guardar para uso posterior
-        if not Empleados.query.filter_by(id_empleado=id_empleado_val, fecha_borrado=None).first():
-            errores.append(f"Vendedor con ID '{id_empleado_val}' no encontrado.")
+           
+    id_empleado_val = None
+    if id_empleado_str and id_empleado_str.strip():
+        try:
+            val = int(id_empleado_str)
+            if val != orden.id_empleado:   # ← clave
+                if not Empleados.query.filter_by(id_empleado=val, fecha_borrado=None).first():
+                    errores.append(f"Vendedor con ID '{val}' no encontrado.")
+            id_empleado_val = val
+        except ValueError:
+            errores.append("ID Empleado debe ser un número entero válido.")
 
-    id_supervisor_val = None # Es opcional
-    if id_supervisor_str:
-        if not id_supervisor_str.isdigit():
-            errores.append("ID Supervisor inválido.")
-        else:
-            id_supervisor_val = int(id_supervisor_str) # Guardar para uso posterior
-            if not Empleados.query.filter_by(id_empleado=id_supervisor_val, fecha_borrado=None).first():
-                errores.append(f"Supervisor con ID '{id_supervisor_val}' no encontrado.")
+   
+    id_supervisor_val = None
+    if id_supervisor_str and id_supervisor_str.strip():
+        try:
+            val = int(id_supervisor_str)
+            if val != orden.id_supervisor:   # ← clave
+                if not Empleados.query.filter_by(id_empleado=val, fecha_borrado=None).first():
+                    errores.append(f"Supervisor con ID '{val}' no encontrado.")
+            id_supervisor_val = val
+        except ValueError:
+            errores.append("ID Supervisor debe ser un número entero válido.")
     
-    id_disenador_grafico_val = None # Es opcional
-    if id_disenador_grafico_str:
-        if not id_disenador_grafico_str.isdigit():
-            errores.append("ID Diseñador Grafico inválido.")
-        else:
-            id_disenador_grafico_val = int(id_disenador_grafico_str) # Guardar para uso posterior
-            if not Empleados.query.filter_by(id_empleado=id_disenador_grafico_val, fecha_borrado=None).first():
-                errores.append(f"Disenador Grafico con ID '{id_disenador_grafico_val}' no encontrado.")
+    
+    
+    id_disenador_grafico_val = None
+    if id_disenador_grafico_str and id_disenador_grafico_str.strip():
+        try:
+            val = int(id_disenador_grafico_str)
+            if val != orden.id_disenador_grafico:   # ← clave
+                if not Empleados.query.filter_by(id_empleado=val, fecha_borrado=None).first():
+                    errores.append(f"Diseñador Gráfico con ID '{val}' no encontrado.")
+            id_disenador_grafico_val = val
+        except ValueError:
+            errores.append("ID Diseñador Gráfico debe ser un número entero válido.")
                 
-    id_disenador_industrial_val = None # Es opcional
-    if id_disenador_industrial_str:
-        if not id_disenador_industrial_str.isdigit():
-            errores.append("ID Diseñador Industrial inválido.")
-        else:
-            id_disenador_industrial_val = int(id_disenador_industrial_str) # Guardar para uso posterior
-            if not Empleados.query.filter_by(id_empleado=id_disenador_industrial_val, fecha_borrado=None).first():
-                errores.append(f"Disenador Industrial con ID '{id_disenador_industrial_val}' no encontrado.")
+    # Diseñador Industrial  ← Este es el que te está fallando
+    id_disenador_industrial_val = None
+    if id_disenador_industrial_str and id_disenador_industrial_str.strip():
+        try:
+            val = int(id_disenador_industrial_str)
+            if val != orden.id_disenador_industrial:   # ← clave
+                if not Empleados.query.filter_by(id_empleado=val, fecha_borrado=None).first():
+                    errores.append(f"Diseñador Industrial con ID '{val}' no encontrado.")
+            id_disenador_industrial_val = val
+        except ValueError:
+            errores.append("ID Diseñador Industrial debe ser un número entero válido.")
                 
-    id_costeador_val = None # Es opcional
-    if id_costeador_str:
-        if not id_costeador_str.isdigit():
-            errores.append("ID Costeador inválido.")
-        else:
-            id_costeador_val = int(id_costeador_str) # Guardar para uso posterior
-            if not Empleados.query.filter_by(id_empleado=id_costeador_val, fecha_borrado=None).first():
-                errores.append(f"Costeador con ID '{id_costeador_val}' no encontrado.")
+    id_costeador_val = None
+    if id_costeador_str and id_costeador_str.strip():
+        try:
+            val = int(id_costeador_str)
+            if val != orden.id_costeador:
+                if not Empleados.query.filter_by(id_empleado=val, fecha_borrado=None).first():
+                    errores.append(f"Costeador con ID '{val}' no encontrado.")
+            id_costeador_val = val
+        except ValueError:
+            errores.append("ID Costeador debe ser un número entero válido.")
 
     if not cotizacion_val: errores.append("Cotización es requerida.")
     # ODI es opcional — no se valida como requerida
