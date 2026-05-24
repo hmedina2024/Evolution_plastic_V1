@@ -163,9 +163,7 @@ $(document).ready(function() {
 });
 
 function eliminarOp(id_op) {
-    if (confirm('¿Estás seguro de eliminar esta orden de producción?')) {
-        window.location.href = '/borrar-op/' + id_op;
-    }
+    postDelete('/borrar-op/' + id_op, '¿Estás seguro de eliminar esta orden de producción?');
 }
 </script>
 {% endblock %}

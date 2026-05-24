@@ -111,12 +111,7 @@
   });
 
   function eliminarUsuario(id, nombre) {
-    if (confirm(`¿Estás seguro que deseas eliminar el Usuario ${nombre}?`)) {
-      let url = `/borrar-usuario/${id}`;
-      if (url) {
-        window.location.href = url;
-      }
-    }
+    postDelete(`/borrar-usuario/${id}`, `¿Estás seguro que deseas eliminar el Usuario ${nombre}?`);
   }
 </script>
 {% endblock %}

@@ -1,5 +1,5 @@
 # my-app/routers/router_login.py (Modificado)
-from app import app
+from app import app, limiter
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from conexion.models import db, Users
 from werkzeug.security import check_password_hash
@@ -40,26 +40,43 @@ def perfil():
     # La comprobación de sesión la hace el decorador
     return render_template(f'public/perfil/perfil.html', info_perfil_session=info_perfil_session())
 
-# Crear cuenta de usuario (ruta pública)
+# Crear cuenta de usuario — solo Administradores
 @app.route('/register-user', methods=['GET'])
+@login_required
 def cpanel_register_user():
-    # Considera si esta ruta debería ser accesible solo para admins logueados
-    # Si es así, añade @login_required y quizás una verificación de rol
+    if session.get('rol') != 'Administrador':
+        flash('No tienes permisos para acceder a esta página.', 'error')
+        return redirect(url_for('inicio'))
     return render_template(f'{PATH_URL_LOGIN}/auth_register.html')
 
 # Recuperar cuenta de usuario (ruta pública)
-@app.route('/recovery-password', methods=['GET'])
+@app.route('/recovery-password', methods=['GET', 'POST'])
 def cpanelRecoveryPassUser():
-    if 'conectado' in session: # Evita que usuarios logueados vean esto
+    if 'conectado' in session:
         return redirect(url_for('inicio'))
-    else:
-        return render_template(f'{PATH_URL_LOGIN}/auth_forgot_password.html')
 
-# Guardar registro de usuario (ruta pública o protegida?)
+    if request.method == 'POST':
+        email_user = request.form.get('email_user', '').strip()
+        if email_user:
+            user = Users.query.filter_by(email_user=email_user, fecha_borrado=None).first()
+            if user:
+                # TODO: enviar correo con enlace de recuperación cuando se configure SMTP
+                app.logger.info(f"Solicitud de recuperación de contraseña para: {email_user}")
+        # Mensaje genérico siempre — no revelar si el email existe o no
+        flash('Si el email está registrado, recibirás instrucciones para recuperar tu contraseña.', 'info')
+        return redirect(url_for('cpanelRecoveryPassUser'))
+
+    return render_template(f'{PATH_URL_LOGIN}/auth_forgot_password.html')
+
+# Guardar registro de usuario — solo Administradores
 @app.route('/saved-register', methods=['POST'])
+@login_required
 def cpanel_register_user_bd():
-    # Considera añadir @login_required y verificación de rol si solo admins pueden registrar
-    if request.method == 'POST' and 'name_surname' in request.form and 'pass_user' in request.form:
+    if session.get('rol') != 'Administrador':
+        flash('No tienes permisos para realizar esta acción.', 'error')
+        return redirect(url_for('inicio'))
+
+    if 'name_surname' in request.form and 'pass_user' in request.form:
         name_surname = request.form['name_surname']
         email_user = request.form['email_user']
         pass_user = request.form['pass_user']
@@ -69,13 +86,10 @@ def cpanel_register_user_bd():
 
         if resultado == RESULTADO_EXITO:
             flash('La cuenta fue creada correctamente.', 'success')
-            # Redirigir a una página relevante, ¿quizás lista de usuarios si es admin?
-            return redirect(url_for('inicio')) # O url_for('lista_usuarios') si existe
-        # Los mensajes de error (email existe, error general) se flashean dentro de la función
-        # Simplemente redirigimos al formulario de registro en caso de error
+            return redirect(url_for('usuarios'))
         return redirect(url_for('cpanel_register_user'))
     else:
-        flash('Método HTTP incorrecto o faltan datos.', 'error')
+        flash('Faltan datos en el formulario.', 'error')
         return redirect(url_for('cpanel_register_user'))
 
 # Actualizar datos de mi perfil
@@ -108,6 +122,7 @@ def actualizar_perfil():
 
 # Validar sesión (ruta pública)
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", error_message="Demasiados intentos. Espera un minuto antes de intentarlo de nuevo.")
 def loginCliente():
     if 'conectado' in session:  # Evita que usuarios logueados vean esto
         return redirect(url_for('inicio'))
@@ -141,20 +156,14 @@ def loginCliente():
 
 
 @app.route('/closed-session', methods=['GET'])
-@login_required # Aplicar decorador
+@login_required
 def cerraSesion():
-    # La comprobación de sesión la hace el decorador
-    session.pop('conectado', None)
-    session.pop('id', None)
-    session.pop('name_surname', None)
-    session.pop('email_user', None)
-    session.pop('rol', None) # Asegúrate de limpiar todos los datos de sesión
+    session.clear()
     flash('Tu sesión fue cerrada correctamente.', 'success')
     return redirect(url_for('inicio'))
 
-# --- Ruta Power BI sin cambios ---
 @app.route('/powerbi')
-# @login_required # Descomentar si esta ruta también debe ser protegida
+@login_required
 def powerbi_report():
     report_url = "https://app.powerbi.com/view?r=eyJrIjoiZWVhY2E2ZjEtY2MwOS00MDhhLWEzNjYtODE2OGNjMjJjYzI1IiwidCI6IjRiOTVlNzRhLTQwZGEtNDc0YS05OGZmLWY4ZjlhNWY2Njc3ZiIsImMiOjR9"
     # La lógica de resp_usuariosBD debería obtenerse de alguna fuente real si es necesaria

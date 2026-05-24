@@ -21,6 +21,7 @@
   </div>
   <div class="card-body p-4">
     <form class="form-horizontal mx-auto" method="POST" action="{{ url_for('actualizar_jornada_post', id_jornada=respuestaJornada.id_jornada) }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="id_jornada" value="{{ respuestaJornada.id_jornada }}">
 
       <div class="row g-4">

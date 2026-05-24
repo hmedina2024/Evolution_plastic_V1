@@ -127,13 +127,9 @@ $(document).ready(function() {
 
 // Función para eliminar empleado (mantenemos la lógica existente)
 function eliminarEmpleado(id_empleado, foto_empleado) {
-    if (confirm('¿Estás seguro de eliminar este empleado?')) {
-        let foto = foto_empleado;
-        if (!foto || foto.trim() === '') {
-            foto = 'sin_foto';
-        }
-        window.location.href = '/borrar-empleado/' + id_empleado + '/' + encodeURIComponent(foto);
-    }
+    const foto = (!foto_empleado || foto_empleado.trim() === '') ? 'sin_foto' : foto_empleado;
+    postDelete('/borrar-empleado/' + id_empleado + '/' + encodeURIComponent(foto),
+               '¿Estás seguro de eliminar este empleado?');
 }
 </script>
 {% endblock %}

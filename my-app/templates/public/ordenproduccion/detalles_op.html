@@ -143,8 +143,13 @@
       <div class="col-md-3">
         <label for="estado_proyecto"
           class="form-label fw-bold text-primary">Estado Proyecto</label>
-        <div class="form-control" readonly>{{ detalle_op.estado_proyecto |
-          default('') }}</div>
+        <div class="form-control" readonly style="height:auto; min-height:38px;">
+          {% if detalle_op.estado_proyecto %}
+            {% for estado in detalle_op.estado_proyecto.split(',') %}
+              <span class="badge bg-label-primary me-1">{{ estado.strip() }}</span>
+            {% endfor %}
+          {% endif %}
+        </div>
       </div>
     </div>
     <div class="row g-4 mt-3">

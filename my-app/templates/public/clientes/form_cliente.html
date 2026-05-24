@@ -14,6 +14,7 @@
   </div>
   <div class="card-body p-4">
     <form method="POST" action="/form-registrar-cliente" autocomplete="off" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="row g-4">
         <div class="col-md-3">
           <label for="tipo_cliente" class="form-label fw-bold text-primary">Tipo Documento</label>

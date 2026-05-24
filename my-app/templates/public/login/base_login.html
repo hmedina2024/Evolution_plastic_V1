@@ -72,6 +72,37 @@
     <!--fin del cuerpo-->
     {% endblock %}
 
-    <script src="{{ url_for('static', filename ='assets/customJS/home.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/customJS/home.js') }}"></script>
+    <script>
+      // Toggle visibilidad de contraseña
+      document.querySelectorAll('.form-password-toggle i').forEach(function(icon) {
+        icon.style.cursor = 'pointer';
+        icon.addEventListener('click', function() {
+          var container = icon.closest('.form-password-toggle');
+          var input = container.querySelector('input[type="password"], input[type="text"]');
+          if (!input) return;
+          if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('bx-hide', 'bx-show');
+          } else {
+            input.type = 'password';
+            icon.classList.replace('bx-show', 'bx-hide');
+          }
+        });
+      });
+
+      // Prevenir doble submit
+      document.addEventListener('submit', function(e) {
+        var btn = e.target.querySelector('button[type="submit"], input[type="submit"]');
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        btn._originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+        window.addEventListener('pageshow', function() {
+          btn.disabled = false;
+          btn.innerHTML = btn._originalText;
+        }, { once: true });
+      });
+    </script>
   </body>
 </html>

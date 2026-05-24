@@ -137,9 +137,7 @@ $(document).ready(function() {
 });
 
 function eliminarJornada(id_jornada) {
-    if (confirm('¿Estás seguro de eliminar esta jornada?')) {
-        window.location.href = '/borrar-jornada/' + id_jornada;
-    }
+    postDelete('/borrar-jornada/' + id_jornada, '¿Estás seguro de eliminar esta jornada?');
 }
 </script>
 {% endblock %}

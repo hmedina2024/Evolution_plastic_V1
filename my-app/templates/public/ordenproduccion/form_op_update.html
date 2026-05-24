@@ -177,13 +177,13 @@
           <label for="estado_proyecto"
             class="form-label fw-bold text-primary">Estado proyecto</label>
           <select name="estado_proyecto" id="estado_proyecto"
-            class="form-control select2">
-            <option value disabled selected>Seleccionar Estado del
-              Proyecto</option>
+            class="form-control select2" multiple>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
             <option value="Estructura aprobada">Estructura aprobada</option>
             <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
+            <option value="Lineas de troquel en ajuste">Lineas de troquel en ajuste</option>
+            <option value="Lineas de troquel aprobadas">Lineas de troquel aprobadas</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado
             proyecto.</div>
@@ -1066,7 +1066,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
-  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado(s) del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%', closeOnSelect: false });
 
   // --- Llenar campos del formulario con datosOpExistente ---
   if (datosOpExistente && Object.keys(datosOpExistente).length > 0) {
@@ -1164,7 +1164,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
 
     if (datosOpExistente.estado_proyecto) {
-      $('#estado_proyecto').val(datosOpExistente.estado_proyecto).trigger('change');
+      var estadoProyectoArr = datosOpExistente.estado_proyecto.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+      $('#estado_proyecto').val(estadoProyectoArr).trigger('change');
     }
 
     // Procesos Globales (Select2 multiple con AJAX y opción "Otro")
@@ -2252,7 +2253,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
     
     const formData = new FormData(form); // Recoge campos normales, pero el input 'documentos' podría estar vacío debido al .value = null
-    formData.append('estado_proyecto', $('#estado_proyecto').val());
+    // FormData(form) incluye cada opción del <select multiple> como entrada separada.
+    // Usamos .set() para reemplazarlas todas con el valor unido en una sola cadena.
+    const estadoProyectoVal = $('#estado_proyecto').val();
+    formData.set('estado_proyecto', Array.isArray(estadoProyectoVal) ? estadoProyectoVal.join(',') : (estadoProyectoVal || ''));
 
     // ── CAMPOS QUE PUEDEN ESTAR DISABLED (no los recoge FormData automáticamente) ──
     // Si el campo está disabled (bloqueado por lógica ODI), FormData(form) no lo incluye.
@@ -2297,10 +2301,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         });
     }
     
-    console.log("FormData FINAL a enviar:");
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value instanceof File ? `File: ${value.name}` : `Value: ${value}`);
-    }
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,

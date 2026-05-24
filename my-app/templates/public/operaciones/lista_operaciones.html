@@ -193,13 +193,8 @@ $(document).ready(function() {
 
 });
 
-// Función para confirmar eliminación (ya la tenías)
 function eliminarOperacion(id_operacion) {
-    if (confirm('¿Estás seguro de eliminar esta operación? ID: ' + id_operacion)) {
-        // Idealmente, esto debería ser una petición DELETE o POST, no GET
-        // Pero si tu ruta /borrar-operacion/ es GET, esto funciona:
-        window.location.href = '/borrar-operacion/' + id_operacion;
-    }
+    postDelete('/borrar-operacion/' + id_operacion, '¿Estás seguro de eliminar esta operación? ID: ' + id_operacion);
 }
 </script>
 {% endblock %}

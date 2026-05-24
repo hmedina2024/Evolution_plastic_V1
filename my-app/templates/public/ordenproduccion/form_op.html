@@ -169,12 +169,13 @@
           <label for="estado_proyecto"
             class="form-label fw-bold text-primary">Estado proyecto</label>
           <select name="estado_proyecto" id="estado_proyecto"
-            class="form-control select2">
-            <option value selected>Seleccionar Estado del Proyecto</option>
+            class="form-control select2" multiple>
             <option value="Artes en ajustes">Artes en ajustes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
             <option value="Estructura aprobada">Estructura aprobada</option>
             <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
+            <option value="Lineas de troquel en ajuste">Lineas de troquel en ajuste</option>
+            <option value="Lineas de troquel aprobadas">Lineas de troquel aprobadas</option>
           </select>
         </div>
       </div>
@@ -990,7 +991,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
   $('#estado').select2({ placeholder: 'Seleccionar Estado', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#logistica').select2({ placeholder: 'Seleccionar Logística', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
   $('#instructivo').select2({ placeholder: 'Instructivo', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
-  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%' });
+  $('#estado_proyecto').select2({ placeholder: 'Seleccionar Estado(s) del Proyecto', allowClear: true, minimumResultsForSearch: Infinity, width: '100%', closeOnSelect: false });
 
   // --- INICIO: Selector Global de Procesos para la OP ---
   const $opProcesosSelect = $('#op_ids_procesos');
@@ -1849,7 +1850,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     formData.append('instructivo', instructivoVal === null ? '' : instructivoVal);
     
     const estadoProyectoVal = $('#estado_proyecto').val();
-    formData.append('estado_proyecto', estadoProyectoVal === null ? '' : estadoProyectoVal);
+    formData.append('estado_proyecto', Array.isArray(estadoProyectoVal) ? estadoProyectoVal.join(',') : (estadoProyectoVal || ''));
 
     const supervisorVal = $('#id_supervisor').val();
     formData.append('id_supervisor', supervisorVal === null ? '' : supervisorVal);
@@ -1892,10 +1893,10 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
       });
     }
     
-    // --- CORRECCIÓN APLICADA AQUÍ ---
     formData.append('submit_action', $('#submit_action').val());
     formData.append('destinatarios', $('#destinatarios').val());
     formData.append('mensaje_personalizado', $('#mensaje_personalizado').val());
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,

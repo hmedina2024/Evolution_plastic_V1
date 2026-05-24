@@ -130,9 +130,7 @@ $(document).ready(function() {
 });
 
 function eliminarProceso(id_proceso) {
-    if (confirm('¿Estás seguro de eliminar este proceso?')) {
-        window.location.href = '/borrar-proceso/' + id_proceso;
-    }
+    postDelete('/borrar-proceso/' + id_proceso, '¿Estás seguro de eliminar este proceso?');
 }
 </script>
 {% endblock %}

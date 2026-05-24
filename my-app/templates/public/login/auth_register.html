@@ -18,6 +18,7 @@
           </div>
 
           <form class="mb-3" action="{{ url_for('cpanel_register_user_bd') }}" method="POST" style="max-width: 400px; margin: auto;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label for="name_surname" class="form-label fw-bold text-primary">Nombre y apellido</label>
                 <input type="text" class="form-control" name="name_surname" required autofocus />
@@ -26,16 +27,14 @@
                 <label for="email_user" class="form-label fw-bold text-primary">Email</label>
                 <input type="email" class="form-control" name="email_user" required />
             </div>
-            <div class="mb-2 form-password-toggle row">
-                <div class="col-md-6">
+            <div class="mb-2 row">
+                <div class="col-md-6 form-password-toggle">
                     <label class="form-label fw-bold text-primary" for="pass_user">Clave</label>
                     <div class="input-group input-group-merge">
                         <input type="password" class="form-control" name="pass_user" id="pass_user" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" aria-describedby="password" required />
-                        <div class="input-group-append">
-                            <span class="input-group-text" onclick="togglePassword()">
-                                <i id="password-icon" class="bx bx-hide"></i>
-                            </span>
-                        </div>
+                        <span class="input-group-text cursor-pointer">
+                            <i class="bx bx-hide"></i>
+                        </span>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -43,7 +42,7 @@
                     <select class="form-select" name="rol" id="rol" required aria-label="Default select example" required>
                       <option value="">Seleccione un Rol</option>
                       <option value="Operativo">Operativo</option>
-                      <option value="Operativo">Supervisor</option>
+                      <option value="Supervisor">Supervisor</option>
                       <option value="Administrador">Administrador</option>                        
                     </select>
                 </div>

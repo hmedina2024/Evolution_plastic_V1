@@ -37,15 +37,30 @@ from reportlab.lib.enums import TA_CENTER
 
 
 
-magic.Magic(mime=True)
+_mime_checker = magic.Magic(mime=True)
 
-# Define la zona horaria local (ajusta según tu ubicación)
 LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
 
-# Definiciones de extensiones permitidas
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 ALLOWED_DOC_EXTENSIONS = {'pdf', 'doc', 'docx',
-                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv','dxf','ai'}
+                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv', 'dxf', 'ai'}
+
+# MIME types permitidos para imágenes y documentos
+_ALLOWED_IMAGE_MIMES = {'image/jpeg', 'image/png'}
+_ALLOWED_DOC_MIMES = {
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/csv',
+    'image/vnd.dxf',
+    'application/postscript',
+    'application/octet-stream',  # DXF/AI pueden reportarse así
+}
 
 
 # --- Funciones de Empleados ---
@@ -132,8 +147,17 @@ def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
             extension = os.path.splitext(filename)[1].lower().strip('.')
             if extension not in allowed_extensions_set:
                 app.logger.warning(
-                    f"Extensión de archivo no permitida: .{extension} para {subfolder}. Permitidas: {', '.join(allowed_extensions_set)}")
+                    f"Extensión no permitida: .{extension} para {subfolder}")
                 return False, f"Extensión .{extension} no permitida. Permitidas: {', '.join(allowed_extensions_set)}"
+
+            # Validar MIME type real del contenido (no confiar solo en la extensión)
+            header = foto_storage.read(2048)
+            foto_storage.seek(0)
+            mime_real = _mime_checker.from_buffer(header)
+            if mime_real not in _ALLOWED_IMAGE_MIMES:
+                app.logger.warning(
+                    f"MIME type no permitido: {mime_real} para {subfolder}")
+                return False, f"El archivo no es una imagen válida (tipo detectado: {mime_real})."
 
             nuevoNameFile = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
             nombreFile = f"{nuevoNameFile}.{extension}"
@@ -146,7 +170,7 @@ def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
             upload_path = os.path.join(upload_dir, nombreFile)
             foto_storage.save(upload_path)
             return True, nombreFile
-        return True, None  # No hay archivo, pero no es un error de validación de la función en sí
+        return True, None
     except Exception as e:
         app.logger.error(
             f"Error al procesar imagen en '{subfolder}': {e}", exc_info=True)
@@ -1925,11 +1949,9 @@ def validate_file(file, allowed_extensions):
         if not extension or extension not in allowed_extensions:
             return False, f"Extensión .{extension} no permitida"
 
-        # Leer MIME type real
+        # Validar MIME type real del contenido
         file.seek(0)
-        mime = magic.Magic(mime=True)
-        # Lee más bytes para mejor detección
-        detected_mime = mime.from_buffer(file.read(2048))
+        detected_mime = _mime_checker.from_buffer(file.read(2048))
         file.seek(0)
 
         # Caso especial para .xlsx

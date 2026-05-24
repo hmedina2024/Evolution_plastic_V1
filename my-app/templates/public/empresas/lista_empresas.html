@@ -124,9 +124,7 @@ $(document).ready(function() {
 });
 
 function eliminarEmpresa(id_empresa) {
-    if (confirm('¿Estás seguro de eliminar esta empresa?')) {
-        window.location.href = '/borrar-empresa/' + id_empresa;
-    }
+    postDelete('/borrar-empresa/' + id_empresa, '¿Estás seguro de eliminar esta empresa?');
 }
 </script>
 {% endblock %}

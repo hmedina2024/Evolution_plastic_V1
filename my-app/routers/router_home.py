@@ -1,7 +1,7 @@
 # Asegúrate de importar las nuevas funciones
 from controllers.funciones_home import sql_detalles_empresaBD, buscar_empresa_unica, eliminar_empresa
 from werkzeug.exceptions import RequestEntityTooLarge
-from app import app
+from app import app, csrf
 import json
 from flask import send_file, abort,render_template, request, flash, redirect, url_for, session, jsonify, Blueprint, request
 from flask_paginate import Pagination, get_page_args
@@ -18,7 +18,7 @@ from controllers.funciones_home import get_novedades_actividades, get_empleados_
 from controllers.funciones_home import (get_empresas_paginadas, get_tipos_empleado_paginados, get_supervisores_paginados,get_disenadores_graficos_paginados,get_disenadores_industriales_paginados,get_costeadores_paginados,
                                         procesar_form_empleado, procesar_form_empresa, procesar_imagen_perfil, procesar_actualizar_empresa, obtener_tipo_empleado, obtener_cargos, buscar_ordenes_produccion_bd,
                                         sql_lista_empleadosBD, sql_detalles_empleadosBD, empleados_reporte, generar_reporte_excel, sql_lista_empresasBD,
-                                        buscar_empleado_bd, validate_document, buscar_empleado_unico, procesar_actualizacion_form,
+                                        validate_document, buscar_empleado_unico, procesar_actualizacion_form,
                                         eliminar_empleado, sql_lista_usuarios_bd, eliminar_usuario, procesar_form_proceso, buscando_empresas, buscar_usuarios_bd,
                                         sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, buscar_procesos_bd, # procesar_actualizar_form estaba duplicado
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
@@ -116,20 +116,8 @@ def detalle_empleado(id_empleado=None):
         return redirect(url_for('inicio'))
 
 
-# Búsqueda de empleados
-
-
-@app.route("/buscando-empleado", methods=['POST'])
-def view_buscar_empleado_bd():
-    resultado_busqueda = buscar_empleado_bd(request.json['busqueda'])
-
-    if resultado_busqueda:
-        return jsonify({'data': resultado_busqueda})
-    else:
-        return jsonify({'data': [], 'fin': 0})
-
-
 @app.route("/buscando-empleados", methods=['POST'])
+@csrf.exempt
 def buscando_empleados():
     try:
         # Obtener parámetros de DataTables
@@ -302,6 +290,7 @@ def usuarios():
 
 
 @app.route("/buscando-usuarios", methods=['POST'])
+@csrf.exempt
 def view_buscar_usuarios_bd():
     try:
         data = request.get_json()
@@ -327,7 +316,7 @@ def view_buscar_usuarios_bd():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/borrar-usuario/<string:id>', methods=['GET'])
+@app.route('/borrar-usuario/<string:id>', methods=['POST'])
 def borrar_usuario(id):
     resp = eliminar_usuario(id)
     if resp:
@@ -335,7 +324,7 @@ def borrar_usuario(id):
         return redirect(url_for('usuarios'))
 
 
-@app.route('/borrar-empleado/<string:id_empleado>/<string:foto_empleado>', methods=['GET'])
+@app.route('/borrar-empleado/<string:id_empleado>/<string:foto_empleado>', methods=['POST'])
 def borrar_empleado(id_empleado, foto_empleado):
     resp = eliminar_empleado(id_empleado, foto_empleado)
     if resp:
@@ -423,7 +412,7 @@ def actualizar_proceso():
         return redirect(url_for('lista_procesos'))
 
 
-@app.route('/borrar-proceso/<int:id_proceso>', methods=['GET'])
+@app.route('/borrar-proceso/<int:id_proceso>', methods=['POST'])
 def borrar_proceso(id_proceso):
     success, message = eliminar_proceso(id_proceso)
     if success:
@@ -558,7 +547,7 @@ def actualizar_cliente():
             return redirect(url_for('lista_clientes')) # Fallback si no hay ID
 
 
-@app.route('/borrar-cliente/<string:id_cliente>/<string:foto_cliente>', methods=['GET'])
+@app.route('/borrar-cliente/<string:id_cliente>/<string:foto_cliente>', methods=['POST'])
 def borrar_cliente(id_cliente, foto_cliente):
     resp = eliminar_cliente(id_cliente, foto_cliente)
     if resp:
@@ -640,7 +629,7 @@ def actualizar_actividad():
         return "Ocurrió un error al actualizar la actividad"
 
 
-@app.route('/borrar-actividad/<int:id_actividad>', methods=['GET'])
+@app.route('/borrar-actividad/<int:id_actividad>', methods=['POST'])
 def borrar_actividad(id_actividad):
     resp = eliminar_actividad(id_actividad)
     if resp:
@@ -708,6 +697,7 @@ def api_ultima_fecha_fin(id_empleado):
 
 
 @app.route('/buscando-operaciones', methods=['POST'])
+@csrf.exempt
 def buscar_operaciones():
     try:
         data = request.get_json()
@@ -788,7 +778,7 @@ def actualizar_operacion():
         return redirect(url_for('lista_operaciones'))
 
 
-@app.route('/borrar-operacion/<int:id_operacion>', methods=['GET'])
+@app.route('/borrar-operacion/<int:id_operacion>', methods=['POST'])
 def borrar_operacion(id_operacion):
     resp = eliminar_operacion(id_operacion)
     if resp:
@@ -1025,7 +1015,7 @@ def actualizar_odi(codigo_odi):
     else:
         return jsonify({'success': False, 'message': 'Error desconocido al procesar la solicitud'})
 
-@app.route('/borrar-op/<int:id_op>', methods=['GET'])
+@app.route('/borrar-op/<int:id_op>', methods=['POST'])
 def borrar_op(id_op):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -1039,7 +1029,7 @@ def borrar_op(id_op):
 
     return redirect(url_for('lista_op'))
 
-@app.route('/borrar-odi/<int:id_odi>', methods=['GET'])
+@app.route('/borrar-odi/<int:id_odi>', methods=['POST'])
 def borrar_odi(id_odi):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -1055,6 +1045,7 @@ def borrar_odi(id_odi):
 
 
 @app.route('/buscando-ordenes-produccion', methods=['POST'])
+@csrf.exempt
 def buscando_ordenes_produccion():
     if 'conectado' not in session:
         return jsonify({"error": "No autorizado", "data": []}), 401
@@ -1083,6 +1074,7 @@ def buscando_ordenes_produccion():
 
 
 @app.route('/buscando-ordenes-diseno-industrial', methods=['POST'])
+@csrf.exempt
 def buscando_ordenes_diseno_industrial():
     if 'conectado' not in session:
         return jsonify({"error": "No autorizado", "data": []}), 401
@@ -1111,6 +1103,7 @@ def buscando_ordenes_diseno_industrial():
 
 
 @app.route('/buscando-procesos', methods=['POST'])
+@csrf.exempt
 def buscando_procesos():
     if 'conectado' not in session:
         return jsonify({"error": "No autorizado", "data": []}), 401
@@ -1135,6 +1128,7 @@ def buscando_procesos():
 
 
 @app.route('/buscando-actividades', methods=['POST'])
+@csrf.exempt
 def buscando_actividades():
     if 'conectado' not in session:
         return jsonify({"error": "No autorizado", "data": []}), 401
@@ -1159,6 +1153,7 @@ def buscando_actividades():
 
 
 @app.route('/buscando-jornadas', methods=['POST'])
+@csrf.exempt
 def buscando_jornadas_route(): # Renombrada para evitar conflicto si 'buscando_jornadas' ya existe como función
     if 'conectado' not in session:
         return jsonify({'error': 'Usuario no autenticado'}), 401
@@ -1311,7 +1306,7 @@ def actualizar_jornada_post(id_jornada):
     return redirect(url_for('lista_jornadas'))
 
 
-@app.route('/borrar-jornada/<int:id_jornada>', methods=['GET'])
+@app.route('/borrar-jornada/<int:id_jornada>', methods=['POST'])
 def borrar_jornada(id_jornada):
     resp = eliminar_jornada(id_jornada)
     if resp:
@@ -1653,7 +1648,7 @@ def viewEditarEmpresa(id):
         return redirect(url_for('inicio'))
 
 
-@app.route('/borrar-empresa/<int:id_empresa>', methods=['GET'])
+@app.route('/borrar-empresa/<int:id_empresa>', methods=['POST'])
 def borrar_empresa(id_empresa):
     if 'conectado' in session:
         resp = eliminar_empresa(id_empresa)
@@ -1683,6 +1678,7 @@ def actualizar_empresa():
 
 
 @app.route('/buscando-empresas', methods=['POST'])
+@csrf.exempt
 def buscando_empresas_route():
     if 'conectado' in session:
         data = request.get_json()

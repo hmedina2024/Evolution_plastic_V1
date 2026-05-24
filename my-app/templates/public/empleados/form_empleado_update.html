@@ -20,6 +20,7 @@
   </div>
   <div class="card-body p-4">
     <form method="POST" action="{{ url_for('actualizar_empleado', id=respuestaEmpleado.id_empleado) }}" autocomplete="off" enctype="multipart/form-data" id="updateForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="id_empleado" value="{{ respuestaEmpleado.id_empleado }}" />
       
       <div class="row g-4">

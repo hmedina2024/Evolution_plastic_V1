@@ -18,6 +18,7 @@
   <div class="card-body p-4">
     {% if respuestaCliente|length %}
     <form method="POST" action="{{ url_for('actualizar_cliente', id=respuestaCliente.id_cliente) }}" autocomplete="off" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="id_cliente" value="{{ respuestaCliente.id_cliente }}" />
       
       <div class="row g-4">

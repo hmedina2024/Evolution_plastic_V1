@@ -254,6 +254,7 @@ $(document).ready(function () {
     formData.append('submit_action',           $('#submit_action').val());
 
     selectedFiles.forEach(f => formData.append('documentos', f, f.name));
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
     $.ajax({
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,

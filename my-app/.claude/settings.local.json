@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import flask_wtf; print\\('flask-wtf OK:', flask_wtf.__version__\\)\")",
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import magic; print\\('python-magic OK'\\)\")",
+      "PowerShell(& \"c:\\\\Users\\\\usuario\\\\OneDrive\\\\Documentos\\\\Proyectos Frelancer\\\\Evolution_plastic_V1\\\\Evolution_plastic_V1\\\\my-app\\\\.venv\\\\Scripts\\\\pip.exe\" install flask-wtf 2>&1)",
+      "PowerShell($pip = \"c:\\\\Users\\\\usuario\\\\OneDrive\\\\Documentos\\\\Proyectos Frelancer\\\\Evolution_plastic_V1\\\\Evolution_plastic_V1\\\\my-app\\\\.venv\\\\Scripts\\\\pip.exe\"; $python = \"c:\\\\Users\\\\usuario\\\\OneDrive\\\\Documentos\\\\Proyectos Frelancer\\\\Evolution_plastic_V1\\\\Evolution_plastic_V1\\\\my-app\\\\.venv\\\\Scripts\\\\python.exe\"; & $python -m pip install flask-wtf 2>&1 | Write-Host)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import app; print\\('OK'\\)\")"
+    ]
+  }
+}

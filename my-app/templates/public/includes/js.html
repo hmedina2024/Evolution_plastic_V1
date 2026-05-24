@@ -4,9 +4,54 @@
 <script src="{{ url_for('static', filename ='assets/js/main.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="{{ url_for('static', filename ='assets/customJS/home.js') }}"></script>
-<script src="{{ url_for('static', filename ='assets/customJS/buscador.js') }}"></script>
 <script src="{{ url_for('static', filename ='assets/vendor/libs/popper/popper.js') }}"></script>
 <script src="{{ url_for('static', filename ='assets/vendor/js/bootstrap.js') }}"></script>
+
+<script>
+  // Configurar jQuery AJAX para incluir el token CSRF en todas las peticiones POST
+  const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (_csrfToken) {
+    $.ajaxSetup({ headers: { 'X-CSRFToken': _csrfToken } });
+    axios.defaults.headers.common['X-CSRFToken'] = _csrfToken;
+  }
+
+  /**
+   * Envía una petición POST para borrar un recurso.
+   * Reemplaza los window.location.href = '/borrar-...' (que usaban GET).
+   * @param {string} url  - URL de la ruta de borrado
+   * @param {string} msg  - Mensaje de confirmación
+   */
+  function postDelete(url, msg) {
+    if (!confirm(msg || '¿Estás seguro de que deseas eliminar este registro?')) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = _csrfToken || '';
+    form.appendChild(csrf);
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Prevenir doble submit: deshabilita el botón y muestra "Procesando..." al enviar
+  document.addEventListener('submit', function(e) {
+    const form = e.target;
+    // Excluir formularios AJAX (los que no hacen navegación real)
+    if (form.dataset.ajaxForm) return;
+    const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    btn._originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+    // Restaurar el botón si el navegador vuelve atrás (bfcache)
+    window.addEventListener('pageshow', function() {
+      btn.disabled = false;
+      btn.innerHTML = btn._originalText;
+    }, { once: true });
+  });
+</script>
 
 
 

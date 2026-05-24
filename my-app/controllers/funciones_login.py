@@ -55,16 +55,15 @@ def validar_datos_basicos_registro(name_surname, email_user, pass_user, rol):
     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email_user):
         flash('El formato del correo electrónico es inválido.', 'error')
         return False
-    # Añadir aquí otras validaciones (ej. longitud contraseña)
-    # elif len(pass_user) < 8:
-    #     flash('La contraseña debe tener al menos 8 caracteres.', 'error')
-    #     return False
+    elif len(pass_user) < 8:
+        flash('La contraseña debe tener al menos 8 caracteres.', 'error')
+        return False
     else:
         return True
 
 def info_perfil_session():
     try:
-        user_id = session.get('id')
+        user_id = session.get('user_id')
         if user_id:
             user = Users.query.get(user_id) # .get() es más eficiente por PK
             if user:
@@ -78,7 +77,7 @@ def info_perfil_session():
         return None
 
 def procesar_update_perfil(data_form):
-    user_id = session.get('id')
+    user_id = session.get('user_id')
     name_surname = data_form.get('name_surname')
     email_user = data_form.get('email_user')
     pass_actual = data_form.get('pass_actual')
@@ -122,10 +121,9 @@ def procesar_update_perfil(data_form):
 
         # Actualizar contraseña si se proporciona y es válida
         if new_pass_user:
-            # Añadir validación de longitud si se desea
-            # if len(new_pass_user) < 8:
-            #     flash('La nueva contraseña debe tener al menos 8 caracteres.', 'error')
-            #     return RESULTADO_ERROR_GENERAL
+            if len(new_pass_user) < 8:
+                flash('La nueva contraseña debe tener al menos 8 caracteres.', 'error')
+                return RESULTADO_ERROR_GENERAL
             if new_pass_user != repetir_pass_user:
                 # El flash se maneja en el router basado en el código de retorno
                 return RESULTADO_ERROR_PASS_NO_COINCIDEN
@@ -153,7 +151,7 @@ def procesar_update_perfil(data_form):
 
 def data_login_sesion():
     try:
-        user_id = session.get('id')
+        user_id = session.get('user_id')
         if user_id:
             user = Users.query.get(user_id) # Usar .get() por PK
             if user:

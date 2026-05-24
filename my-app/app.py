@@ -1,10 +1,13 @@
 import os
 import logging
+from datetime import timedelta
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import datetime
-# Importa la librería dotenv si decides usarla para desarrollo
 from dotenv import load_dotenv
 
 # Carga las variables de entorno desde un archivo .env (opcional, útil para desarrollo)
@@ -27,20 +30,36 @@ logger.addHandler(console_handler)
 app = Flask(__name__)
 CORS(app)
 
-# --- USO DE VARIABLES DE ENTORNO ---
-# Obtiene la SECRET_KEY desde las variables de entorno
-# Proporciona un valor predeterminado SOLO para desarrollo si la variable no está definida
-app.secret_key = os.environ.get('SECRET_KEY', 'secretEvolutioControllocalhost')
+# --- VARIABLES DE ENTORNO ---
+app.secret_key = os.environ.get('SECRET_KEY')
+if not app.secret_key:
+    raise RuntimeError("SECRET_KEY no definida en variables de entorno")
 
-# Obtiene las credenciales de la base de datos desde las variables de entorno
-db_user = os.environ.get('DB_USER', 'root') # Valor predeterminado para desarrollo
-db_password = os.environ.get('DB_PASSWORD', 'Yamasaqui2024*') # ¡CAMBIA ESTO para desarrollo!
-db_host = os.environ.get('DB_HOST', 'localhost') # Valor predeterminado para desarrollo
-db_name = os.environ.get('DB_NAME', 'evolution_db') # Valor predeterminado para desarrollo
+db_user     = os.environ.get('DB_USER', 'root')
+db_password = os.environ.get('DB_PASSWORD', '')
+db_host     = os.environ.get('DB_HOST', 'localhost')
+db_name     = os.environ.get('DB_NAME', 'evolution_db')
 
-# Configura SQLAlchemy usando las variables obtenidas
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
-# --- FIN USO DE VARIABLES DE ENTORNO ---
+# --- FIN VARIABLES DE ENTORNO ---
+
+# Límite de tamaño de archivos: 10 MB
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+
+# Sesiones permanentes expiran en 8 horas
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+
+# CSRF
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600
+csrf = CSRFProtect(app)
+
+# Rate limiting — máx 10 intentos de login por minuto por IP
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_POOL_SIZE'] = 10

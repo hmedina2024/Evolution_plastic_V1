@@ -21,6 +21,7 @@
   
   <div class="card-body p-4">
     <form class="form-horizontal" method="POST" action="{{ url_for('actualizar_proceso', id=respuestaProceso.id_proceso) }}" autocomplete="off" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" class="form-control" name="id_proceso" value="{{ respuestaProceso.id_proceso }}" required hidden />
 
       <div class="row g-4">

@@ -130,9 +130,7 @@ $(document).ready(function() {
 });
 
 function eliminarActividad(id_actividad) {
-    if (confirm('¿Estás seguro de eliminar esta actividad?')) {
-        window.location.href = '/borrar-actividad/' + id_actividad;
-    }
+    postDelete('/borrar-actividad/' + id_actividad, '¿Estás seguro de eliminar esta actividad?');
 }
 </script>
 {% endblock %}

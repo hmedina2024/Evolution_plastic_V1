@@ -27,6 +27,7 @@
       action="{{ url_for('view_editar_operacion', id=respuestaOperacion.id_operacion) }}"
       autocomplete="off"
       enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input
         type="text"
         class="form-control"

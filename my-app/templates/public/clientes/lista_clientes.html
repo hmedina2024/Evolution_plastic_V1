@@ -131,16 +131,9 @@ $(document).ready(function() {
 let isDeleting = false;
 
 function eliminarCliente(id_cliente, foto_cliente, button) {
-    if (isDeleting) {
-        return; // Si ya se está procesando una eliminación, no hacer nada
-    }
-
-    if (confirm('¿Estás seguro de eliminar este cliente?')) {
-        isDeleting = true; // Marcar como procesando
-        $(button).prop('disabled', true).text('Eliminando...'); // Deshabilitar el botón y cambiar texto
-
-        window.location.href = '/borrar-cliente/' + id_cliente + '/' + encodeURIComponent(foto_cliente);
-    }
+    if (isDeleting) return;
+    postDelete('/borrar-cliente/' + id_cliente + '/' + encodeURIComponent(foto_cliente),
+               '¿Estás seguro de eliminar este cliente?');
 }
 </script>
 {% endblock %}

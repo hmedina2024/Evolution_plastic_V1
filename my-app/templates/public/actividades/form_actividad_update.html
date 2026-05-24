@@ -28,6 +28,7 @@
       action="{{ url_for('actualizar_actividad', id = respuestaActividad.id_actividad ) }}"
       autocomplete="off"
       enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input
         type="text"
         class="form-control"

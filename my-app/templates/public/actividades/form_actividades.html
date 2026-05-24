@@ -16,6 +16,7 @@
   <div class="row justify-content-center mb-2">
     <div class="col-md-10">
       <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-actividad" autocomplete="off" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="card-body p-4"> 
           <div class="row g-4">
             <div class="col-md-4">

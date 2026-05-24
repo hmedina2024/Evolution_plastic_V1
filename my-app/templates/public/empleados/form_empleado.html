@@ -14,6 +14,7 @@
   </div>
   <div class="card-body p-4">
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-empleado" autocomplete="off" enctype="multipart/form-data" id="registroForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="row g-4">
         <div class="col-md-4">
           <label for="documento" class="form-label fw-bold text-primary">Documento <span class="text-danger">*</span></label>

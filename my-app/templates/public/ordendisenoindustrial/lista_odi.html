@@ -155,9 +155,7 @@ $(document).ready(function () {
 });
 
 function eliminarOdi(id_odi) {
-  if (confirm('¿Estás seguro de eliminar esta Orden de Diseño Industrial?')) {
-    window.location.href = '/borrar-odi/' + id_odi;
-  }
+  postDelete('/borrar-odi/' + id_odi, '¿Estás seguro de eliminar esta Orden de Diseño Industrial?');
 }
 </script>
 {% endblock %}
