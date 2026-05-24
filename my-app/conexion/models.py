@@ -79,6 +79,7 @@ class Empleados(db.Model):
     id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=True)
     telefono_empleado = db.Column(db.String(50), nullable=True)
     email_empleado = db.Column(db.String(50), nullable=True, unique=True)
+    genero = db.Column(Enum('Masculino', 'Femenino', 'Otro', name='genero_enum'), nullable=True)
     cargo = db.Column(db.String(50), nullable=True)
     foto_empleado = db.Column(db.Text, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)

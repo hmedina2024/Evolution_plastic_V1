@@ -61,6 +61,15 @@
           <input class="form-control" type="email" name="email_empleado" value="{{ data_form.email_empleado if data_form and 'email_empleado' in data_form else '' }}" />
         </div>
         <div class="col-md-4">
+          <label for="genero" class="form-label fw-bold text-primary">Género </label>
+          <select class="form-select" name="genero" id="genero">
+            <option value="" disabled selected>Seleccione un género</option>
+            <option value="Masculino" {% if data_form and data_form.genero == 'Masculino' %}selected{% endif %}>Masculino</option>
+            <option value="Femenino" {% if data_form and data_form.genero == 'Femenino' %}selected{% endif %}>Femenino</option>
+            <option value="Otro" {% if data_form and data_form.genero == 'Otro' %}selected{% endif %}>Otro</option>
+          </select>
+        </div>
+        <div class="col-md-4">
           <label for="cargo" class="form-label fw-bold text-primary">Cargo </label>
           <select class="form-select" name="cargo">
             <option value="" disabled selected>Seleccione un cargo</option>
@@ -69,6 +78,8 @@
             {% endfor %}
           </select>
         </div>
+      </div>
+      <div class="row g-4 mt-3">
         <div class="col-md-4">
           <label for="foto_empleado" class="form-label fw-bold text-primary">Cargar Imagen del Empleado</label>
           <div class="avatar-upload">

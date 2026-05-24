@@ -61,17 +61,31 @@
         <i class="bi bi-telephone me-2"></i>Información de Contacto
       </h4>
       <div class="row g-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="info-label">
             <i class="bi bi-phone me-1"></i>Teléfono
           </div>
           <div class="info-value">{{ detalle_empleado.telefono_empleado or 'No registrado' }}</div>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-6">
           <div class="info-label">
             <i class="bi bi-envelope me-1"></i>Email
           </div>
           <div class="info-value">{{ detalle_empleado.email_empleado or 'No registrado' }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="info-label">
+            <i class="bi bi-gender-ambiguous me-1"></i>Género
+          </div>
+          <div class="info-value">
+            {% if detalle_empleado.genero %}
+              <span class="badge badge-custom {% if detalle_empleado.genero == 'Masculino' %}bg-primary{% elif detalle_empleado.genero == 'Femenino' %}bg-info{% else %}bg-secondary{% endif %}">
+                {{ detalle_empleado.genero }}
+              </span>
+            {% else %}
+              No registrado
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>

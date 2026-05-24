@@ -97,6 +97,19 @@ ALTER TABLE `tbl_ordenproduccion`
     REFERENCES `tbl_ordendisenoindustrial` (`id_odi`)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
+----POR SI NO FUNCIONA EN EL SERVIDOR LA ANTERIOR
+
+ALTER TABLE evolution_DB_test.tbl_ordenproduccion
+  ADD COLUMN `id_odi_fk` INT NULL
+    COMMENT 'FK a tbl_ordendisenoindustrial. Cuando se selecciona una ODI, los campos referencia, producto, id_cliente, id_empleado e id_disenador_industrial se llenan automáticamente.'
+    AFTER `odi`;
+
+-- 2. Agregar la llave foránea (sin IF NOT EXISTS)
+ALTER TABLE evolution_DB_test.tbl_ordenproduccion
+  ADD CONSTRAINT `fk_op_odi`
+    FOREIGN KEY (`id_odi_fk`)
+    REFERENCES `tbl_ordendisenoindustrial` (`id_odi`)
+    ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ------------------------------------------------------------
 -- DIRECTORIO para documentos ODI

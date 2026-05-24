@@ -107,6 +107,7 @@ def procesar_form_empleado(dataForm, foto_perfil):
             apellido_empleado=dataForm.get('apellido_empleado'),
             telefono_empleado=dataForm.get('telefono_empleado'),
             email_empleado=dataForm.get('email_empleado'),
+            genero=dataForm.get('genero'),
             cargo=dataForm.get('cargo'),
             foto_empleado=result_foto_perfil
         )
@@ -203,6 +204,7 @@ def sql_detalles_empleadosBD(id_empleado):
                 'nombre_empresa': empresa.nombre_empresa if empresa else None,
                 'nombre_proceso': proceso.nombre_proceso if proceso else None,
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
+                'genero': e.genero,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
                 'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
             }
@@ -336,6 +338,7 @@ def buscar_empleado_unico(id_empleado_param):
                 'id_tipo_empleado': e.id_tipo_empleado, 'tipo_empleado': tipo_emp.tipo_empleado,
                 'id_proceso': e.id_proceso, 'nombre_proceso': proceso.nombre_proceso if proceso else None,
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
+                'genero': e.genero,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
                 'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
             }
@@ -409,6 +412,7 @@ def procesar_actualizacion_form(data_request):
         empleado.id_proceso = id_proceso
         empleado.telefono_empleado = data_request.form.get('telefono_empleado')
         empleado.email_empleado = data_request.form.get('email_empleado')
+        empleado.genero = data_request.form.get('genero')
         empleado.cargo = data_request.form.get('cargo')
 
         foto_empleado_file = data_request.files.get('foto_empleado')
@@ -5185,7 +5189,6 @@ def generar_codigo_odi():
     """Genera el siguiente número consecutivo para ODI"""
     try:
         ultima_odi = db.session.query(OrdenDisenoIndustrial)\
-            .filter(OrdenDisenoIndustrial.fecha_borrado.is_(None))\
             .order_by(OrdenDisenoIndustrial.codigo_odi.desc())\
             .first()
 
