@@ -712,7 +712,7 @@ $(document).ready(function () {
 
   // ── CAMPOS VINCULADOS A ODI ──
   // Bloqueados por defecto; se liberan solo con "No aplica ODI"
-  var CAMPOS_ODI_VINCULADOS = ['#referencia', '#producto'];
+  var CAMPOS_ODI_VINCULADOS = ['#referencia'];
   var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial'];
 
   function bloquearCamposODI() {
@@ -737,7 +737,6 @@ $(document).ready(function () {
 
   function limpiarCamposODI() {
     $('#referencia').val('');
-    $('#producto').val('');
     $('#id_cliente').val(null).trigger('change');
     $('#id_empleado').val(null).trigger('change');
     $('#id_disenador_industrial').val(null).trigger('change');
@@ -817,7 +816,6 @@ $(document).ready(function () {
 
     // Auto-rellenar campos con datos de la ODI
     $('#referencia').val(d.proyecto || '');
-    $('#producto').val(d.pieza || '');
 
     if (d.id_cliente && d.nombre_cliente) {
       var optC = new Option(d.nombre_cliente, d.id_cliente, true, true);
