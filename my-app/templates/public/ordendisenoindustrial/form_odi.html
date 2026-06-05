@@ -123,16 +123,74 @@
 
       <!-- Campos ocultos -->
       <input type="hidden" name="submit_action" id="submit_action" value="save">
+      <input type="hidden" name="destinatarios" id="destinatarios">
+      <input type="hidden" name="mensaje_personalizado" id="mensaje_personalizado">
 
       <div class="text-center mt-5">
         <button type="button" class="btn btn-success rounded-pill px-5" id="submitBtn">
           <i class="bi bi-save me-2"></i> Guardar ODI
+        </button>
+        <button type="button" class="btn btn-primary rounded-pill px-5 ms-3" id="submitNotifyBtn">
+          Guardar y Notificar <i class="bi bi-envelope ms-2"></i>
         </button>
         <a href="/lista-de-odi" class="btn btn-secondary rounded-pill px-4 ms-3">
           <i class="bi bi-x-circle me-1"></i> Cancelar
         </a>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal para envío de correos -->
+<div class="modal fade" id="modalDestinatarios" tabindex="-1" aria-labelledby="modalDestinatariosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDestinatariosLabel">Seleccionar Destinatarios</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card p-3 mb-3 bg-light border-0">
+          <label class="fw-bold mb-2">Gestionar Grupos de Envío:</label>
+          <div class="input-group">
+            <select class="form-select" id="select-grupo-correo">
+              <option value selected>-- Seleccionar un grupo --</option>
+            </select>
+            <button class="btn btn-outline-success" type="button" id="btn-crear-grupo" title="Guardar seleccionados como nuevo grupo">
+              <i class="bi bi-plus-lg"></i> Crear Nuevo
+            </button>
+            <button class="btn btn-outline-warning text-dark" type="button" id="btn-actualizar-grupo" title="Guardar cambios en el grupo seleccionado">
+              <i class="bi bi-pencil-square"></i> Actualizar Grupo
+            </button>
+            <button class="btn btn-outline-danger" type="button" id="btn-eliminar-grupo" title="Eliminar grupo seleccionado">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <small class="text-muted">Seleccione empleados en la tabla y haga clic en "Crear Nuevo" para guardar un grupo.</small>
+        </div>
+        <div class="mb-3">
+          <label for="mensaje-modal" class="form-label">Añadir descripción o mensaje al correo: <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="mensaje-modal" rows="3" required placeholder="Este mensaje se incluirá en el cuerpo del correo de notificación."></textarea>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="seleccionar-todos"></th>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody id="lista-empleados-modal"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="guardar-destinatarios">Guardar y Enviar</button>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -221,9 +279,116 @@ $(document).ready(function () {
 
   // ── Envío del formulario ──
   let isSubmitting = false;
+  const actionInput = $('#submit_action');
 
   $('#submitBtn').on('click', function () {
-    $('#submit_action').val('save');
+    actionInput.val('save');
+    $('#registroOdiForm').submit();
+  });
+
+  // ── Lógica de Grupos de Correo ──
+  function cargarGruposCorreo() {
+    const seleccionPrevia = $('#select-grupo-correo').val();
+    $.ajax({
+      url: '/api/listas-correos', method: 'GET',
+      success: function (data) {
+        const $select = $('#select-grupo-correo');
+        $select.empty().append('<option value="" selected>-- Seleccionar un grupo --</option>');
+        if (data && Array.isArray(data)) {
+          data.forEach(g => $select.append(`<option value="${g.id_lista}" data-miembros='${JSON.stringify(g.miembros)}'>${g.nombre_lista}</option>`));
+        }
+        if (seleccionPrevia) $select.val(seleccionPrevia);
+      },
+      error: function () { console.error("Error al cargar grupos de correo"); }
+    });
+  }
+
+  $('#submitNotifyBtn').on('click', function (e) {
+    e.preventDefault();
+    if (!$('#registroOdiForm')[0].checkValidity()) {
+      $('#registroOdiForm').addClass('was-validated');
+      alert('Por favor, complete todos los campos obligatorios antes de notificar.');
+      return;
+    }
+    $.ajax({
+      url: '/api/empleados/all', method: 'GET',
+      success: function (data) {
+        const lista = $('#lista-empleados-modal');
+        lista.empty();
+        data.forEach(emp => {
+          lista.append(`<tr>
+            <td><input type="checkbox" class="destinatario-check" value="${emp.id_empleado}"></td>
+            <td>${emp.nombre_empleado} ${emp.apellido_empleado || ''}</td>
+            <td>${emp.cargo || 'N/A'}</td>
+            <td>${emp.email_empleado || 'N/A'}</td>
+          </tr>`);
+        });
+        $('#modalDestinatarios').modal('show');
+      },
+      error: function () { alert('Error al cargar la lista de empleados.'); }
+    });
+    cargarGruposCorreo();
+  });
+
+  $('#select-grupo-correo').on('change', function () {
+    const miembrosIds = $(this).find('option:selected').data('miembros');
+    $('.destinatario-check').prop('checked', false);
+    if (miembrosIds && Array.isArray(miembrosIds)) {
+      miembrosIds.forEach(id => $(`.destinatario-check[value="${id}"]`).prop('checked', true));
+    }
+  });
+
+  $('#btn-actualizar-grupo').on('click', function () {
+    const idGrupo = $('#select-grupo-correo').val();
+    const nombreGrupo = $('#select-grupo-correo option:selected').text();
+    if (!idGrupo) { alert("Primero seleccione un grupo de la lista para modificarlo."); return; }
+    const ids = [];
+    $('.destinatario-check:checked').each(function () { ids.push(parseInt($(this).val())); });
+    if (!confirm(`¿Desea actualizar el grupo "${nombreGrupo}" con los empleados seleccionados?`)) return;
+    $.ajax({ url: `/api/listas-correos/actualizar/${idGrupo}`, method: 'PUT', contentType: 'application/json',
+      data: JSON.stringify({ ids_empleados: ids }),
+      success: function (r) { alert(r.message); cargarGruposCorreo(); },
+      error: function () { alert("Error al actualizar el grupo."); }
+    });
+  });
+
+  $('#btn-crear-grupo').on('click', function () {
+    const ids = [];
+    $('.destinatario-check:checked').each(function () { ids.push(parseInt($(this).val())); });
+    if (ids.length === 0) { alert("Seleccione al menos un empleado para crear un grupo."); return; }
+    const nombre = prompt("Ingrese el nombre para el nuevo grupo:");
+    if (!nombre) return;
+    $.ajax({ url: '/api/listas-correos/crear', method: 'POST', contentType: 'application/json',
+      data: JSON.stringify({ nombre, ids_empleados: ids }),
+      success: function (r) { alert(r.message); cargarGruposCorreo(); },
+      error: function () { alert("Error al crear el grupo."); }
+    });
+  });
+
+  $('#btn-eliminar-grupo').on('click', function () {
+    const idGrupo = $('#select-grupo-correo').val();
+    if (!idGrupo) { alert("Seleccione un grupo para eliminar."); return; }
+    if (!confirm("¿Seguro que desea eliminar este grupo?")) return;
+    $.ajax({ url: `/api/listas-correos/eliminar/${idGrupo}`, method: 'DELETE',
+      success: function (r) { alert(r.message); cargarGruposCorreo(); $('.destinatario-check').prop('checked', false); },
+      error: function () { alert("Error al eliminar el grupo."); }
+    });
+  });
+
+  $('#seleccionar-todos').on('click', function () {
+    $('.destinatario-check').prop('checked', $(this).prop('checked'));
+  });
+
+  $('#guardar-destinatarios').on('click', function () {
+    const ids = [];
+    $('.destinatario-check:checked').each(function () { ids.push($(this).val()); });
+    if (ids.length === 0) { alert('Debe seleccionar al menos un destinatario.'); return; }
+    const mensaje = $('#mensaje-modal').val().trim();
+    if (mensaje === '') { alert('Debe ingresar un mensaje para el correo.'); $('#mensaje-modal').focus(); return; }
+    $('#destinatarios').val(ids.join(','));
+    $('#mensaje_personalizado').val($('#mensaje-modal').val());
+    actionInput.val('save_and_notify');
+    $('#modalDestinatarios').modal('hide');
     $('#registroOdiForm').submit();
   });
 
@@ -238,7 +403,14 @@ $(document).ready(function () {
 
     if (isSubmitting) return false;
     isSubmitting = true;
-    $('#submitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
+    const isNotify = actionInput.val() === 'save_and_notify';
+    $('#submitBtn').prop('disabled', true);
+    $('#submitNotifyBtn').prop('disabled', true);
+    if (isNotify) {
+      $('#submitNotifyBtn').html('<span class="spinner-border spinner-border-sm"></span> Enviando...');
+    } else {
+      $('#submitBtn').html('<span class="spinner-border spinner-border-sm"></span> Guardando...');
+    }
 
     const formData = new FormData();
     formData.append('proyecto',                $('#proyecto').val());
@@ -250,8 +422,10 @@ $(document).ready(function () {
     formData.append('fecha_entrega',           $('#fecha_entrega').val());
     formData.append('fecha_produccion',        $('#fecha_produccion').val());
     formData.append('diseno_o_producto',       $('#diseno_o_producto').val());
-    formData.append('estado',                  $('#estado').val());
-    formData.append('submit_action',           $('#submit_action').val());
+    formData.append('estado',                  $('#estado').val() || '');
+    formData.append('submit_action',           actionInput.val());
+    formData.append('destinatarios',           $('#destinatarios').val());
+    formData.append('mensaje_personalizado',   $('#mensaje_personalizado').val());
 
     selectedFiles.forEach(f => formData.append('documentos', f, f.name));
     formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
@@ -273,7 +447,9 @@ $(document).ready(function () {
       },
       complete: function () {
         isSubmitting = false;
+        actionInput.val('save');
         $('#submitBtn').prop('disabled', false).html('<i class="bi bi-save me-2"></i> Guardar ODI');
+        $('#submitNotifyBtn').prop('disabled', false).html('Guardar y Notificar <i class="bi bi-envelope ms-2"></i>');
       }
     });
   });

@@ -738,13 +738,13 @@ $(document).ready(function () {
 
   // Función para inicializar la lista de archivos con los existentes
   function inicializarArchivosExistentes() {
-    if (datosOpExistente && datosOpExistente.documentos_op && Array.isArray(datosOpExistente.documentos_op)) {
-      datosOpExistente.documentos_op.forEach(doc => {
+    if (datosOpExistente && datosOpExistente.documentos && Array.isArray(datosOpExistente.documentos)) {
+      datosOpExistente.documentos.forEach(doc => {
         selectedFiles.push({
-          id: doc.id_documento,
-          name: doc.nombre_archivo,
-          url: doc.url_archivo,
-          isExisting: true // Marcar como existente
+          id_existente: doc.id_documento,
+          name: doc.documento_nombre_original,
+          url: '/static/documentos_op/' + doc.documento_path,
+          isExisting: true
         });
       });
     }
@@ -1273,27 +1273,6 @@ if (imageUpload && imagePreview && deleteImageBtn) {
             $('#existing_render_path').val('');
          }
          // updateRenderPreview(); // Ya se llama al inicio, no es necesario aquí a menos que se borre activamente
-    }
-
-    // Documentos (manejo de documentos existentes)
-    // Esto es más complejo porque involucra el array 'selectedFiles'
-    // y la UI de la lista. Se necesitará una función para añadir a 'selectedFiles'
-    // y re-renderizar la lista.
-    if (datosOpExistente.documentos && datosOpExistente.documentos.length > 0) {
-        // selectedFiles = []; // Limpiar por si acaso
-        datosOpExistente.documentos.forEach(doc => {
-            // Para simular un archivo, necesitamos nombre y un "path" o "id" para identificarlo
-            // No podemos crear un objeto File real, pero podemos simular su estructura para la UI
-            // y para el envío (el backend necesitará manejar "archivos existentes" vs "nuevos archivos")
-            selectedFiles.push({
-                name: doc.documento_nombre_original,
-                size: 0, // No tenemos el tamaño real aquí
-                id_existente: doc.id_documento, // Para identificarlo en el backend
-                path_existente: doc.documento_path, // Para mostrarlo o para referencia
-                isExisting: true // Asegurar que los documentos existentes se marquen como tal
-            });
-        });
-        renderFileList(); // Esta función ya existe y debería mostrar los archivos
     }
 
     // Poblar Piezas Dinámicas

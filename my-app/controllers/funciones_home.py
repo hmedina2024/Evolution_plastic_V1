@@ -140,7 +140,9 @@ def procesar_form_empleado(dataForm, foto_perfil):
         return False, f'Se produjo un error interno al registrar el empleado.'
 
 
-def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
+def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set, allowed_mimes=None):
+    if allowed_mimes is None:
+        allowed_mimes = _ALLOWED_IMAGE_MIMES
     try:
         if foto_storage and foto_storage.filename:
             filename = secure_filename(foto_storage.filename)
@@ -154,10 +156,10 @@ def procesar_imagen_perfil(foto_storage, subfolder, allowed_extensions_set):
             header = foto_storage.read(2048)
             foto_storage.seek(0)
             mime_real = _mime_checker.from_buffer(header)
-            if mime_real not in _ALLOWED_IMAGE_MIMES:
+            if mime_real not in allowed_mimes:
                 app.logger.warning(
                     f"MIME type no permitido: {mime_real} para {subfolder}")
-                return False, f"El archivo no es una imagen válida (tipo detectado: {mime_real})."
+                return False, f"Tipo de archivo no permitido (tipo detectado: {mime_real})."
 
             nuevoNameFile = (uuid.uuid4().hex + uuid.uuid4().hex)[:100]
             nombreFile = f"{nuevoNameFile}.{extension}"
@@ -2129,7 +2131,7 @@ def procesar_form_op(dataForm, files):
     documentos_adjuntos_files = files.getlist('documentos')
     for doc_file_storage in documentos_adjuntos_files:
         if doc_file_storage and doc_file_storage.filename:
-            valido, nombre_archivo_o_msg = procesar_imagen_perfil(doc_file_storage, 'documentos_op', ALLOWED_DOC_EXTENSIONS)
+            valido, nombre_archivo_o_msg = procesar_imagen_perfil(doc_file_storage, 'documentos_op', ALLOWED_DOC_EXTENSIONS, _ALLOWED_DOC_MIMES)
             if not valido:
                 errores.append(f"Documento '{secure_filename(doc_file_storage.filename)}': {nombre_archivo_o_msg}")
             elif nombre_archivo_o_msg:
@@ -3214,7 +3216,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                 errores.append(f"Documento '{filename_s_seguro_item}': Extensión .{extension_s_item} no permitida.")
                 continue
             
-            valido_d_item, nombre_d_servidor_o_msg = procesar_imagen_perfil(doc_file_s_item, 'documentos_op', ALLOWED_DOC_EXTENSIONS)
+            valido_d_item, nombre_d_servidor_o_msg = procesar_imagen_perfil(doc_file_s_item, 'documentos_op', ALLOWED_DOC_EXTENSIONS, _ALLOWED_DOC_MIMES)
             if not valido_d_item: # procesar_imagen_perfil ya guardó el archivo si es valido_d_item es True
                 errores.append(f"Documento '{filename_s_seguro_item}': {nombre_d_servidor_o_msg}")
             else:
@@ -5246,6 +5248,9 @@ def procesar_form_odi(dataForm, files):
         fecha_produccion_str = dataForm.get('fecha_produccion', '').strip()
         estado = "ACTIVO"
         id_usuario_registro = session.get('user_id')
+        action = dataForm.get('submit_action', 'save')
+        destinatarios_ids_str = dataForm.get('destinatarios')
+        mensaje_personalizado = dataForm.get('mensaje_personalizado', '')
 
         # Generar código ODI automáticamente (igual que OP)
         codigo_odi = generar_codigo_odi()
@@ -5328,6 +5333,88 @@ def procesar_form_odi(dataForm, files):
 
         db.session.commit()
         app.logger.info(f"ODI {codigo_odi} creada exitosamente con id_odi={nueva_odi.id_odi}")
+
+        # --- INICIO: LÓGICA DE NOTIFICACIÓN NUEVA ODI ---
+        if action == 'save_and_notify':
+            app.logger.info(f"Preparando notificación background para NUEVA ODI {codigo_odi}.")
+            destinatarios_finales = {}
+
+            if destinatarios_ids_str:
+                try:
+                    destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
+                    usuarios_seleccionados = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    for usuario in usuarios_seleccionados:
+                        if usuario.email_user:
+                            destinatarios_finales[usuario.email_user] = usuario.name_surname
+                except Exception as e:
+                    app.logger.error(f"Error procesando destinatarios manuales en registro ODI: {e}")
+
+            try:
+                correos_fijos_bd = CorreosFijos.query.filter_by(activo=True).all()
+                for fijo in correos_fijos_bd:
+                    if fijo.email and fijo.email not in destinatarios_finales:
+                        destinatarios_finales[fijo.email] = fijo.descripcion or "Colaborador"
+            except Exception as e:
+                app.logger.error(f"Error consultando correos fijos en registro ODI: {e}")
+
+            if not destinatarios_finales:
+                app.logger.warning('Acción "save_and_notify" pero no hay destinatarios ODI.')
+            else:
+                try:
+                    cliente_obj = db.session.query(Clientes).get(nueva_odi.id_cliente) if nueva_odi.id_cliente else None
+                    comercial_obj = db.session.query(Empleados).get(nueva_odi.id_empleado) if nueva_odi.id_empleado else None
+                    disenador_obj = db.session.query(Empleados).get(nueva_odi.id_disenador_industrial) if nueva_odi.id_disenador_industrial else None
+
+                    email_sender = 'sistema.datos@evolutionplastic.com'
+                    email_password = 'NataEvo:1'
+                    smtp_server = 'mail.evolutionplastic.com'
+                    smtp_port = 465
+
+                    subject = f'Nueva Orden de Diseño Industrial Registrada: {codigo_odi}'
+                    body_template = f"""
+                    Hola {{nombre_destino}},
+
+                    Se ha registrado una nueva Orden de Diseño Industrial:
+
+                    ---
+                    Mensaje Adicional:
+                    {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                    ---
+
+                    - Código ODI: {codigo_odi}
+                    - Proyecto: {nueva_odi.proyecto or 'N/A'}
+                    - Pieza: {nueva_odi.pieza or 'N/A'}
+                    - Cliente: {cliente_obj.nombre_cliente if cliente_obj else 'N/A'}
+                    - Comercial: {comercial_obj.nombre_empleado + ' ' + (comercial_obj.apellido_empleado or '') if comercial_obj else 'N/A'}
+                    - Diseñador Industrial: {disenador_obj.nombre_empleado + ' ' + (disenador_obj.apellido_empleado or '') if disenador_obj else 'No asignado'}
+                    - Fecha Brif: {nueva_odi.fecha_brif.strftime('%d de %B de %Y') if nueva_odi.fecha_brif else 'N/A'}
+                    - Fecha Entrega: {nueva_odi.fecha_entrega.strftime('%d de %B de %Y') if nueva_odi.fecha_entrega else 'N/A'}
+                    - Fecha Producción: {nueva_odi.fecha_produccion.strftime('%d de %B de %Y') if nueva_odi.fecha_produccion else 'N/A'}
+                    - Diseño o Producción: {nueva_odi.diseno_o_producto or 'N/A'}
+                    - Estado: {nueva_odi.estado}
+
+                    Este es un mensaje automático.
+                    """
+
+                    hilo = threading.Thread(
+                        target=tarea_enviar_correos_background,
+                        args=(
+                            current_app._get_current_object(),
+                            destinatarios_finales,
+                            subject,
+                            body_template,
+                            email_sender,
+                            email_password,
+                            smtp_server,
+                            smtp_port
+                        )
+                    )
+                    hilo.start()
+                    app.logger.info("Hilo de correos iniciado para nueva ODI. La respuesta será inmediata.")
+                except Exception as e:
+                    app.logger.error(f"FALLO al preparar notificación background para ODI {codigo_odi}: {str(e)}", exc_info=True)
+        # --- FIN: LÓGICA DE NOTIFICACIÓN ---
+
         return jsonify({
             'status': 'success',
             'message': f'Orden de Diseño Industrial {codigo_odi} registrada exitosamente.',
@@ -5549,6 +5636,10 @@ def obtener_datos_odi_para_edicion(codigo_odi):
 def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
     """Procesa el formulario de actualización de una ODI existente."""
     try:
+        action = dataForm.get('submit_action', 'save')
+        destinatarios_ids_str = dataForm.get('destinatarios')
+        mensaje_personalizado = dataForm.get('mensaje_personalizado', '')
+
         odi = db.session.query(OrdenDisenoIndustrial).filter(
             OrdenDisenoIndustrial.codigo_odi == codigo_odi,
             OrdenDisenoIndustrial.fecha_borrado.is_(None)
@@ -5655,6 +5746,89 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
 
         db.session.commit()
         app.logger.info(f"ODI {codigo_odi} actualizada exitosamente.")
+
+        # --- INICIO: LÓGICA DE NOTIFICACIÓN ACTUALIZACIÓN ODI ---
+        if action == 'save_and_notify':
+            app.logger.info(f"Preparando notificación background para actualización de ODI {codigo_odi}.")
+            destinatarios_finales = {}
+
+            if destinatarios_ids_str:
+                try:
+                    destinatarios_ids = [int(id) for id in destinatarios_ids_str.split(',')]
+                    usuarios_seleccionados = db.session.query(Users).filter(Users.id.in_(destinatarios_ids)).all()
+                    for usuario in usuarios_seleccionados:
+                        if usuario.email_user:
+                            destinatarios_finales[usuario.email_user] = usuario.name_surname
+                except Exception as e:
+                    app.logger.error(f"Error procesando destinatarios manuales en actualización ODI: {e}")
+
+            try:
+                correos_fijos_bd = CorreosFijos.query.filter_by(activo=True).all()
+                for fijo in correos_fijos_bd:
+                    if fijo.email and fijo.email not in destinatarios_finales:
+                        destinatarios_finales[fijo.email] = fijo.descripcion or "Colaborador"
+            except Exception as e:
+                app.logger.error(f"Error consultando correos fijos en actualización ODI: {e}")
+
+            if not destinatarios_finales:
+                app.logger.warning('Acción "save_and_notify" pero no hay destinatarios ODI.')
+            else:
+                try:
+                    cliente_obj = db.session.query(Clientes).get(odi.id_cliente) if odi.id_cliente else None
+                    comercial_obj = db.session.query(Empleados).get(odi.id_empleado) if odi.id_empleado else None
+                    disenador_obj = db.session.query(Empleados).get(odi.id_disenador_industrial) if odi.id_disenador_industrial else None
+
+                    email_sender = 'sistema.datos@evolutionplastic.com'
+                    email_password = 'NataEvo:1'
+                    smtp_server = 'mail.evolutionplastic.com'
+                    smtp_port = 465
+
+                    subject = f'Actualización en Orden de Diseño Industrial: {codigo_odi}'
+                    body_template = f"""
+                    Hola {{nombre_destino}},
+
+                    Se ha ACTUALIZADO la Orden de Diseño Industrial con los siguientes detalles:
+
+                    ---
+                    Mensaje Adicional:
+                    {mensaje_personalizado if mensaje_personalizado else 'No se incluyó un mensaje adicional.'}
+                    ---
+
+                    - Código ODI: {codigo_odi}
+                    - Proyecto: {odi.proyecto or 'N/A'}
+                    - Pieza: {odi.pieza or 'N/A'}
+                    - Cliente: {cliente_obj.nombre_cliente if cliente_obj else 'N/A'}
+                    - Comercial: {comercial_obj.nombre_empleado + ' ' + (comercial_obj.apellido_empleado or '') if comercial_obj else 'N/A'}
+                    - Diseñador Industrial: {disenador_obj.nombre_empleado + ' ' + (disenador_obj.apellido_empleado or '') if disenador_obj else 'No asignado'}
+                    - Fecha Brif: {odi.fecha_brif.strftime('%d de %B de %Y') if odi.fecha_brif else 'N/A'}
+                    - Fecha Entrega: {odi.fecha_entrega.strftime('%d de %B de %Y') if odi.fecha_entrega else 'N/A'}
+                    - Fecha Producción: {odi.fecha_produccion.strftime('%d de %B de %Y') if odi.fecha_produccion else 'N/A'}
+                    - Diseño o Producción: {odi.diseno_o_producto or 'N/A'}
+                    - Estado: {odi.estado}
+                    - Actualizado por: {session.get('name_surname', 'Usuario desconocido')}
+
+                    Este es un mensaje automático.
+                    """
+
+                    hilo = threading.Thread(
+                        target=tarea_enviar_correos_background,
+                        args=(
+                            current_app._get_current_object(),
+                            destinatarios_finales,
+                            subject,
+                            body_template,
+                            email_sender,
+                            email_password,
+                            smtp_server,
+                            smtp_port
+                        )
+                    )
+                    hilo.start()
+                    app.logger.info("Hilo de correos iniciado para actualización ODI. La respuesta será inmediata.")
+                except Exception as e:
+                    app.logger.error(f"FALLO al preparar notificación background para ODI {codigo_odi}: {str(e)}", exc_info=True)
+        # --- FIN: LÓGICA DE NOTIFICACIÓN ---
+
         return {
             'status': 'success',
             'message': f'Orden de Diseño Industrial {codigo_odi} actualizada exitosamente.',
