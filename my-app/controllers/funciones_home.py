@@ -43,7 +43,8 @@ LOCAL_TIMEZONE = pytz.timezone('America/Bogota')
 
 ALLOWED_RENDER_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 ALLOWED_DOC_EXTENSIONS = {'pdf', 'doc', 'docx',
-                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv', 'dxf', 'ai'}
+                          'xls', 'xlsx', 'txt', 'ppt', 'pptx', 'csv', 'dxf', 'ai',
+                          'png', 'jpg', 'jpeg', 'zip', 'rar'}
 
 # MIME types permitidos para imágenes y documentos
 _ALLOWED_IMAGE_MIMES = {'image/jpeg', 'image/png'}
@@ -60,6 +61,9 @@ _ALLOWED_DOC_MIMES = {
     'image/vnd.dxf',
     'application/postscript',
     'application/octet-stream',  # DXF/AI pueden reportarse así
+    'image/jpeg',
+    'image/png',
+    'image/jpg',
 }
 
 
@@ -214,10 +218,10 @@ def get_total_empleados():
 def sql_detalles_empleadosBD(id_empleado):
     try:
         empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado, Procesos).\
-            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
-            join(Procesos, Empleados.id_proceso == Procesos.id_proceso).\
-            filter(Empleados.id_empleado == id_empleado, Empleados.fecha_borrado.is_(None)).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa, isouter=True).\
+            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado, isouter=True).\
+            join(Procesos, Empleados.id_proceso == Procesos.id_proceso, isouter=True).\
+            filter(Empleados.id_empleado == id_empleado).\
             first()
         if empleado_tupla:
             e, empresa, tipo_emp, proceso = empleado_tupla
@@ -232,7 +236,8 @@ def sql_detalles_empleadosBD(id_empleado):
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
                 'genero': e.genero,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
-                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
+                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None,
+                'eliminado': e.fecha_borrado is not None
             }
         return None
     except Exception as e:
@@ -350,10 +355,10 @@ def buscar_empleado_unico(id_empleado_param):
         if not id_empleado_param:
             return None
         empleado_tupla = db.session.query(Empleados, Empresa, Tipo_Empleado, Procesos).\
-            join(Empresa, Empleados.id_empresa == Empresa.id_empresa).\
-            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado).\
+            join(Empresa, Empleados.id_empresa == Empresa.id_empresa, isouter=True).\
+            join(Tipo_Empleado, Empleados.id_tipo_empleado == Tipo_Empleado.id_tipo_empleado, isouter=True).\
             outerjoin(Procesos, Empleados.id_proceso == Procesos.id_proceso).\
-            filter(Empleados.id_empleado == id_empleado_param, Empleados.fecha_borrado.is_(None)).\
+            filter(Empleados.id_empleado == id_empleado_param).\
             first()
         if empleado_tupla:
             e, empresa, tipo_emp, proceso = empleado_tupla
@@ -366,7 +371,8 @@ def buscar_empleado_unico(id_empleado_param):
                 'telefono_empleado': e.telefono_empleado, 'email_empleado': e.email_empleado,
                 'genero': e.genero,
                 'cargo': e.cargo, 'foto_empleado': e.foto_empleado,
-                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None
+                'fecha_registro': e.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if e.fecha_registro else None,
+                'eliminado': e.fecha_borrado is not None
             }
         return None
     except Exception as e:
@@ -383,8 +389,8 @@ def procesar_actualizacion_form(data_request):
 
         empleado = db.session.query(Empleados).filter_by(
             id_empleado=int(id_empleado_str)).first()
-        if not empleado or empleado.fecha_borrado is not None:
-            return False, "El empleado no existe o ha sido eliminado."
+        if not empleado:
+            return False, "El empleado no existe."
 
         documento_str = data_request.form.get('documento', '')
         documento_sin_puntos = re.sub('[^0-9]+', '', documento_str)
@@ -939,18 +945,17 @@ def buscar_cliente_bd(search='', search_date='', start=0, length=10):
             'tipo_documento': c.tipo_documento_rel.td_abreviacion if c.tipo_documento_rel else 'N/A',
             'documento': c.documento,
             'nombre_cliente': c.nombre_cliente,
-            'email_cliente': c.email_cliente,
-            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d %I:%M %p'),
-            'foto_cliente': c.foto_cliente,
+            'email_cliente': c.email_cliente or '',
+            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if c.fecha_registro else 'N/A',
+            'foto_cliente': c.foto_cliente or '',
             'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
         } for c in clientes]
-        app.logger.debug(f"Datos formateados: {data}")
+        app.logger.debug(f"Clientes formateados: {len(data)}")
 
         return data, total, total_filtered
 
     except Exception as e:
-        app.logger.error(
-            f"Ocurrió un error en def buscar_cliente_bd: {str(e)}")
+        app.logger.error(f"Error en buscar_cliente_bd: {str(e)}", exc_info=True)
         return [], 0, 0
 
 # Total clientes:
@@ -982,74 +987,12 @@ def sql_detalles_clientes_bd(id_cliente):
                 'telefono_cliente': cliente.telefono_cliente,
                 'email_cliente': cliente.email_cliente,
                 'foto_cliente': cliente.foto_cliente,
-                'fecha_registro': cliente.fecha_registro.strftime('%Y-%m-%d %I:%M %p')
+                'fecha_registro': cliente.fecha_registro.strftime('%Y-%m-%d %I:%M %p') if cliente.fecha_registro else 'N/A'
             }
         return None
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_clientes_bd: {e}")
+        app.logger.error(f"Error en sql_detalles_clientes_bd: {e}", exc_info=True)
         return None
-
-
-        query = db.session.query(Clientes)
-
-        # Aplicar filtros
-        if search:
-            query = query.filter(Clientes.nombre_cliente.ilike(f'%{search}%'))
-        if search_date:
-            query = query.filter(db.func.date(
-                Clientes.fecha_registro) == search_date)
-
-        # Total de registros sin filtrar
-        total = db.session.query(Clientes).count()
-        app.logger.debug(f"Total de registros sin filtrar: {total}")
-
-        # Total de registros filtrados
-        total_filtered = query.count()
-        app.logger.debug(f"Total de registros filtrados: {total_filtered}")
-
-        # Mapear columnas de DataTables a campos de la tabla
-        column_map = {
-            0: Clientes.id_cliente,          # #
-            1: Clientes.id_tipo_documento,      # Tipo Documento
-            2: Clientes.documento,           # Documento
-            3: Clientes.nombre_cliente,      # Nombre
-            4: Clientes.email_cliente,       # Correo
-            5: Clientes.fecha_registro       # Fecha Registro
-        }
-
-        # Aplicar ordenamiento basado en el parámetro 'order' de DataTables
-        if order and len(order) > 0:
-            order_col = order[0]['column']
-            order_dir = order[0]['dir']
-            if order_col in column_map:
-                if order_dir == 'asc':
-                    query = query.order_by(column_map[order_col].asc())
-                else:
-                    query = query.order_by(column_map[order_col].desc())
-
-        # Aplicar paginación
-        clientes = query.offset(start).limit(length).all()
-        app.logger.debug(f"Clientes obtenidos: {len(clientes)} registros")
-
-        # Formatear los datos
-        data = [{
-            'id_cliente': c.id_cliente,
-            'tipo_documento': c.tipo_documento,
-            'documento': c.documento,
-            'nombre_cliente': c.nombre_cliente,
-            'email_cliente': c.email_cliente,
-            'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d') if c.fecha_registro else None,
-            'foto_cliente': c.foto_cliente,
-            'url_editar': url_for('viewEditarCliente', id=c.id_cliente)
-        } for c in clientes]
-        app.logger.debug(f"Datos formateados: {data}")
-
-        return data, total, total_filtered
-
-    except Exception as e:
-        app.logger.error(
-            f"Ocurrió un error en def buscar_cliente_bd: {str(e)}")
-        return [], 0, 0
 
 
 def buscar_cliente_unico(id):
@@ -2852,6 +2795,165 @@ def sql_detalles_op_bd(codigo_op):
         app.logger.error(f"Error en la función sql_detalles_op_bd para id_op={id_op}: {str(e)}", exc_info=True) # exc_info=True para traceback completo
         return None
 
+def serializar_snapshot_op(orden):
+    """Serializa el estado completo de una OP a dict JSON-serializable.
+    Llamar ANTES de aplicar cambios para capturar el estado anterior."""
+    try:
+        def nombre_empleado(emp):
+            if not emp:
+                return None
+            return f"{emp.nombre_empleado or ''} {emp.apellido_empleado or ''}".strip()
+
+        snapshot = {
+            'codigo_op': orden.codigo_op,
+            'fecha': orden.fecha.strftime('%Y-%m-%d') if orden.fecha else None,
+            'fecha_entrega': orden.fecha_entrega.strftime('%Y-%m-%d') if orden.fecha_entrega else None,
+            'version': orden.version,
+            'cotizacion': orden.cotizacion,
+            'estado': orden.estado,
+            'estado_proyecto': orden.estado_proyecto,
+            'producto': orden.producto,
+            'cantidad': orden.cantidad,
+            'referencia': orden.referencia,
+            'odi': orden.odi,
+            'descripcion_general': orden.descripcion_general,
+            'empaque': orden.empaque,
+            'logistica': orden.logistica,
+            'instructivo': orden.instructivo,
+            'id_cliente': orden.id_cliente,
+            'cliente': orden.cliente.nombre_cliente if orden.cliente else None,
+            'id_empleado': orden.id_empleado,
+            'vendedor': nombre_empleado(orden.empleado),
+            'id_supervisor': orden.id_supervisor,
+            'supervisor': nombre_empleado(orden.supervisor),
+            'id_disenador_grafico': orden.id_disenador_grafico,
+            'disenador_grafico': nombre_empleado(orden.disenador_grafico),
+            'id_disenador_industrial': orden.id_disenador_industrial,
+            'disenador_industrial': nombre_empleado(orden.disenador_industrial),
+            'id_costeador': orden.id_costeador,
+            'costeador': nombre_empleado(orden.costeador),
+            'procesos_globales': [
+                {'id_proceso': p.id_proceso, 'nombre_proceso': p.nombre_proceso}
+                for p in (orden.procesos_globales or [])
+            ],
+            'documentos': [
+                {
+                    'id_documento': d.id_documento,
+                    'nombre_original': d.documento_nombre_original,
+                    'path': d.documento_path
+                }
+                for d in (orden.documentos or []) if d.fecha_borrado is None
+            ],
+            'renders': [
+                r.render_path for r in (orden.renders or []) if r.fecha_borrado is None
+            ],
+            'urls': [u.url for u in (orden.urls_op or [])],
+            'piezas': [
+                {
+                    'id_orden_pieza': p.id_orden_pieza,
+                    'nombre_pieza': p.nombre_pieza_op,
+                    'pieza_maestra': p.pieza.nombre_pieza if p.pieza else None,
+                    'cantidad': p.cantidad,
+                    'ancho': str(p.ancho) if p.ancho is not None else None,
+                    'alto': str(p.alto) if p.alto is not None else None,
+                    'fondo': str(p.fondo) if p.fondo is not None else None,
+                    'material': p.material,
+                    'montaje': p.montaje,
+                    'montaje_tamano': p.montaje_tamano,
+                    'cantidad_material': p.cantidad_material,
+                    'descripcion_pieza': p.descripcion_pieza,
+                    'tipo_molde': p.tipo_molde,
+                    'proveedor_externo': p.proveedor_externo,
+                    'actividades': [
+                        {'id_actividad': a.id_actividad, 'nombre_actividad': a.nombre_actividad}
+                        for a in (p.actividades or [])
+                    ],
+                    'valores_config': [
+                        {'grupo': v.grupo_configuracion, 'valor': v.valor_configuracion}
+                        for v in (p.valores_config_adicional or [])
+                    ],
+                }
+                for p in (orden.orden_piezas or []) if p.fecha_borrado is None
+            ],
+        }
+        return snapshot
+    except Exception as e:
+        app.logger.error(f"Error serializando snapshot de OP {orden.codigo_op}: {e}", exc_info=True)
+        return {}
+
+
+def obtener_historial_op(codigo_op):
+    """Retorna la lista de versiones del historial de una OP."""
+    try:
+        orden = OrdenProduccion.query.filter_by(
+            codigo_op=codigo_op, fecha_borrado=None).first()
+        if not orden:
+            return None, 'OP no encontrada'
+
+        logs = (
+            db.session.query(OPLog, Users)
+            .join(Users, OPLog.id_usuario_update == Users.id)
+            .filter(OPLog.id_op == orden.id_op)
+            .order_by(OPLog.version_number.desc())
+            .all()
+        )
+
+        historial = []
+        for log, usuario in logs:
+            cambios_dict = {}
+            if log.cambios:
+                try:
+                    cambios_dict = json.loads(log.cambios)
+                except Exception:
+                    pass
+
+            historial.append({
+                'version_number': log.version_number,
+                'fecha_update': log.fecha_update.strftime('%d/%m/%Y %H:%M') if log.fecha_update else '—',
+                'usuario': usuario.name_surname if usuario else '—',
+                'campos_cambiados': list(cambios_dict.keys()),
+                'tiene_snapshot': bool(log.snapshot_anterior),
+            })
+
+        return historial, None
+    except Exception as e:
+        app.logger.error(f"Error obteniendo historial de OP {codigo_op}: {e}", exc_info=True)
+        return None, str(e)
+
+
+def obtener_snapshot_version_op(codigo_op, version_number):
+    """Retorna el snapshot_anterior y metadatos de una versión específica de la OP."""
+    try:
+        orden = OrdenProduccion.query.filter_by(
+            codigo_op=codigo_op, fecha_borrado=None).first()
+        if not orden:
+            return None, None, 'OP no encontrada'
+
+        log, usuario = (
+            db.session.query(OPLog, Users)
+            .join(Users, OPLog.id_usuario_update == Users.id)
+            .filter(OPLog.id_op == orden.id_op, OPLog.version_number == version_number)
+            .first()
+        ) or (None, None)
+
+        if not log:
+            return None, None, f'Versión {version_number} no encontrada'
+
+        if not log.snapshot_anterior:
+            return None, None, 'Esta versión no tiene snapshot guardado (fue registrada antes de activar el historial completo)'
+
+        snapshot = json.loads(log.snapshot_anterior)
+        meta = {
+            'version_number': log.version_number,
+            'fecha_update': log.fecha_update.strftime('%d/%m/%Y %H:%M') if log.fecha_update else '—',
+            'usuario': usuario.name_surname if usuario else '—',
+        }
+        return snapshot, meta, None
+    except Exception as e:
+        app.logger.error(f"Error obteniendo snapshot v{version_number} de OP {codigo_op}: {e}", exc_info=True)
+        return None, None, str(e)
+
+
 def obtener_datos_op_para_edicion(codigo_op):
     try:
         # Obtener la OP con todas las relaciones necesarias
@@ -3303,6 +3405,10 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
 
     # --- Fase de Actualización en Base de Datos (si no hay errores de validación) ---
     try:
+        # Capturar snapshot completo del estado ANTERIOR antes de cualquier cambio
+        snapshot_anterior_dict = serializar_snapshot_op(orden)
+        snapshot_anterior_json = json.dumps(snapshot_anterior_dict, ensure_ascii=False)
+
         # Calcular el siguiente número de versión
         last_version = db.session.query(func.max(OPLog.version_number)).filter_by(id_op=orden.id_op).scalar() or 0
         new_version_number = last_version + 1
@@ -3367,22 +3473,37 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             cambios['instructivo'] = {'anterior': orden.instructivo, 'nuevo': instructivo_val}
         if dataForm.get('estado_proyecto') != orden.estado_proyecto:
             cambios['estado_proyecto'] = {'anterior': orden.estado_proyecto, 'nuevo': dataForm.get('estado_proyecto')}
-            
 
-        # Si hay cambios, insertar el log
-        if cambios:
-            db.session.execute(
-                text("""
-                    INSERT INTO tbl_op_logs (id_op, version_number, cambios, id_usuario_update)
-                    VALUES (:id_op, :version_number, :cambios, :id_usuario_update)
-                """),
-                {
-                    'id_op': orden.id_op,
-                    'version_number': new_version_number,
-                    'cambios': json.dumps(cambios),
-                    'id_usuario_update': id_usuario_registro
-                }
-            )
+        # ── Detectar si realmente hubo cambios antes de persistir ──
+        hay_cambios_docs = bool(documentos_info_para_guardar) or bool(ids_documentos_a_eliminar_validados)
+
+        urls_actuales = sorted([u.url.strip() for u in orden.urls_op if u.url and u.url.strip()])
+        urls_nuevas   = sorted([u.strip() for u in dataForm.getlist('urls[]') if u.strip()])
+        hay_cambios_urls = urls_actuales != urls_nuevas
+
+        procesos_actuales = sorted([p.id_proceso for p in orden.procesos_globales])
+        hay_cambios_procesos = sorted(ids_procesos_validados_global) != procesos_actuales
+
+        hay_cambios_piezas = len(piezas_data_validadas) != len(orden.orden_piezas)
+
+        if not cambios and not hay_cambios_docs and not hay_cambios_urls and not hay_cambios_procesos and not hay_cambios_piezas:
+            app.logger.info(f"OP {codigo_op}: sin cambios detectados, no se guarda versión.")
+            return {'status': 'no_changes', 'message': 'No se realizaron cambios. La Orden de Producción no fue modificada.'}, 200
+
+        # Insertar el log (hay cambios confirmados)
+        db.session.execute(
+            text("""
+                INSERT INTO tbl_op_logs (id_op, version_number, cambios, snapshot_anterior, id_usuario_update)
+                VALUES (:id_op, :version_number, :cambios, :snapshot_anterior, :id_usuario_update)
+            """),
+            {
+                'id_op': orden.id_op,
+                'version_number': new_version_number,
+                'cambios': json.dumps(cambios, ensure_ascii=False) if cambios else '{}',
+                'snapshot_anterior': snapshot_anterior_json,
+                'id_usuario_update': id_usuario_registro
+            }
+        )
 
         # Campos simples de OrdenProduccion
         orden.fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
@@ -3535,10 +3656,9 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         # Piezas (Eliminar todas las existentes y sus detalles, luego recrear)
         piezas_existentes_ord_db_val = OrdenPiezas.query.filter_by(id_op=orden.id_op).all()
         for p_exist_ord_db_val in piezas_existentes_ord_db_val:
-            OrdenPiezasActividades.query.filter_by(id_orden_pieza=p_exist_ord_db_val.id_orden_pieza).delete()
-            OrdenPiezasProcesos.query.filter_by(id_orden_pieza=p_exist_ord_db_val.id_orden_pieza).delete()
-            OrdenPiezaValoresDetalle.query.filter_by(id_orden_pieza=p_exist_ord_db_val.id_orden_pieza).delete()
-            OrdenPiezaEspecificaciones.query.filter_by(id_orden_pieza=p_exist_ord_db_val.id_orden_pieza).delete()
+            # SQLAlchemy gestiona todo automáticamente:
+            # - actividades (secondary m2m): eliminadas por el ORM al borrar la pieza
+            # - procesos, valores_config, especificaciones: cascade="all, delete-orphan" + ondelete='CASCADE' en FK
             db.session.delete(p_exist_ord_db_val)
         db.session.flush()
 

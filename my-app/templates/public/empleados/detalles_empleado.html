@@ -19,7 +19,14 @@
     </h3>
   </div>
   <div class="card-body p-4" style="background-color: #f8f9fa;">
-    
+
+    {% if detalle_empleado.eliminado %}
+    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+      <i class="bi bi-trash3-fill me-2 fs-5"></i>
+      <div>Este empleado ha sido <strong>eliminado</strong> del sistema. Sus datos se muestran solo con fines de consulta.</div>
+    </div>
+    {% endif %}
+
     <!-- Sección: Información Personal -->
     <div class="info-section">
       <h4 class="section-title">

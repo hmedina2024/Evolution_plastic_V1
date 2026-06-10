@@ -2286,6 +2286,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         if (response.status === 'success') {
           alert(response.message || 'Orden de Producción guardada con éxito.');
           window.location.href = response.redirect_url || "{{ url_for('lista_op') }}";
+        } else if (response.status === 'no_changes') {
+          alert('ℹ️ ' + response.message);
+          isSubmitting = false;
+          submitBtn.prop('disabled', false).html('Actualizar y Notificar <i class="bi bi-envelope ms-2"></i>');
         } else {
           alert('Error al guardar la OP: ' + (response.message || 'Error desconocido.'));
         }

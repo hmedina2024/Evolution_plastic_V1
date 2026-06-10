@@ -37,7 +37,9 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         # Funciones ODI
                                         generar_codigo_odi, validar_cod_odi, procesar_form_odi, sql_lista_odi_bd,
                                         sql_detalles_odi_bd, obtener_datos_odi_para_edicion, procesar_actualizar_form_odi,
-                                        eliminar_odi, get_odis_paginados
+                                        eliminar_odi, get_odis_paginados,
+                                        # Funciones Historial OP
+                                        obtener_historial_op, obtener_snapshot_version_op
                                         )
 
 PATH_URL = "public/empleados"
@@ -485,6 +487,7 @@ def detalle_cliente(id_cliente=None):
 
 
 @app.route("/buscando-cliente", methods=['POST'])
+@csrf.exempt
 def view_buscar_cliente_bd():
     try:
         data = request.get_json()
@@ -999,12 +1002,14 @@ def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ru
  
 @app.route('/actualizar-op/<string:codigo_op>', methods=['POST'])
 def actualizar_op(codigo_op):
-    # Pasar codigo_op a la función de procesamiento
     result_data = procesar_actualizar_form_op(codigo_op, request.form, request.files)
-    if isinstance(result_data, dict):
+    if isinstance(result_data, tuple):
+        response_dict, status_code = result_data
+        return jsonify(response_dict), status_code
+    elif isinstance(result_data, dict):
         return jsonify(result_data)
     else:
-        return jsonify({'success': False, 'message': 'Error desconocido al procesar la solicitud'})
+        return jsonify({'status': 'error', 'message': 'Error desconocido al procesar la solicitud'}), 500
     
 @app.route('/actualizar-odi/<string:codigo_odi>', methods=['POST'])
 def actualizar_odi(codigo_odi):
@@ -1706,22 +1711,34 @@ def buscando_empresas_route():
         })
 
 
-@app.route('/versions-op/<int:id_op>', methods=['GET'])
-def versions_op(id_op):
+@app.route('/op/<string:codigo_op>/historial', methods=['GET'])
+def historial_op(codigo_op):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
-    
-    # Consultar la orden para verificar existencia
-    orden = OrdenProduccion.query.filter_by(id_op=id_op, fecha_borrado=None).first()
-    if not orden:
-        flash(f'Orden de Producción con ID {id_op} no encontrada.', 'error')
+
+    historial, error = obtener_historial_op(codigo_op)
+    if error:
+        flash(f'Error al cargar historial: {error}', 'error')
         return redirect(url_for('lista_op'))
-    
-    # Consultar los logs para esta OP
-    logs = OPLog.query.filter_by(id_op=id_op).order_by(OPLog.version_number.desc()).all()
-    
-    return render_template('public/ordenproduccion/versions_op.html', logs=logs, id_op=id_op, orden=orden)
+
+    return render_template(
+        'public/ordenproduccion/historial_op.html',
+        historial=historial,
+        codigo_op=codigo_op
+    )
+
+
+@app.route('/api/op/<string:codigo_op>/version/<int:version_number>', methods=['GET'])
+def api_snapshot_op(codigo_op, version_number):
+    if 'conectado' not in session:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+
+    snapshot, meta, error = obtener_snapshot_version_op(codigo_op, version_number)
+    if error:
+        return jsonify({'status': 'error', 'message': error}), 404
+
+    return jsonify({'status': 'ok', 'snapshot': snapshot, 'meta': meta})
 
 
 @app.route('/generar-pdf-op/<string:codigo_op>', methods=['GET'])

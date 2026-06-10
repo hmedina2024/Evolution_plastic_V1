@@ -414,7 +414,8 @@ class OPLog(db.Model):
     id_log = Column(Integer, primary_key=True, autoincrement=True)
     id_op = Column(Integer, ForeignKey('tbl_ordenproduccion.id_op'), nullable=False)
     version_number = Column(Integer, nullable=False)
-    cambios = Column(Text)  # Almacena JSON
+    cambios = Column(Text)
+    snapshot_anterior = Column(Text)
     id_usuario_update = Column(Integer, ForeignKey('users.id'), nullable=False)
     fecha_update = Column(DateTime, server_default=db.func.current_timestamp())
 
