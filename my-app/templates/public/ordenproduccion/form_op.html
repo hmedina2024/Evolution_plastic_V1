@@ -123,10 +123,9 @@
         </div>
         <div class="col-md-4">
           <label for="id_disenador_grafico"
-            class="form-label fw-bold text-primary">Diseñador Grafico<span
-              class="text-danger">*</span></label>
+            class="form-label fw-bold text-primary">Diseñador Grafico</label>
           <select name="id_disenador_grafico" id="id_disenador_grafico"
-            class="form-control select2" required></select>
+            class="form-control select2" ></select>
         </div>
         <div class="col-md-4">
           <label for="id_disenador_industrial"
@@ -713,7 +712,7 @@ $(document).ready(function () {
   // ── CAMPOS VINCULADOS A ODI ──
   // Bloqueados por defecto; se liberan solo con "No aplica ODI"
   var CAMPOS_ODI_VINCULADOS = ['#referencia'];
-  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial'];
+  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial', '#id_disenador_grafico'];
 
   function bloquearCamposODI() {
     CAMPOS_ODI_VINCULADOS.forEach(function(sel) {
@@ -740,6 +739,7 @@ $(document).ready(function () {
     $('#id_cliente').val(null).trigger('change');
     $('#id_empleado').val(null).trigger('change');
     $('#id_disenador_industrial').val(null).trigger('change');
+    $('#id_disenador_grafico').val(null).trigger('change');
     $('#id_odi_fk_hidden').val('');
     $('#odi_codigo_texto').val('');
   }
@@ -828,6 +828,10 @@ $(document).ready(function () {
     if (d.id_disenador_industrial && d.nombre_disenador) {
       var optD = new Option(d.nombre_disenador, d.id_disenador_industrial, true, true);
       $('#id_disenador_industrial').empty().append(optD).trigger('change');
+    }
+    if (d.id_disenador_grafico && d.nombre_disenador_grafico) {
+      var optDG = new Option(d.nombre_disenador_grafico, d.id_disenador_grafico, true, true);
+      $('#id_disenador_grafico').empty().append(optDG).trigger('change');
     }
 
     // Bloquear campos (datos vienen de la ODI, no editables)

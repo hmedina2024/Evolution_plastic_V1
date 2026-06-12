@@ -942,7 +942,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
   // ── CAMPOS VINCULADOS A ODI (Update) ──
   var CAMPOS_ODI_VINCULADOS = ['#referencia'];
-  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial'];
+  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial', '#id_disenador_grafico'];
 
   function bloquearCamposODI() {
     CAMPOS_ODI_VINCULADOS.forEach(function(sel) {
@@ -969,6 +969,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     $('#id_cliente').val(null).trigger('change');
     $('#id_empleado').val(null).trigger('change');
     $('#id_disenador_industrial').val(null).trigger('change');
+    $('#id_disenador_grafico').val(null).trigger('change');
     $('#id_odi_fk_hidden').val('');
     $('#odi_codigo_texto').val('');
   }
@@ -1037,6 +1038,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     if (d.id_disenador_industrial && d.nombre_disenador) {
       var optD = new Option(d.nombre_disenador, d.id_disenador_industrial, true, true);
       $('#id_disenador_industrial').empty().append(optD).trigger('change');
+    }
+    if (d.id_disenador_grafico && d.nombre_disenador_grafico) {
+      var optDG = new Option(d.nombre_disenador_grafico, d.id_disenador_grafico, true, true);
+      $('#id_disenador_grafico').empty().append(optDG).trigger('change');
     }
 
     bloquearCamposODI();
@@ -2246,6 +2251,9 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
     if ($('#id_disenador_industrial').prop('disabled')) {
       formData.set('id_disenador_industrial', $('#id_disenador_industrial').val() || '');
+    }
+    if ($('#id_disenador_grafico').prop('disabled')) {
+      formData.set('id_disenador_grafico', $('#id_disenador_grafico').val() || '');
     }
     // Asegurar que los campos ocultos ODI siempre se envíen correctamente
     formData.set('odi', $('#odi_codigo_texto').val() || '');

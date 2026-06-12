@@ -458,6 +458,7 @@ class OrdenDisenoIndustrial(db.Model):
     id_cliente              = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
     id_empleado             = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)  # Comercial
     id_disenador_industrial = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
+    id_disenador_grafico    = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=True)
     # Campos propios de la ODI (NO se transfieren a OP)
     fecha_brif              = db.Column(db.Date, nullable=True)
     diseno_o_producto       = db.Column(db.String(200), nullable=True)
@@ -474,6 +475,8 @@ class OrdenDisenoIndustrial(db.Model):
                                            backref='odi_comercial', lazy=True)
     disenador_industrial = db.relationship('Empleados', foreign_keys=[id_disenador_industrial],
                                            backref='odi_disenador_industrial', lazy=True)
+    disenador_grafico    = db.relationship('Empleados', foreign_keys=[id_disenador_grafico],
+                                           backref='odi_disenador_grafico', lazy=True)
     usuario_registro     = db.relationship('Users', backref='odi_registradas', lazy=True)
     documentos_odi       = db.relationship('DocumentosODI', backref='orden_diseno_industrial', lazy=True,
                                            cascade='all, delete-orphan')

@@ -5362,6 +5362,7 @@ def procesar_form_odi(dataForm, files):
         id_cliente = dataForm.get('id_cliente')
         id_empleado = dataForm.get('id_empleado')
         id_disenador_industrial = dataForm.get('id_disenador_industrial')
+        id_disenador_grafico = dataForm.get('id_disenador_grafico')
         fecha_brif_str = dataForm.get('fecha_brif', '').strip()
         diseno_o_producto = dataForm.get('diseno_o_producto', '').strip()
         fecha_entrega_str = dataForm.get('fecha_entrega', '').strip()
@@ -5409,6 +5410,7 @@ def procesar_form_odi(dataForm, files):
             id_cliente=int(id_cliente) if id_cliente else None,
             id_empleado=int(id_empleado) if id_empleado else None,
             id_disenador_industrial=int(id_disenador_industrial) if id_disenador_industrial else None,
+            id_disenador_grafico=int(id_disenador_grafico) if id_disenador_grafico else None,
             fecha_brif=fecha_brif,
             diseno_o_producto=diseno_o_producto if diseno_o_producto else None,
             fecha_entrega=fecha_entrega,
@@ -5638,7 +5640,10 @@ def sql_detalles_odi_bd(codigo_odi):
         if odi.disenador_industrial:
             nombre_disenador = f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip()
 
-        
+        nombre_disenador_grafico = ''
+        if odi.disenador_grafico:
+            nombre_disenador_grafico = f"{odi.disenador_grafico.nombre_empleado} {odi.disenador_grafico.apellido_empleado or ''}".strip()
+
         nombre_usuario_registro = ''
         if odi.usuario_registro:
             nombre_usuario_registro = odi.usuario_registro.name_surname
@@ -5680,6 +5685,8 @@ def sql_detalles_odi_bd(codigo_odi):
             'nombre_comercial': nombre_comercial,
             'id_disenador_industrial': odi.id_disenador_industrial,
             'nombre_disenador_industrial': nombre_disenador,
+            'id_disenador_grafico': odi.id_disenador_grafico,
+            'nombre_disenador_grafico': nombre_disenador_grafico,
             'fecha_brif': odi.fecha_brif.strftime('%Y-%m-%d') if odi.fecha_brif else None,
             'fecha_brif_display': odi.fecha_brif.strftime('%d/%m/%Y') if odi.fecha_brif else 'N/A',
             'diseno_o_producto': odi.diseno_o_producto or 'N/A',
@@ -5780,6 +5787,9 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
 
         id_disenador_industrial = dataForm.get('id_disenador_industrial')
         odi.id_disenador_industrial = int(id_disenador_industrial) if id_disenador_industrial else None
+
+        id_disenador_grafico = dataForm.get('id_disenador_grafico')
+        odi.id_disenador_grafico = int(id_disenador_grafico) if id_disenador_grafico else None
 
         fecha_brif_str = dataForm.get('fecha_brif', '').strip()
         if fecha_brif_str:
@@ -6013,6 +6023,8 @@ def get_odis_paginados(page=1, per_page=10, search=''):
                 'nombre_comercial': f"{odi.comercial.nombre_empleado} {odi.comercial.apellido_empleado or ''}".strip() if odi.comercial else '',
                 'id_disenador_industrial': odi.id_disenador_industrial,
                 'nombre_disenador': f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip() if odi.disenador_industrial else '',
+                'id_disenador_grafico': odi.id_disenador_grafico,
+                'nombre_disenador_grafico': f"{odi.disenador_grafico.nombre_empleado} {odi.disenador_grafico.apellido_empleado or ''}".strip() if odi.disenador_grafico else '',
             })
 
         return {

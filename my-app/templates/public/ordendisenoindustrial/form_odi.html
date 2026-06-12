@@ -77,6 +77,14 @@
             class="form-control select2"></select>
         </div>
 
+        <div class="col-md-4">
+          <label for="id_disenador_grafico" class="form-label fw-bold text-primary">
+            DISEÑADOR GRÁFICO <span class="badge bg-primary ms-1">→OP</span>
+          </label>
+          <select name="id_disenador_grafico" id="id_disenador_grafico"
+            class="form-control select2"></select>
+        </div>
+
       </div>
 
       <hr class="my-4">
@@ -270,6 +278,7 @@ $(document).ready(function () {
   setupSelect2('#id_cliente',              "{{ url_for('api_clientes') }}",              'Seleccionar Cliente',              'clientes',              'id_cliente',  'nombre_cliente');
   setupSelect2('#id_empleado',             "{{ url_for('api_empleados') }}",             'Seleccionar Comercial',            'empleados',             'id_empleado', 'nombre_empleado');
   setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado');
+  setupSelect2('#id_disenador_grafico',    "{{ url_for('api_disenadores_graficos') }}",    'Seleccionar Diseñador Gráfico',    'disenadores_graficos',    'id_empleado', 'nombre_empleado');
 
   // ── Convertir a mayúsculas ──
   $('#proyecto, #pieza, #diseno_o_producto').on('input', function () {
@@ -417,6 +426,7 @@ $(document).ready(function () {
     formData.append('id_cliente',              $('#id_cliente').val() || '');
     formData.append('id_empleado',             $('#id_empleado').val() || '');
     formData.append('id_disenador_industrial', $('#id_disenador_industrial').val() || '');
+    formData.append('id_disenador_grafico',    $('#id_disenador_grafico').val() || '');
     formData.append('fecha_brif',              $('#fecha_brif').val());
     formData.append('fecha_entrega',           $('#fecha_entrega').val());
     formData.append('fecha_produccion',        $('#fecha_produccion').val());
