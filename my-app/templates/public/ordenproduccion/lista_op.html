@@ -97,7 +97,23 @@ $(document).ready(function() {
             { "data": "nombre_cliente" },
             { "data": "producto" },
             { "data": "cantidad" },
-            { "data": "estado" },
+            { "data": "estado", "render": function(d) {
+                if (!d) return '';
+                var map = {
+                    'ANULA': 'danger',
+                    'FACTU': 'success',
+                    'TER':   'success',
+                    'CRUCE': 'info',
+                    'PR CR': 'info',
+                    'INV':   'secondary',
+                    'LP':    'primary',
+                    'PR':    'primary',
+                    'NC':    'warning'
+                };
+                var color = map[d] || 'secondary';
+                var textDark = (color === 'warning') ? ' text-dark' : '';
+                return `<span class="badge bg-${color}${textDark}">${d}</span>`;
+            }},
             { "data": "fecha_registro" },
             { "data": "nombre_supervisor" },
             { "data": null, "render": function(data, type, row) {
@@ -117,7 +133,7 @@ $(document).ready(function() {
         "scrollCollapse": true,
         "processing": true,
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json",
+            "url": "{{ url_for('static', filename='assets/i18n/datatables-es.json') }}",
             "lengthMenu": "Mostrar _MENU_ entradas",
             "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
             "paginate": {

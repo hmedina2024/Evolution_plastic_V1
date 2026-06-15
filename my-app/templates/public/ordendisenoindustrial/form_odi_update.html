@@ -594,10 +594,10 @@ $(document).ready(function () {
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
       success: function (response) {
         if (response.status === 'success') {
-          alert(response.message || 'ODI actualizada con éxito.');
+          flashToast(response.message || 'ODI actualizada con éxito.', 'success');
           window.location.href = response.redirect_url || '/lista-de-odi';
         } else {
-          alert('Error al actualizar la ODI: ' + (response.message || 'Error desconocido.'));
+          showToast('Error al actualizar la ODI: ' + (response.message || 'Error desconocido.'), 'danger');
         }
       },
       error: function (xhr) {

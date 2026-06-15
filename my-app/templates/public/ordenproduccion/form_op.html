@@ -1904,10 +1904,10 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
       success: function(response) {
         if (response.status === 'success') {
-          alert(response.message || 'Orden de Producción guardada con éxito.');
+          flashToast(response.message || 'Orden de Producción guardada con éxito.', 'success');
           window.location.href = response.redirect_url || "{{ url_for('lista_op') }}";
         } else {
-          alert('Error al guardar la OP: ' + (response.message || 'Error desconocido.'));
+          showToast('Error al guardar la OP: ' + (response.message || 'Error desconocido.'), 'danger');
         }
       },
       error: function(xhr) {

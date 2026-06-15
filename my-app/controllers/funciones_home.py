@@ -16,7 +16,7 @@ import openpyxl  # Para generar el Excel
 import threading
 from flask import send_file, session, Flask, url_for, jsonify, flash,current_app
 # from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado # Ya importado arriba
-from sqlalchemy import or_, func, desc, asc
+from sqlalchemy import or_, func, desc, asc, cast
 from datetime import datetime, timedelta  # datetime ya importado arriba
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Message
@@ -263,16 +263,22 @@ def empleados_reporte():
 
 
 def generar_codigo_op():
+    """Genera el siguiente código consecutivo para OP.
+
+    Ordena NUMÉRICAMENTE con CAST (codigo_op es texto: con orden alfabético
+    '9' > '10' y se romperían los consecutivos al cambiar de longitud).
+    Garantiza unicidad avanzando hasta encontrar un código libre.
+    """
     try:
-        ultima_op = db.session.query(OrdenProduccion.codigo_op).order_by(
-            OrdenProduccion.codigo_op.desc()).first()
-        if ultima_op and ultima_op[0] and str(ultima_op[0]).isdigit():
-            nuevo_codigo = int(ultima_op[0]) + 1
-        else:
-            max_codigo_op = db.session.query(
-                func.max(OrdenProduccion.codigo_op)).scalar()
-            nuevo_codigo = (
-                int(max_codigo_op) + 1) if max_codigo_op and str(max_codigo_op).isdigit() else 1
+        max_num = db.session.query(
+            func.max(cast(OrdenProduccion.codigo_op, db.Integer))
+        ).scalar()
+        nuevo_codigo = (int(max_num) if max_num is not None else 0) + 1
+
+        while db.session.query(OrdenProduccion.id_op)\
+                .filter_by(codigo_op=str(nuevo_codigo)).first() is not None:
+            nuevo_codigo += 1
+
         return str(nuevo_codigo)
     except Exception as e:
         app.logger.error(f"Error al generar código de OP: {e}", exc_info=True)
@@ -5323,16 +5329,23 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
 # ============================================================
 
 def generar_codigo_odi():
-    """Genera el siguiente número consecutivo para ODI"""
-    try:
-        ultima_odi = db.session.query(OrdenDisenoIndustrial)\
-            .order_by(OrdenDisenoIndustrial.codigo_odi.desc())\
-            .first()
+    """Genera el siguiente número consecutivo para ODI.
 
-        if ultima_odi and ultima_odi.codigo_odi:
-            nuevo_numero = int(ultima_odi.codigo_odi) + 1
-        else:
-            nuevo_numero = 1
+    Ordena NUMÉRICAMENTE (no alfabéticamente) usando CAST, porque codigo_odi
+    es una columna de texto: con orden alfabético '9' > '10' y se generaban
+    códigos duplicados. Además garantiza unicidad contra toda la tabla, ya que
+    la restricción UNIQUE aplica también a registros con fecha_borrado.
+    """
+    try:
+        max_num = db.session.query(
+            func.max(cast(OrdenDisenoIndustrial.codigo_odi, db.Integer))
+        ).scalar()
+        nuevo_numero = (int(max_num) if max_num is not None else 0) + 1
+
+        # Red de seguridad: avanzar hasta encontrar un código realmente libre
+        while db.session.query(OrdenDisenoIndustrial.id_odi)\
+                .filter_by(codigo_odi=str(nuevo_numero)).first() is not None:
+            nuevo_numero += 1
 
         return str(nuevo_numero)
 

@@ -2292,14 +2292,14 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       url: form.action, type: 'POST', data: formData, contentType: false, processData: false,
       success: function(response) {
         if (response.status === 'success') {
-          alert(response.message || 'Orden de Producción guardada con éxito.');
+          flashToast(response.message || 'Orden de Producción actualizada con éxito.', 'success');
           window.location.href = response.redirect_url || "{{ url_for('lista_op') }}";
         } else if (response.status === 'no_changes') {
-          alert('ℹ️ ' + response.message);
+          showToast(response.message, 'info');
           isSubmitting = false;
           submitBtn.prop('disabled', false).html('Actualizar y Notificar <i class="bi bi-envelope ms-2"></i>');
         } else {
-          alert('Error al guardar la OP: ' + (response.message || 'Error desconocido.'));
+          showToast('Error al guardar la OP: ' + (response.message || 'Error desconocido.'), 'danger');
         }
       },
       error: function(xhr) {

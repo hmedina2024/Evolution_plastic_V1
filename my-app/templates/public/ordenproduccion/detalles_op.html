@@ -57,7 +57,12 @@
       <div class="col-md-2">
         <label for="estado"
           class="form-label fw-bold text-primary">Estado</label>
-        <div class="form-control" readonly>{{ detalle_op.estado }}</div>
+        <div class="form-control" readonly>
+          {% set color_op_map = {'ANULA': 'danger', 'FACTU': 'success', 'TER': 'success', 'CRUCE': 'info', 'PR CR': 'info', 'INV': 'secondary', 'LP': 'primary', 'PR': 'primary', 'NC': 'warning'} %}
+          {% if detalle_op.estado %}
+            <span class="badge bg-{{ color_op_map.get(detalle_op.estado, 'secondary') }}{% if color_op_map.get(detalle_op.estado) == 'warning' %} text-dark{% endif %}">{{ detalle_op.estado }}</span>
+          {% else %}—{% endif %}
+        </div>
       </div>
       <div class="col-md-2">
         <label for="cantidad"

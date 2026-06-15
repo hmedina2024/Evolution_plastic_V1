@@ -156,7 +156,7 @@ $(document).ready(function() {
         "scrollCollapse": true,
         "processing": true, // Muestra indicador de "Procesando..."
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json", // Asegúrate que este archivo exista
+            "url": "{{ url_for('static', filename='assets/i18n/datatables-es.json') }}", // Asegúrate que este archivo exista
             "lengthMenu": "Mostrar _MENU_ entradas",
             "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
             "infoEmpty": "Mostrando 0 a 0 de 0 entradas",

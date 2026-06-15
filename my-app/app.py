@@ -61,6 +61,62 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+# --- CABECERAS DE SEGURIDAD (Flask-Talisman) ---
+# Import protegido: si el paquete no está instalado, la app sigue funcionando.
+try:
+    from flask_talisman import Talisman
+
+    # CSP permisiva: la app usa scripts/estilos inline y varios CDNs.
+    # Declara una política sin romper la funcionalidad existente.
+    _csp = {
+        'default-src': "'self'",
+        'script-src': [
+            "'self'", "'unsafe-inline'", "'unsafe-eval'",
+            'https://cdn.jsdelivr.net',
+            'https://code.jquery.com',
+            'https://cdn.datatables.net',
+            'https://cdnjs.cloudflare.com',
+        ],
+        'style-src': [
+            "'self'", "'unsafe-inline'",
+            'https://cdn.jsdelivr.net',
+            'https://cdn.datatables.net',
+            'https://cdnjs.cloudflare.com',
+            'https://fonts.googleapis.com',
+        ],
+        'img-src': ["'self'", 'data:', 'https:'],
+        'font-src': [
+            "'self'", 'data:',
+            'https://cdn.jsdelivr.net',
+            'https://fonts.gstatic.com',
+            'https://cdnjs.cloudflare.com',
+        ],
+        'connect-src': ["'self'"],
+        # Reportes Power BI embebidos vía iframe
+        'frame-src': ["'self'", 'https://app.powerbi.com'],
+    }
+
+    # En local (HTTP) no forzar HTTPS ni cookies seguras para no romper el dev.
+    # En producción definir TALISMAN_FORCE_HTTPS=true.
+    _force_https = os.environ.get('TALISMAN_FORCE_HTTPS', 'false').lower() == 'true'
+
+    Talisman(
+        app,
+        force_https=_force_https,
+        strict_transport_security=_force_https,
+        session_cookie_secure=_force_https,
+        content_security_policy=_csp,
+        frame_options='SAMEORIGIN',
+        referrer_policy='strict-origin-when-cross-origin',
+    )
+    app.logger.info(f"Flask-Talisman activo (force_https={_force_https}).")
+except ImportError:
+    app.logger.warning(
+        "Flask-Talisman no está instalado; cabeceras de seguridad deshabilitadas. "
+        "Ejecute 'pip install flask-talisman' para activarlas."
+    )
+# --- FIN CABECERAS DE SEGURIDAD ---
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_POOL_SIZE'] = 10
 app.config['SQLALCHEMY_MAX_OVERFLOW'] = 20
