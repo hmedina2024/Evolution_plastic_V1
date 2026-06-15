@@ -185,9 +185,10 @@
       {% for render in detalle_op.renders %}
       <div class="col-md-4 text-center">
         <br />
-        <img style="width: 200px; border-radius: 10px;"
+        <img style="width: 200px; border-radius: 10px; cursor: zoom-in;"
           src="/static/render_op/{{ render }}" alt="Render"
-          class="img-thumbnail render-img" />
+          class="img-thumbnail render-img render-clickable"
+          onclick="abrirLightbox(this.src)" />
       </div>
       {% endfor %}
       {% else %}
@@ -461,4 +462,38 @@
   </table>
 </div>
 {% endif %}
+
+<!-- ── LIGHTBOX para imágenes de referencia ── -->
+<div id="lightbox-overlay" onclick="cerrarLightbox()"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+         z-index:9999; align-items:center; justify-content:center; cursor:zoom-out;">
+  <span onclick="cerrarLightbox()"
+    style="position:absolute; top:18px; right:28px; color:#fff; font-size:2.2rem;
+           line-height:1; cursor:pointer; user-select:none;">&times;</span>
+  <img id="lightbox-img" src="" alt="Render ampliado"
+    style="max-width:90vw; max-height:90vh; border-radius:8px;
+           box-shadow:0 8px 40px rgba(0,0,0,0.6); object-fit:contain;" />
+</div>
+
+{% endblock %}
+
+{% block customJS %}
+<script>
+function abrirLightbox(src) {
+  const overlay = document.getElementById('lightbox-overlay');
+  document.getElementById('lightbox-img').src = src;
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarLightbox() {
+  document.getElementById('lightbox-overlay').style.display = 'none';
+  document.getElementById('lightbox-img').src = '';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') cerrarLightbox();
+});
+</script>
 {% endblock %}

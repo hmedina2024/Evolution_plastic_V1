@@ -480,6 +480,8 @@ class OrdenDisenoIndustrial(db.Model):
     usuario_registro     = db.relationship('Users', backref='odi_registradas', lazy=True)
     documentos_odi       = db.relationship('DocumentosODI', backref='orden_diseno_industrial', lazy=True,
                                            cascade='all, delete-orphan')
+    urls_odi             = db.relationship('OrdenDisenoIndustrialURLs', backref='orden_diseno_industrial_url',
+                                           lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<OrdenDisenoIndustrial {self.codigo_odi}>'
@@ -500,3 +502,16 @@ class DocumentosODI(db.Model):
 
     def __repr__(self):
         return f'<DocumentosODI {self.documento_nombre_original}>'
+
+
+# --- Modelo OrdenDisenoIndustrialURLs ---
+class OrdenDisenoIndustrialURLs(db.Model):
+    __tablename__ = 'tbl_odi_urls'
+
+    id_odi_url     = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_odi         = db.Column(db.Integer, db.ForeignKey('tbl_ordendisenoindustrial.id_odi', ondelete='CASCADE'), nullable=False)
+    url            = db.Column(db.Text, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+
+    def __repr__(self):
+        return f'<OrdenDisenoIndustrialURLs ODI_ID:{self.id_odi} URL:{self.url[:50]}>'

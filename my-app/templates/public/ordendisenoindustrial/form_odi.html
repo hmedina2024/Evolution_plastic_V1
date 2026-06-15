@@ -126,6 +126,21 @@
           <ul class="list-group mt-2" id="fileList"></ul>
         </div>
 
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-primary">
+            <i class="bi bi-link-45deg me-1"></i> URLs ASOCIADAS
+          </label>
+          <div id="url_container">
+            <div class="dynamic-url-container d-flex align-items-center">
+              <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
+              <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm mt-2" id="add_url_btn">
+            <i class="bi bi-plus-circle me-1"></i> Agregar otra URL
+          </button>
+        </div>
+
       </div>
 
       <!-- Campos ocultos -->
@@ -280,6 +295,18 @@ $(document).ready(function () {
   setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado');
   setupSelect2('#id_disenador_grafico',    "{{ url_for('api_disenadores_graficos') }}",    'Seleccionar Diseñador Gráfico',    'disenadores_graficos',    'id_empleado', 'nombre_empleado');
 
+  // ── URLs dinámicas ──
+  $('#add_url_btn').on('click', function () {
+    $('#url_container').append(`
+      <div class="dynamic-url-container d-flex align-items-center mt-2">
+        <input type="url" class="form-control" name="urls[]" placeholder="Ingrese una URL">
+        <button type="button" class="btn btn-danger btn-sm ms-2 remove-url-btn">Eliminar</button>
+      </div>`);
+  });
+  $('#url_container').on('click', '.remove-url-btn', function () {
+    $(this).closest('.dynamic-url-container').remove();
+  });
+
   // ── Convertir a mayúsculas ──
   $('#proyecto, #pieza, #diseno_o_producto').on('input', function () {
     $(this).val($(this).val().toUpperCase());
@@ -427,6 +454,10 @@ $(document).ready(function () {
     formData.append('id_empleado',             $('#id_empleado').val() || '');
     formData.append('id_disenador_industrial', $('#id_disenador_industrial').val() || '');
     formData.append('id_disenador_grafico',    $('#id_disenador_grafico').val() || '');
+    $('input[name="urls[]"]').each(function() {
+      const v = $(this).val().trim();
+      if (v) formData.append('urls[]', v);
+    });
     formData.append('fecha_brif',              $('#fecha_brif').val());
     formData.append('fecha_entrega',           $('#fecha_entrega').val());
     formData.append('fecha_produccion',        $('#fecha_produccion').val());

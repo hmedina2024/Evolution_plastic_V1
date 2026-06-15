@@ -125,7 +125,25 @@
       </div>
     </div>
 
-    <!-- ── SECCIÓN 4: Documentos adjuntos ── -->
+    <!-- ── SECCIÓN 4: URLs asociadas ── -->
+    <h5 class="fw-bold text-secondary mt-4 mb-3"><i class="bi bi-link-45deg me-1"></i> URLs Asociadas</h5>
+    {% if detalle_odi.urls_odi %}
+    <div class="row g-3">
+      <div class="col-md-12">
+        <ul class="list-group">
+          {% for url_item in detalle_odi.urls_odi %}
+          <li class="list-group-item">
+            <a href="{{ url_item }}" target="_blank" rel="noopener noreferrer">{{ url_item }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay URLs asociadas.</p>
+    {% endif %}
+
+    <!-- ── SECCIÓN 5: Documentos adjuntos ── -->
     <h5 class="fw-bold text-secondary mt-4 mb-3"><i class="bi bi-paperclip me-1"></i> Documentos Adjuntos</h5>
     {% if detalle_odi.documentos %}
     <div class="row g-3">
@@ -143,7 +161,7 @@
     <p class="text-muted">No hay documentos adjuntos.</p>
     {% endif %}
 
-    <!-- ── SECCIÓN 5: OPs relacionadas ── -->
+    <!-- ── SECCIÓN 6: OPs relacionadas ── -->
     <h5 class="fw-bold text-secondary mt-4 mb-3"><i class="bi bi-diagram-3 me-1"></i> Órdenes de Producción Relacionadas</h5>
     {% if detalle_odi.ops_relacionadas and detalle_odi.ops_relacionadas|length > 0 %}
     <div class="table-responsive">

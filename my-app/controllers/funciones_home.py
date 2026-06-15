@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI  # Añadido OrdenDiseñoIndustrial y DocumentosODI
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -3486,7 +3486,9 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
 
         hay_cambios_piezas = len(piezas_data_validadas) != len(orden.orden_piezas)
 
-        if not cambios and not hay_cambios_docs and not hay_cambios_urls and not hay_cambios_procesos and not hay_cambios_piezas:
+        hay_cambios_renders = bool(nombre_render_servidor_para_guardar) or (eliminar_render_actual and bool(orden.renders))
+
+        if not cambios and not hay_cambios_docs and not hay_cambios_urls and not hay_cambios_procesos and not hay_cambios_piezas and not hay_cambios_renders:
             app.logger.info(f"OP {codigo_op}: sin cambios detectados, no se guarda versión.")
             return {'status': 'no_changes', 'message': 'No se realizaron cambios. La Orden de Producción no fue modificada.'}, 200
 
@@ -5453,6 +5455,12 @@ def procesar_form_odi(dataForm, files):
                 except Exception as e_doc:
                     app.logger.error(f"Error procesando documento ODI {doc_file.filename}: {e_doc}")
 
+        # Procesar URLs
+        urls_list = dataForm.getlist('urls[]')
+        for url_item in urls_list:
+            if url_item and url_item.strip():
+                db.session.add(OrdenDisenoIndustrialURLs(id_odi=nueva_odi.id_odi, url=url_item.strip()))
+
         db.session.commit()
         app.logger.info(f"ODI {codigo_odi} creada exitosamente con id_odi={nueva_odi.id_odi}")
 
@@ -5687,6 +5695,7 @@ def sql_detalles_odi_bd(codigo_odi):
             'nombre_disenador_industrial': nombre_disenador,
             'id_disenador_grafico': odi.id_disenador_grafico,
             'nombre_disenador_grafico': nombre_disenador_grafico,
+            'urls_odi': [u.url for u in odi.urls_odi if u.url],
             'fecha_brif': odi.fecha_brif.strftime('%Y-%m-%d') if odi.fecha_brif else None,
             'fecha_brif_display': odi.fecha_brif.strftime('%d/%m/%Y') if odi.fecha_brif else 'N/A',
             'diseno_o_producto': odi.diseno_o_producto or 'N/A',
@@ -5726,6 +5735,10 @@ def obtener_datos_odi_para_edicion(codigo_odi):
         if odi.disenador_industrial:
             nombre_disenador = f"{odi.disenador_industrial.nombre_empleado} {odi.disenador_industrial.apellido_empleado or ''}".strip()
 
+        nombre_disenador_grafico = ''
+        if odi.disenador_grafico:
+            nombre_disenador_grafico = f"{odi.disenador_grafico.nombre_empleado} {odi.disenador_grafico.apellido_empleado or ''}".strip()
+
         documentos = []
         for doc in odi.documentos_odi:
             if doc.fecha_borrado is None:
@@ -5734,6 +5747,8 @@ def obtener_datos_odi_para_edicion(codigo_odi):
                     'documento_path': doc.documento_path,
                     'documento_nombre_original': doc.documento_nombre_original,
                 })
+
+        urls_odi = [u.url for u in odi.urls_odi if u.url]
 
         datos = {
             'id_odi': odi.id_odi,
@@ -5746,12 +5761,15 @@ def obtener_datos_odi_para_edicion(codigo_odi):
             'nombre_comercial': nombre_comercial,
             'id_disenador_industrial': odi.id_disenador_industrial,
             'nombre_disenador_industrial': nombre_disenador,
+            'id_disenador_grafico': odi.id_disenador_grafico,
+            'nombre_disenador_grafico': nombre_disenador_grafico,
             'fecha_brif': odi.fecha_brif.strftime('%Y-%m-%d') if odi.fecha_brif else '',
             'diseno_o_producto': odi.diseno_o_producto or '',
             'fecha_entrega': odi.fecha_entrega.strftime('%Y-%m-%d') if odi.fecha_entrega else '',
             'fecha_produccion': odi.fecha_produccion.strftime('%Y-%m-%d') if odi.fecha_produccion else '',
             'estado': odi.estado or 'ACTIVO',
-            'documentos': documentos
+            'documentos': documentos,
+            'urls_odi': urls_odi,
         }
         return datos, 200
 
@@ -5873,6 +5891,13 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
                         app.logger.warning(f"Archivo ODI rechazado en actualización: {doc_file.filename} - {mensaje_validacion}")
                 except Exception as e_doc:
                     app.logger.error(f"Error procesando nuevo documento ODI {doc_file.filename}: {e_doc}")
+
+        # Actualizar URLs: borrar todas y reinsertar las enviadas
+        OrdenDisenoIndustrialURLs.query.filter_by(id_odi=odi.id_odi).delete()
+        urls_list = dataForm.getlist('urls[]')
+        for url_item in urls_list:
+            if url_item and url_item.strip():
+                db.session.add(OrdenDisenoIndustrialURLs(id_odi=odi.id_odi, url=url_item.strip()))
 
         db.session.commit()
         app.logger.info(f"ODI {codigo_odi} actualizada exitosamente.")
