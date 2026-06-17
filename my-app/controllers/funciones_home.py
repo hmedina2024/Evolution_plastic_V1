@@ -3103,6 +3103,94 @@ def obtener_datos_op_para_edicion(codigo_op):
         return {'status': 'error', 'message': 'Error al cargar los datos de la orden.'}, 500
 
 
+def _canonizar_piezas(piezas, es_form):
+    """Devuelve una representación canónica y comparable de las piezas de una OP.
+
+    Sirve para detectar si el contenido de las piezas (y sus subformularios:
+    procesos, actividades, valores de configuración y especificaciones) cambió,
+    no solo la cantidad de piezas. Acepta tanto los dicts crudos del formulario
+    (es_form=True) como los objetos OrdenPiezas de la BD (es_form=False) y los
+    normaliza a la MISMA forma para poder compararlos directamente.
+    """
+    def _n(v):  # número (float a 2 decimales) o None
+        if v is None or v == '':
+            return None
+        try:
+            return round(float(v), 2)
+        except (ValueError, TypeError):
+            return None
+
+    def _s(v):  # texto normalizado ('' si vacío/None)
+        return str(v).strip() if v is not None else ''
+
+    def _i(v):  # entero o None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
+
+    resultado = []
+    for p in (piezas or []):
+        if es_form:
+            id_pieza = p.get('id_pieza_maestra')
+            cantidad = p.get('cantidad')
+            nombre = p.get('nombre_pieza')
+            descripcion = p.get('descripcion_pieza')
+            ancho, alto, fondo = p.get('ancho'), p.get('alto'), p.get('fondo')
+            proveedor = p.get('proveedor_externo')
+            tipo_molde = p.get('tipo_molde')
+            montaje = p.get('montaje')
+            montaje_tamano = p.get('tamano_montaje')
+            cant_material = p.get('cantidad_material')
+            material = p.get('material')
+            procesos = [_i(x) for x in p.get('procesos_pieza', []) if str(x).isdigit()]
+            actividades = [_i(x) for x in p.get('actividades_pieza', []) if str(x).isdigit()]
+            valores = [[_s(v.get('grupo_configuracion')), _s(v.get('valor_configuracion'))]
+                       for v in p.get('valores_configuracion', [])]
+            especs = [[_s(e.get('item')), _s(e.get('calibre')), _n(e.get('largo')),
+                       _n(e.get('ancho')), _s(e.get('unidad')), _i(e.get('cantidad_especificacion')),
+                       _n(e.get('kg')), _n(e.get('retal_kg')), _s(e.get('reproceso'))]
+                      for e in p.get('especificaciones_pieza', [])]
+        else:
+            id_pieza = p.id_pieza
+            cantidad = p.cantidad
+            nombre = p.nombre_pieza_op
+            descripcion = p.descripcion_pieza
+            ancho, alto, fondo = p.ancho, p.alto, p.fondo
+            proveedor = p.proveedor_externo
+            tipo_molde = p.tipo_molde
+            montaje = p.montaje
+            montaje_tamano = p.montaje_tamano
+            cant_material = p.cantidad_material
+            material = p.material
+            procesos = [pp.id_proceso for pp in p.procesos
+                        if getattr(pp, 'fecha_borrado', None) is None]
+            actividades = [a.id_actividad for a in p.actividades]
+            valores = [[_s(v.grupo_configuracion), _s(v.valor_configuracion)]
+                       for v in p.valores_config_adicional]
+            especs = [[_s(e.item), _s(e.calibre), _n(e.largo), _n(e.ancho), _s(e.unidad),
+                       _i(e.cantidad_especificacion), _n(e.kg), _n(e.retal_kg), _s(e.reproceso)]
+                      for e in p.especificaciones]
+
+        resultado.append({
+            'id_pieza': _i(id_pieza),
+            'cantidad': _i(cantidad),
+            'nombre': _s(nombre),
+            'descripcion': _s(descripcion),
+            'ancho': _n(ancho), 'alto': _n(alto), 'fondo': _n(fondo),
+            'proveedor_externo': _s(proveedor), 'tipo_molde': _s(tipo_molde),
+            'montaje': _s(montaje), 'montaje_tamano': _s(montaje_tamano),
+            'cantidad_material': _s(cant_material), 'material': _s(material),
+            'procesos': sorted([x for x in procesos if x is not None]),
+            'actividades': sorted([x for x in actividades if x is not None]),
+            'valores': sorted(valores),
+            'especificaciones': sorted(especs),
+        })
+
+    # Orden estable e independiente del orden de llegada de las piezas
+    return sorted(resultado, key=lambda d: json.dumps(d, sort_keys=True, ensure_ascii=False))
+
+
 def procesar_actualizar_form_op(codigo_op, dataForm, files):
     app.logger.info(f"OP Código {codigo_op}: ENTRANDO A procesar_actualizar_form_op.")
     errores = []
@@ -3490,7 +3578,13 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         procesos_actuales = sorted([p.id_proceso for p in orden.procesos_globales])
         hay_cambios_procesos = sorted(ids_procesos_validados_global) != procesos_actuales
 
-        hay_cambios_piezas = len(piezas_data_validadas) != len(orden.orden_piezas)
+        # Comparar el CONTENIDO de las piezas (no solo la cantidad): dimensiones,
+        # material, montaje, procesos, actividades, valores de configuración y
+        # especificaciones. Así se detectan ediciones dentro de los subformularios.
+        piezas_activas_db = [p for p in orden.orden_piezas if getattr(p, 'fecha_borrado', None) is None]
+        piezas_actuales_canon = _canonizar_piezas(piezas_activas_db, es_form=False)
+        piezas_nuevas_canon = _canonizar_piezas(piezas_data_validadas, es_form=True)
+        hay_cambios_piezas = piezas_actuales_canon != piezas_nuevas_canon
 
         hay_cambios_renders = bool(nombre_render_servidor_para_guardar) or (eliminar_render_actual and bool(orden.renders))
 
@@ -5327,6 +5421,198 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
 # ============================================================
 # --- Funciones de Ordenes de Diseño Industrial (ODI) ---
 # ============================================================
+
+def obtener_datos_dashboard():
+    """Reúne los datos del panel/dashboard en consultas agregadas y livianas.
+
+    Devuelve un dict con KPIs, conteo de OPs por estado (para el gráfico),
+    actividad reciente (tbl_op_logs) y OPs próximas a vencer.
+    """
+    datos = {
+        'kpis': {'total_op': 0, 'op_proceso': 0, 'op_facturadas': 0,
+                 'op_anuladas': 0, 'odi_activas': 0},
+        'estados_op': [],          # [{'estado': 'PR', 'cantidad': 12}, ...]
+        'actividad_reciente': [],  # últimas actualizaciones de OP
+        'ops_por_vencer': [],      # OPs con entrega en los próximos 7 días
+    }
+    try:
+        # --- Conteo de OPs por estado (una sola consulta agregada) ---
+        filas_estado = db.session.query(
+            OrdenProduccion.estado, func.count(OrdenProduccion.id_op)
+        ).filter(
+            OrdenProduccion.fecha_borrado.is_(None)
+        ).group_by(OrdenProduccion.estado).all()
+
+        conteo = {}
+        for estado, cant in filas_estado:
+            etiqueta = estado if estado else 'SIN ESTADO'
+            conteo[etiqueta] = cant
+            datos['estados_op'].append({'estado': etiqueta, 'cantidad': cant})
+
+        total = sum(conteo.values())
+        anuladas = conteo.get('ANULA', 0)
+        facturadas = conteo.get('FACTU', 0)
+        terminadas = conteo.get('TER', 0)
+
+        datos['kpis']['total_op'] = total
+        datos['kpis']['op_anuladas'] = anuladas
+        datos['kpis']['op_facturadas'] = facturadas
+        datos['kpis']['op_proceso'] = total - anuladas - facturadas - terminadas
+
+        # --- ODIs activas ---
+        datos['kpis']['odi_activas'] = db.session.query(
+            func.count(OrdenDisenoIndustrial.id_odi)
+        ).filter(
+            OrdenDisenoIndustrial.fecha_borrado.is_(None),
+            OrdenDisenoIndustrial.estado == 'ACTIVO'
+        ).scalar() or 0
+
+        # --- Actividad reciente (últimas 10 actualizaciones de OP) ---
+        logs = db.session.query(OPLog, OrdenProduccion.codigo_op, Users.name_surname)\
+            .join(OrdenProduccion, OPLog.id_op == OrdenProduccion.id_op)\
+            .outerjoin(Users, OPLog.id_usuario_update == Users.id)\
+            .order_by(OPLog.fecha_update.desc())\
+            .limit(10).all()
+
+        for log, codigo_op, usuario in logs:
+            try:
+                num_cambios = len(json.loads(log.cambios)) if log.cambios else 0
+            except (ValueError, TypeError):
+                num_cambios = 0
+            datos['actividad_reciente'].append({
+                'codigo_op': codigo_op,
+                'usuario': usuario or 'Sistema',
+                'version': log.version_number,
+                'num_cambios': num_cambios,
+                'fecha': log.fecha_update.strftime('%d/%m/%Y %H:%M') if log.fecha_update else 'N/A',
+            })
+
+        # --- OPs próximas a vencer (entrega en los próximos 7 días) ---
+        hoy = datetime.now(LOCAL_TIMEZONE).date()
+        limite = hoy + timedelta(days=7)
+        proximas = db.session.query(OrdenProduccion)\
+            .filter(
+                OrdenProduccion.fecha_borrado.is_(None),
+                OrdenProduccion.estado != 'ANULA',
+                OrdenProduccion.fecha_entrega.isnot(None),
+                OrdenProduccion.fecha_entrega >= hoy,
+                OrdenProduccion.fecha_entrega <= limite
+            ).order_by(OrdenProduccion.fecha_entrega.asc()).limit(15).all()
+
+        for op in proximas:
+            dias_restantes = (op.fecha_entrega - hoy).days
+            datos['ops_por_vencer'].append({
+                'codigo_op': op.codigo_op,
+                'producto': op.producto or 'N/A',
+                'cliente': op.cliente.nombre_cliente if op.cliente else 'N/A',
+                'estado': op.estado or 'N/A',
+                'fecha_entrega': op.fecha_entrega.strftime('%d/%m/%Y'),
+                'dias_restantes': dias_restantes,
+            })
+
+        return datos
+
+    except Exception as e:
+        app.logger.error(f"Error en obtener_datos_dashboard: {e}", exc_info=True)
+        return datos
+
+
+def obtener_datos_dashboard_operaciones():
+    """Reúne los indicadores del panel de Operaciones (semana actual = lunes→hoy).
+
+    Usa consultas agregadas (GROUP BY / SUM / COUNT) para mantener el costo bajo.
+    """
+    datos = {
+        'kpis': {'op_hoy': 0, 'unidades_semana': 0, 'horas_semana': 0, 'op_novedad': 0},
+        'por_proceso': [],          # [{'proceso': 'X', 'cantidad': 10}, ...]
+        'top_empleados': [],        # [{'empleado': 'Y', 'cantidad': 8}, ...]
+        'ultimas_operaciones': [],  # últimas 10 registradas
+        'novedades_recientes': [],  # últimas 10 con novedad
+    }
+    try:
+        ahora = datetime.now(LOCAL_TIMEZONE)
+        hoy = ahora.date()
+        inicio_semana = hoy - timedelta(days=hoy.weekday())  # lunes de esta semana
+        ini_semana_dt = datetime.combine(inicio_semana, datetime.min.time())
+        ini_hoy_dt = datetime.combine(hoy, datetime.min.time())
+
+        # --- KPIs ---
+        datos['kpis']['op_hoy'] = db.session.query(func.count(Operaciones.id_operacion))\
+            .filter(Operaciones.fecha_hora_inicio >= ini_hoy_dt).scalar() or 0
+
+        datos['kpis']['unidades_semana'] = int(db.session.query(
+            func.coalesce(func.sum(Operaciones.cantidad), 0)
+        ).filter(Operaciones.fecha_hora_inicio >= ini_semana_dt).scalar() or 0)
+
+        datos['kpis']['op_novedad'] = db.session.query(func.count(Operaciones.id_operacion))\
+            .filter(
+                Operaciones.fecha_hora_inicio >= ini_semana_dt,
+                Operaciones.novedad.isnot(None),
+                Operaciones.novedad != ''
+            ).scalar() or 0
+
+        # Horas trabajadas en la semana (suma de fin - inicio, en Python para portabilidad)
+        filas_horas = db.session.query(
+            Operaciones.fecha_hora_inicio, Operaciones.fecha_hora_fin
+        ).filter(Operaciones.fecha_hora_inicio >= ini_semana_dt).all()
+        segundos = 0
+        for ini, fin in filas_horas:
+            if ini and fin and fin > ini:
+                segundos += (fin - ini).total_seconds()
+        datos['kpis']['horas_semana'] = round(segundos / 3600, 1)
+
+        # --- Producción por proceso (semana) ---
+        filas_proc = db.session.query(
+            Procesos.nombre_proceso, func.coalesce(func.sum(Operaciones.cantidad), 0)
+        ).join(Procesos, Operaciones.id_proceso == Procesos.id_proceso)\
+         .filter(Operaciones.fecha_hora_inicio >= ini_semana_dt)\
+         .group_by(Procesos.nombre_proceso).all()
+        for nombre, cant in filas_proc:
+            datos['por_proceso'].append({'proceso': nombre, 'cantidad': int(cant)})
+
+        # --- Top 5 empleados por unidades producidas (semana) ---
+        total_emp = func.coalesce(func.sum(Operaciones.cantidad), 0)
+        filas_emp = db.session.query(
+            Empleados.nombre_empleado, Empleados.apellido_empleado, total_emp.label('c')
+        ).join(Empleados, Operaciones.id_empleado == Empleados.id_empleado)\
+         .filter(Operaciones.fecha_hora_inicio >= ini_semana_dt)\
+         .group_by(Empleados.id_empleado, Empleados.nombre_empleado, Empleados.apellido_empleado)\
+         .order_by(total_emp.desc()).limit(5).all()
+        for nom, ape, c in filas_emp:
+            datos['top_empleados'].append({
+                'empleado': f"{nom} {ape or ''}".strip(),
+                'cantidad': int(c)
+            })
+
+        # --- Últimas 10 operaciones registradas ---
+        ultimas = db.session.query(Operaciones)\
+            .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
+        for o in ultimas:
+            datos['ultimas_operaciones'].append({
+                'empleado': f"{o.empleado.nombre_empleado} {o.empleado.apellido_empleado or ''}".strip() if o.empleado else 'N/A',
+                'proceso': o.proceso_rel.nombre_proceso if o.proceso_rel else 'N/A',
+                'cantidad': o.cantidad or 0,
+                'codigo_op': o.orden_produccion.codigo_op if o.orden_produccion else '—',
+                'fecha': o.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if o.fecha_hora_inicio else 'N/A',
+            })
+
+        # --- Últimas 10 novedades ---
+        novedades = db.session.query(Operaciones)\
+            .filter(Operaciones.novedad.isnot(None), Operaciones.novedad != '')\
+            .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
+        for o in novedades:
+            datos['novedades_recientes'].append({
+                'empleado': f"{o.empleado.nombre_empleado} {o.empleado.apellido_empleado or ''}".strip() if o.empleado else 'N/A',
+                'novedad': o.novedad,
+                'fecha': o.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if o.fecha_hora_inicio else 'N/A',
+            })
+
+        return datos
+
+    except Exception as e:
+        app.logger.error(f"Error en obtener_datos_dashboard_operaciones: {e}", exc_info=True)
+        return datos
+
 
 def generar_codigo_odi():
     """Genera el siguiente número consecutivo para ODI.

@@ -39,10 +39,45 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         sql_detalles_odi_bd, obtener_datos_odi_para_edicion, procesar_actualizar_form_odi,
                                         eliminar_odi, get_odis_paginados,
                                         # Funciones Historial OP
-                                        obtener_historial_op, obtener_snapshot_version_op
+                                        obtener_historial_op, obtener_snapshot_version_op,
+                                        # Dashboard
+                                        obtener_datos_dashboard, obtener_datos_dashboard_operaciones
                                         )
 
 PATH_URL = "public/empleados"
+
+
+# --- Dashboard ---
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+    datos = obtener_datos_dashboard()
+    return render_template('public/dashboard/dashboard.html', datos=datos)
+
+
+@app.route('/dashboard-operaciones', methods=['GET'])
+def dashboard_operaciones():
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+    datos = obtener_datos_dashboard_operaciones()
+    return render_template('public/dashboard/dashboard_operaciones.html', datos=datos)
+
+
+# Endpoints JSON para auto-actualización ligera (fetch periódico, sin recargar la página)
+@app.route('/api/dashboard/op', methods=['GET'])
+def api_dashboard_op():
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+    return jsonify(obtener_datos_dashboard())
+
+
+@app.route('/api/dashboard/operaciones', methods=['GET'])
+def api_dashboard_operaciones():
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+    return jsonify(obtener_datos_dashboard_operaciones())
+
 
 # Empleados
 
