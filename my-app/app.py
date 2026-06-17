@@ -117,6 +117,32 @@ except ImportError:
     )
 # --- FIN CABECERAS DE SEGURIDAD ---
 
+# --- CACHÉ DE ENDPOINTS /api/* (Flask-Caching) ---
+# TTL configurable con API_CACHE_TIMEOUT (segundos). 0 = caché desactivada.
+# Import protegido: si la librería no está, se usa un no-op y la app sigue igual.
+try:
+    from flask_caching import Cache
+    _api_cache_ttl = int(os.environ.get('API_CACHE_TIMEOUT', '60'))
+    if _api_cache_ttl > 0:
+        cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache',
+                                   'CACHE_DEFAULT_TIMEOUT': _api_cache_ttl})
+        app.logger.info(f"Flask-Caching activo (SimpleCache, TTL={_api_cache_ttl}s).")
+    else:
+        cache = Cache(app, config={'CACHE_TYPE': 'NullCache'})
+        app.logger.info("Flask-Caching: caché desactivada (API_CACHE_TIMEOUT=0).")
+except ImportError:
+    class _NoCache:
+        """Sustituto no-op si Flask-Caching no está instalado."""
+        def cached(self, *args, **kwargs):
+            def _decorador(f):
+                return f
+            return _decorador
+        def clear(self):
+            pass
+    cache = _NoCache()
+    app.logger.warning("Flask-Caching no instalado; caché de API deshabilitada (no-op).")
+# --- FIN CACHÉ ---
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_POOL_SIZE'] = 10
 app.config['SQLALCHEMY_MAX_OVERFLOW'] = 20
@@ -152,6 +178,30 @@ if not app.debug:
 from conexion.models import Operaciones, Empleados, Tipo_Empleado, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users
 # Si models.py estuviera directamente en my-app/
 # from models import Operaciones, Empleados, ...
+
+# --- Invalidación automática de la caché de /api/* ---
+# Cuando cambia (alta/edición/baja) una entidad de referencia usada en los
+# dropdowns cacheados, se limpia la caché para no servir datos obsoletos.
+from sqlalchemy import event as _sa_event
+
+_NOMBRES_MODELOS_REF = {
+    'Clientes', 'Empleados', 'Procesos', 'Empresa', 'Actividades', 'Piezas', 'Tipo_Empleado'
+}
+
+@_sa_event.listens_for(db.session, 'after_flush')
+def _marcar_cambio_referencia(session, flush_context):
+    objetos = list(session.new) + list(session.dirty) + list(session.deleted)
+    if any(type(o).__name__ in _NOMBRES_MODELOS_REF for o in objetos):
+        session.info['_limpiar_cache_api'] = True
+
+@_sa_event.listens_for(db.session, 'after_commit')
+def _limpiar_cache_referencia(session):
+    if session.info.pop('_limpiar_cache_api', False):
+        try:
+            cache.clear()
+            app.logger.debug("Caché de /api/* invalidada por cambio en entidad de referencia.")
+        except Exception as _e:
+            app.logger.warning(f"No se pudo invalidar la caché de API: {_e}")
 
 # El bloque if __name__ == '__main__': para app.run() y db.create_all()
 # debería estar idealmente solo en run.py (para desarrollo)

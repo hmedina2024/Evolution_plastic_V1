@@ -2,6 +2,7 @@
 from app import app, limiter
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from conexion.models import db, Users
+from controllers.funciones_home import registrar_log_acceso
 from werkzeug.security import check_password_hash
 from controllers.funciones_login import (
     recibe_insert_register_user, procesar_update_perfil, info_perfil_session, data_login_sesion,
@@ -142,9 +143,13 @@ def loginCliente():
                 session['rol'] = user.rol
                 session.permanent = True  # Sesión permanente
 
+                registrar_log_acceso('login', 'sesion', 'Inicio de sesión correcto',
+                                     id_usuario=user.id, usuario_texto=user.email_user)
                 flash('Inicio de sesión correcto.', 'success')
                 return redirect(url_for('inicio'))
             else:
+                registrar_log_acceso('login_fallido', 'sesion', 'Email o contraseña incorrectos',
+                                     id_usuario=None, usuario_texto=email_user)
                 flash('Email o contraseña incorrectos.', 'error')
                 return redirect(url_for('inicio'))
         except Exception as e:
@@ -158,6 +163,7 @@ def loginCliente():
 @app.route('/closed-session', methods=['GET'])
 @login_required
 def cerraSesion():
+    registrar_log_acceso('logout', 'sesion', 'Cierre de sesión')
     session.clear()
     flash('Tu sesión fue cerrada correctamente.', 'success')
     return redirect(url_for('inicio'))

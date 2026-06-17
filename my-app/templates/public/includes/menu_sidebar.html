@@ -262,6 +262,16 @@
               <i class="bi bi-key-fill me-2"></i> Lista de Usuarios
             </a>
           </li>
+          {% if session['rol'] == 'Administrador' %}
+          <li>
+            <a
+              href="/logs-acceso"
+              class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/logs-acceso' %} active {% endif %}"
+            >
+              <i class="bi bi-shield-lock me-2"></i> Logs de Acceso
+            </a>
+          </li>
+          {% endif %}
         </ul>
       </div>
     </li>

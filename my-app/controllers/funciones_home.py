@@ -8,13 +8,13 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
 import openpyxl  # Para generar el Excel
 import threading
-from flask import send_file, session, Flask, url_for, jsonify, flash,current_app
+from flask import send_file, session, Flask, url_for, jsonify, flash,current_app, request
 # from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado # Ya importado arriba
 from sqlalchemy import or_, func, desc, asc, cast
 from datetime import datetime, timedelta  # datetime ya importado arriba
@@ -65,6 +65,86 @@ _ALLOWED_DOC_MIMES = {
     'image/png',
     'image/jpg',
 }
+
+
+# --- Auditoría de accesos y acciones críticas ---
+def _obtener_ip_cliente():
+    """Devuelve la IP real del cliente, considerando el proxy (X-Forwarded-For)."""
+    try:
+        fwd = request.headers.get('X-Forwarded-For', '')
+        if fwd:
+            return fwd.split(',')[0].strip()[:45]
+        return (request.remote_addr or '')[:45]
+    except Exception:
+        return None
+
+
+def registrar_log_acceso(accion, modulo=None, descripcion=None, id_usuario=None, usuario_texto=None):
+    """Registra un evento de auditoría (acceso o acción crítica).
+
+    Es DEFENSIVO: cualquier fallo se traga (log de warning) para no romper
+    nunca la acción principal del usuario. Hace su propio commit.
+    """
+    try:
+        if id_usuario is None:
+            id_usuario = session.get('user_id')
+        if usuario_texto is None:
+            usuario_texto = session.get('email_user')
+
+        registro = LogAcceso(
+            id_usuario=id_usuario,
+            usuario_texto=(usuario_texto or '')[:150] if usuario_texto else None,
+            accion=(accion or 'desconocida')[:50],
+            modulo=(modulo or '')[:50] if modulo else None,
+            descripcion=(descripcion or '')[:255] if descripcion else None,
+            ip=_obtener_ip_cliente(),
+            fecha=datetime.now(LOCAL_TIMEZONE)
+        )
+        db.session.add(registro)
+        db.session.commit()
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        app.logger.warning(f"No se pudo registrar log de acceso ({accion}): {e}")
+
+
+def buscar_logs_acceso_bd(search='', start=0, length=10):
+    """Búsqueda server-side (DataTables) de los logs de acceso/auditoría."""
+    try:
+        total = db.session.query(func.count(LogAcceso.id_log_acceso)).scalar() or 0
+
+        query = db.session.query(LogAcceso).outerjoin(Users, LogAcceso.id_usuario == Users.id)
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.filter(or_(
+                LogAcceso.accion.ilike(term),
+                LogAcceso.modulo.ilike(term),
+                LogAcceso.descripcion.ilike(term),
+                LogAcceso.usuario_texto.ilike(term),
+                LogAcceso.ip.ilike(term),
+                Users.name_surname.ilike(term),
+            ))
+
+        total_filtered = query.count()
+        logs = query.order_by(LogAcceso.fecha.desc()).offset(start).limit(length).all()
+
+        data = []
+        for l in logs:
+            nombre = l.usuario.name_surname if l.usuario else (l.usuario_texto or '—')
+            data.append({
+                'fecha': l.fecha.strftime('%d/%m/%Y %H:%M:%S') if l.fecha else 'N/A',
+                'usuario': nombre,
+                'accion': l.accion,
+                'modulo': l.modulo or '—',
+                'descripcion': l.descripcion or '',
+                'ip': l.ip or '—',
+            })
+        return data, total, total_filtered
+    except Exception as e:
+        app.logger.error(f"Error en buscar_logs_acceso_bd: {e}", exc_info=True)
+        return [], 0, 0
 
 
 # --- Funciones de Empleados ---
@@ -490,8 +570,11 @@ def eliminar_empleado(id_empleado, foto_empleado_nombre):
         empleado = db.session.query(Empleados).filter_by(
             id_empleado=id_empleado).first()
         if empleado:
+            nombre_emp = f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip()
             empleado.fecha_borrado = datetime.now()
             db.session.commit()
+            registrar_log_acceso('eliminacion', 'empleados',
+                                 f'Empleado eliminado: {nombre_emp} (ID {id_empleado})')
             if foto_empleado_nombre:
                 try:
                     basepath = os.path.abspath(os.path.dirname(__file__))
@@ -549,8 +632,11 @@ def eliminar_usuario(user_id):
     try:
         usuario = Users.query.get(user_id)
         if usuario and usuario.email_user != 'admin@admin.com':
+            email_eliminado = usuario.email_user
             usuario.fecha_borrado = datetime.now()
             db.session.commit()
+            registrar_log_acceso('eliminacion', 'usuarios',
+                                 f'Usuario eliminado: {email_eliminado} (ID {user_id})')
             return True
         return False
     except Exception as e:
@@ -1057,8 +1143,11 @@ def eliminar_cliente(id_cliente, foto_cliente):
         cliente = db.session.query(Clientes).filter_by(
             id_cliente=id_cliente).first()
         if cliente:
+            nombre_cli = cliente.nombre_cliente
             cliente.fecha_borrado = datetime.now()
             db.session.commit()
+            registrar_log_acceso('eliminacion', 'clientes',
+                                 f'Cliente eliminado: {nombre_cli} (ID {id_cliente})')
 
             # Eliminando foto_cliente desde el directorio
             basepath = path.dirname(__file__)
@@ -3983,8 +4072,11 @@ def eliminar_op(id_op):
                     f"Documento no encontrado en: {doc_full_path}")
 
         # Eliminar la orden (esto también elimina registros relacionados por CASCADE)
+        codigo_op_eliminada = orden.codigo_op
         db.session.delete(orden)
         db.session.commit()
+        registrar_log_acceso('eliminacion', 'op',
+                             f'OP eliminada: {codigo_op_eliminada} (ID {id_op})')
         app.logger.debug(
             f"Orden de producción con id_op {id_op} eliminada correctamente.")
         return 1  # Indica éxito (rowcount)
@@ -6303,8 +6395,11 @@ def eliminar_odi(id_odi):
             app.logger.warning(f"No se encontró la ODI con id_odi: {id_odi}")
             return 0
 
+        codigo_odi_eliminada = odi.codigo_odi
         odi.fecha_borrado = datetime.now(LOCAL_TIMEZONE)
         db.session.commit()
+        registrar_log_acceso('eliminacion', 'odi',
+                             f'ODI eliminada: {codigo_odi_eliminada} (ID {id_odi})')
         app.logger.info(f"ODI con id_odi={id_odi} marcada como eliminada.")
         return 1
 

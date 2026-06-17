@@ -1,7 +1,7 @@
 # Asegúrate de importar las nuevas funciones
 from controllers.funciones_home import sql_detalles_empresaBD, buscar_empresa_unica, eliminar_empresa
 from werkzeug.exceptions import RequestEntityTooLarge
-from app import app, csrf
+from app import app, csrf, cache
 import json
 from flask import send_file, abort,render_template, request, flash, redirect, url_for, session, jsonify, Blueprint, request
 from flask_paginate import Pagination, get_page_args
@@ -41,7 +41,9 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         # Funciones Historial OP
                                         obtener_historial_op, obtener_snapshot_version_op,
                                         # Dashboard
-                                        obtener_datos_dashboard, obtener_datos_dashboard_operaciones
+                                        obtener_datos_dashboard, obtener_datos_dashboard_operaciones,
+                                        # Auditoría
+                                        buscar_logs_acceso_bd
                                         )
 
 PATH_URL = "public/empleados"
@@ -77,6 +79,42 @@ def api_dashboard_operaciones():
     if 'conectado' not in session:
         return jsonify({'error': 'no autorizado'}), 401
     return jsonify(obtener_datos_dashboard_operaciones())
+
+
+# --- Auditoría: Logs de acceso (solo Administrador) ---
+@app.route('/logs-acceso', methods=['GET'])
+def logs_acceso():
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+    if session.get('rol') != 'Administrador':
+        flash('No tienes permisos para acceder a esta página.', 'error')
+        return redirect(url_for('inicio'))
+    return render_template('public/auditoria/logs_acceso.html')
+
+
+@app.route('/buscando-logs-acceso', methods=['POST'])
+@csrf.exempt
+def view_buscar_logs_acceso():
+    if 'conectado' not in session or session.get('rol') != 'Administrador':
+        return jsonify({'error': 'no autorizado'}), 403
+    try:
+        data = request.get_json()
+        search = data.get('busqueda', '')
+        draw = data.get('draw', 1)
+        start = data.get('start', 0)
+        length = data.get('length', 10)
+
+        logs, total, total_filtered = buscar_logs_acceso_bd(search, start, length)
+        return jsonify({
+            "draw": int(draw),
+            "recordsTotal": total,
+            "recordsFiltered": total_filtered,
+            "data": logs,
+            "fin": 1 if logs else 0
+        })
+    except Exception as e:
+        app.logger.error(f"Error en /buscando-logs-acceso: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 # Empleados
@@ -1356,6 +1394,7 @@ def borrar_jornada(id_jornada):
 
 # Rutas API para cargar opciones dinámicamente
 @app.route('/api/empleados', methods=['GET'])
+@cache.cached(query_string=True)
 def api_empleados():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1386,6 +1425,7 @@ def api_all_empleados():
 
 
 @app.route('/api/supervisores', methods=['GET'])
+@cache.cached(query_string=True)
 def api_supervisores():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1397,6 +1437,7 @@ def api_supervisores():
 
 
 @app.route('/api/disenadores_graficos', methods=['GET'])
+@cache.cached(query_string=True)
 def api_disenadores_graficos():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1407,6 +1448,7 @@ def api_disenadores_graficos():
     return jsonify({'disenadores_graficos': disenadores_graficos})
 
 @app.route('/api/disenadores_industriales', methods=['GET'])
+@cache.cached(query_string=True)
 def api_disenadores_industriales():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1417,6 +1459,7 @@ def api_disenadores_industriales():
     return jsonify({'disenadores_industriales': disenadores_industriales})
 
 @app.route('/api/costeadores', methods=['GET'])
+@cache.cached(query_string=True)
 def api_costeadores():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1428,6 +1471,7 @@ def api_costeadores():
 
 
 @app.route('/api/procesos', methods=['GET'])
+@cache.cached(query_string=True)
 def api_procesos():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1448,6 +1492,7 @@ def api_procesos():
 
 
 @app.route('/api/piezas', methods=['GET'])
+@cache.cached(query_string=True)
 def api_piezas():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1467,6 +1512,7 @@ def api_piezas():
 
 
 @app.route('/api/actividades_op', methods=['GET'])
+@cache.cached(query_string=True)
 def api_actividades_op():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1479,6 +1525,7 @@ def api_actividades_op():
     return jsonify(actividades_data)
 
 @app.route('/api/actividades', methods=['GET'])
+@cache.cached(query_string=True)
 def api_actividades():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1531,6 +1578,7 @@ def api_ordenes_diseno_industrial():
 
 
 @app.route('/api/clientes', methods=['GET'])
+@cache.cached(query_string=True)
 def api_clientes():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1542,6 +1590,7 @@ def api_clientes():
     return jsonify({'clientes': clientes, 'pagination': {'more': more}})
 
 @app.route('/api/detalles-pieza-maestra-opciones', methods=['GET'])
+@cache.cached(query_string=True)
 def api_detalles_pieza_maestra_opciones():
     grupo = request.args.get('grupo', type=str)
     if not grupo:
@@ -1556,6 +1605,7 @@ def api_detalles_pieza_maestra_opciones():
 # Listas para registrar empleados
 
 @app.route('/api/empresas', methods=['GET'])
+@cache.cached(query_string=True)
 def api_empresas():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -1567,6 +1617,7 @@ def api_empresas():
 
 
 @app.route('/api/tipos-empleado', methods=['GET'])
+@cache.cached(query_string=True)
 def api_tipos_empleado():
     try:
         tipos = Tipo_Empleado.query.filter_by(fecha_borrado=None).order_by(Tipo_Empleado.id_tipo_empleado.asc()).all()

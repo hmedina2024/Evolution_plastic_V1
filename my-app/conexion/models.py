@@ -515,3 +515,22 @@ class OrdenDisenoIndustrialURLs(db.Model):
 
     def __repr__(self):
         return f'<OrdenDisenoIndustrialURLs ODI_ID:{self.id_odi} URL:{self.url[:50]}>'
+
+
+# --- Modelo LogAcceso (auditoría de accesos y acciones críticas) ---
+class LogAcceso(db.Model):
+    __tablename__ = 'tbl_logs_acceso'
+
+    id_log_acceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    usuario_texto = db.Column(db.String(150), nullable=True)   # email/nombre (útil en logins fallidos)
+    accion        = db.Column(db.String(50), nullable=False)   # login, login_fallido, logout, eliminacion
+    modulo        = db.Column(db.String(50), nullable=True)    # sesion, empleados, clientes, op, odi, usuarios
+    descripcion   = db.Column(db.String(255), nullable=True)
+    ip            = db.Column(db.String(45), nullable=True)
+    fecha         = db.Column(db.DateTime, default=func.now(), nullable=False)
+
+    usuario = db.relationship('Users', backref='logs_acceso', lazy=True)
+
+    def __repr__(self):
+        return f'<LogAcceso {self.accion} u={self.id_usuario} {self.fecha}>'
