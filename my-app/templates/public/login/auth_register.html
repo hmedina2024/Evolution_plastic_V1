@@ -39,11 +39,11 @@
                 </div>
                 <div class="col-md-6">
                     <label for="tipo_empleado" class="form-label fw-bold text-primary">Rol</label>
-                    <select class="form-select" name="rol" id="rol" required aria-label="Default select example" required>
+                    <select class="form-select" name="rol" id="rol" required aria-label="Seleccionar rol">
                       <option value="">Seleccione un Rol</option>
-                      <option value="Operativo">Operativo</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Administrador">Administrador</option>                        
+                      {% for rol_nombre in roles %}
+                      <option value="{{ rol_nombre }}">{{ rol_nombre }}</option>
+                      {% endfor %}
                     </select>
                 </div>
             </div>

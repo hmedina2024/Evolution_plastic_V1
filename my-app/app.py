@@ -203,6 +203,16 @@ def _limpiar_cache_referencia(session):
         except Exception as _e:
             app.logger.warning(f"No se pudo invalidar la caché de API: {_e}")
 
+# --- Inicialización del sistema de Roles y Permisos ---
+# Importa el módulo (registra el global de Jinja 'tiene_permiso') y siembra los
+# datos base de forma idempotente. Todo va protegido para no afectar el arranque.
+try:
+    with app.app_context():
+        from controllers.funciones_permisos import seed_permisos_y_roles
+        seed_permisos_y_roles()
+except Exception as _e_perm:
+    app.logger.warning(f"No se pudo inicializar el sistema de permisos al arranque: {_e_perm}")
+
 # El bloque if __name__ == '__main__': para app.run() y db.create_all()
 # debería estar idealmente solo en run.py (para desarrollo)
 # y db.create_all() comentado/eliminado para producción.

@@ -1,0 +1,91 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Permisos de {{ matriz.nombre_rol }}{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white">
+    <h3 class="fw-bold mb-0">
+      <a href="{{ url_for('roles_permisos') }}" class="text-white me-2"><i class="bi bi-arrow-left-circle"></i></a>
+      PERMISOS — {{ matriz.nombre_rol }}
+    </h3>
+  </div>
+  <div class="card-body p-4">
+
+    {% if matriz.es_admin %}
+    <div class="alert alert-warning">
+      <i class="bi bi-shield-fill-check me-2"></i>
+      El rol <strong>Administrador</strong> tiene acceso total al sistema de forma permanente.
+      Sus permisos no se pueden modificar.
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('guardar_permisos_rol_route', id_rol=matriz.id_rol) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% if not matriz.es_admin %}
+      <div class="d-flex justify-content-end mb-3 gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="marcarTodo(true)">
+          <i class="bi bi-check-all"></i> Marcar todo
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="marcarTodo(false)">
+          <i class="bi bi-x-lg"></i> Desmarcar todo
+        </button>
+      </div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="min-width: 220px;">Módulo</th>
+              <th class="text-center">Ver</th>
+              <th class="text-center">Crear</th>
+              <th class="text-center">Editar</th>
+              <th class="text-center">Eliminar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in matriz.modulos %}
+            <tr>
+              <td class="fw-semibold">{{ m.label }}</td>
+              {% for accion in ['ver', 'crear', 'editar', 'eliminar'] %}
+              <td class="text-center">
+                {% set a = m.cols[accion] %}
+                {% if a %}
+                  <input class="form-check-input chk-permiso" type="checkbox" name="permisos"
+                         value="{{ a.clave }}"
+                         {% if a.activo %}checked{% endif %}
+                         {% if matriz.es_admin %}checked disabled{% endif %}>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if not matriz.es_admin %}
+      <div class="text-center mt-4">
+        <a href="{{ url_for('roles_permisos') }}" class="btn btn-secondary rounded-pill px-4">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary rounded-pill px-5 ms-2">
+          <i class="bi bi-save me-1"></i> Guardar permisos
+        </button>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script>
+  function marcarTodo(estado) {
+    document.querySelectorAll('.chk-permiso:not(:disabled)').forEach(function (c) { c.checked = estado; });
+  }
+</script>
+{% endblock %}

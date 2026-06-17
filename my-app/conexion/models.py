@@ -534,3 +534,48 @@ class LogAcceso(db.Model):
 
     def __repr__(self):
         return f'<LogAcceso {self.accion} u={self.id_usuario} {self.fecha}>'
+
+
+# --- Sistema de Roles y Permisos (administrable desde la UI) ---
+class Rol(db.Model):
+    __tablename__ = 'tbl_roles'
+
+    id_rol      = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_rol  = db.Column(db.String(50), nullable=False, unique=True)
+    descripcion = db.Column(db.String(255), nullable=True)
+    es_sistema  = db.Column(db.Boolean, nullable=False, default=False)  # roles base: no se pueden eliminar
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    fecha_borrado  = db.Column(db.DateTime, nullable=True)
+
+    permisos = db.relationship('RolPermiso', backref='rol', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Rol {self.nombre_rol}>'
+
+
+class Permiso(db.Model):
+    __tablename__ = 'tbl_permisos'
+
+    id_permiso  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    modulo      = db.Column(db.String(50), nullable=False)   # op, odi, empleados, ...
+    accion      = db.Column(db.String(20), nullable=False)   # ver, crear, editar, eliminar
+    clave       = db.Column(db.String(80), nullable=False, unique=True)  # 'op.crear'
+    descripcion = db.Column(db.String(255), nullable=True)
+
+    def __repr__(self):
+        return f'<Permiso {self.clave}>'
+
+
+class RolPermiso(db.Model):
+    __tablename__ = 'tbl_roles_permisos'
+
+    id_rol_permiso = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_rol     = db.Column(db.Integer, db.ForeignKey('tbl_roles.id_rol', ondelete='CASCADE'), nullable=False)
+    id_permiso = db.Column(db.Integer, db.ForeignKey('tbl_permisos.id_permiso', ondelete='CASCADE'), nullable=False)
+
+    permiso = db.relationship('Permiso', lazy=True)
+
+    __table_args__ = (db.UniqueConstraint('id_rol', 'id_permiso', name='uq_rol_permiso'),)
+
+    def __repr__(self):
+        return f'<RolPermiso rol={self.id_rol} permiso={self.id_permiso}>'

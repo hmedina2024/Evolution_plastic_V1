@@ -18,6 +18,7 @@
 
   <div class="menu-inner-shadow"></div>
   <ul class="menu-inner py-1">
+    {% if tiene_permiso('dashboard.ver') %}
     <li class="mb-1">
       <a
         href="{{ url_for('dashboard') }}"
@@ -34,250 +35,132 @@
         <i class="menu-icon bi-clipboard-data me-2"></i> Dashboard Operaciones
       </a>
     </li>
-    <li class="nav-item dropdown">
-      <li class="mb-1">
-        <button
-          class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-          data-bs-toggle="collapse"
-          data-bs-target="#control-collapse"
-          aria-expanded="false"
-        >
-          <i class="menu-icon bi-ui-checks-grid me-2"></i> Control
-        </button>
-        <div class="collapse" id="control-collapse">
-          <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
-            <li>
-              <a
-                href="{{ url_for('viewFormOperacion') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-operacion' %} active {% endif %}"
-              >
-                <i class="bi bi-pass me-2"></i> Operación Diaria
-              </a>
-            </li>
-            <li>
-              <a
-                href="/lista-de-operaciones"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-operaciones' %} active {% endif %}"
-              >
-                <i class="bi bi-pass-fill me-2"></i> Lista de Operaciones
-              </a>
-            </li>
-            {% if session['rol'] == 'Administrador' or session['rol'] == 'Supervisor' %}
-            <li>
-              <a
-                href="{{ url_for('viewFormOp') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-op' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus me-2"></i> Registro OP
-              </a>
-            </li>
-            <li>
-              <a
-                href="/lista-de-op"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-op' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus-fill me-2"></i> Lista de OP
-              </a>
-            </li>            
-            <li>
-              <a
-                href="{{ url_for('viewFormOdi') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-odi' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus me-2"></i> Registro ODI
-              </a>
-            </li>
-            <li>
-              <a
-                href="/lista-de-odi"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-odi' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus-fill me-2"></i> Lista de ODI
-              </a>
-            </li>            
-            {% endif %}
-            <li>
-              <a
-                href="{{ url_for('viewFormJornada') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-jornada' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus me-2"></i> Registro Novedad
-              </a>
-            </li>
-            <li>
-              <a
-                href="/lista-de-jornadas"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-jornadas' %} active {% endif %}"
-              >
-                <i class="bi bi-file-minus-fill me-2"></i> Lista de Novedades
-              </a>
-            </li>
-          </ul>
-        </div>
-      </li>
-      {% if session['rol'] == 'Administrador' or session['rol'] == 'Supervisor' %}
-      <li class="mb-1">
-        <button
-          class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-          data-bs-toggle="collapse"
-          data-bs-target="#administrar-collapse"
-          aria-expanded="false"
-        >
-          <i class="menu-icon bi-person-gear me-2"></i> Administrar
-        </button>
-        <div class="collapse" id="administrar-collapse">
-          <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
-            {% if session['rol'] == 'Administrador' %}
-            <li>
-              <a
-                href="{{ url_for('viewFormEmpleado') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-empleado' %} active {% endif %}"
-              >
-                <i class="bi bi-person-bounding-box me-2"></i> Registrar Empleado
-              </a>
-            </li>
-            {% endif %}
-            <li>
-              <a
-                href="/lista-de-empleados"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empleados' %} active {% endif %}"
-              >
-                <i class="bi bi-person-lines-fill me-2"></i> Lista de Empleados
-              </a>
-            </li>
-            {% if session['rol'] == 'Administrador' %}
-            <li>
-              <a
-                href="{{ url_for('viewFormProceso') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-proceso' %} active {% endif %}"
-              >
-                <i class="bi bi-gear me-2"></i> Registrar Proceso
-              </a>
-            </li>
-            {% endif%}
-            <li>
-              <a
-                href="/lista-de-procesos"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-procesos' %} active {% endif %}"
-              >
-                <i class="bi bi-gear-fill me-2"></i> Lista de Procesos
-              </a>
-            </li>
-            {% if session['rol'] == 'Administrador' %}
+    {% endif %}
 
-            <li>
-              <a
-                href="{{ url_for('viewFormCliente') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-cliente' %} active {% endif %}"
-              >
-                <i class="bi bi-person-vcard me-2"></i> Registrar Cliente
-              </a>
-            </li>
-            {% endif%}
-            <li>
-              <a
-                href="/lista-de-clientes"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-clientes' %} active {% endif %}"
-              >
-                <i class="bi bi-person-vcard-fill me-2"></i> Lista de Clientes
-              </a>
-            </li>
-            {% if session['rol'] == 'Administrador' %}
-            <li>
-              <a
-                href="{{ url_for('viewFormActividad') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-actividad' %} active {% endif %}"
-              >
-                <i class="bi bi-universal-access-circle me-2"></i> Registrar Actividad
-              </a>
-            </li>
-            {% endif%}
-            <li>
-              <a
-                href="/lista-de-actividades"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-actividades' %} active {% endif %}"
-              >
-                <i class="bi bi-universal-access me-2"></i> Lista de Actividades
-              </a>
-            </li>
-            {% if session['rol'] == 'Administrador' %}
-            <li>
-              <a
-                href="{{ url_for('viewFormEmpresa') }}"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-actividad' %} active {% endif %}"
-              >
-                <i class="menu-icon tf-icons bi bi-building"></i> Registrar Empresa
-              </a>
-              
-            </li>
-            {% endif%}
-
-            <li>
-              <a
-                href="/lista-de-empresas"
-                class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empresas' %} active {% endif %}"
-              >
-                <i class="menu-icon tf-icons bi bi-building-fill"></i> Lista de Empresas
-              </a>
-            </li>           
-          </ul>
-        </div>
-      </li>
-    <!-- Sección Reportes -->
-    <li class="mb-1">
-      <a
-        href="/powerbi"
-        class="btn btn-toggle align-items-center rounded fw-bold fs-5 {% if request.path == '/powerbi' %} active {% endif %}"
-      >
-        <i class="menu-icon bi bi-file-earmark-spreadsheet-fill me-2"></i> Reportes
-      </a>
-    </li>
-    <!-- Sección Usuarios -->
+    {# ── Sección Control ── #}
+    {% set ver_control = tiene_permiso('operaciones.ver') or tiene_permiso('op.ver') or tiene_permiso('odi.ver') or tiene_permiso('jornadas.ver') or tiene_permiso('operaciones.crear') or tiene_permiso('jornadas.crear') %}
+    {% if ver_control %}
     <li class="mb-1">
       <button
         class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-        data-bs-toggle="collapse"
-        data-bs-target="#usuarios-collapse"
-        aria-expanded="false"
-      >
+        data-bs-toggle="collapse" data-bs-target="#control-collapse" aria-expanded="false">
+        <i class="menu-icon bi-ui-checks-grid me-2"></i> Control
+      </button>
+      <div class="collapse" id="control-collapse">
+        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+          {% if tiene_permiso('operaciones.crear') %}
+          <li><a href="{{ url_for('viewFormOperacion') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-operacion' %} active {% endif %}"><i class="bi bi-pass me-2"></i> Operación Diaria</a></li>
+          {% endif %}
+          {% if tiene_permiso('operaciones.ver') %}
+          <li><a href="/lista-de-operaciones" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-operaciones' %} active {% endif %}"><i class="bi bi-pass-fill me-2"></i> Lista de Operaciones</a></li>
+          {% endif %}
+          {% if tiene_permiso('op.crear') %}
+          <li><a href="{{ url_for('viewFormOp') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-op' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro OP</a></li>
+          {% endif %}
+          {% if tiene_permiso('op.ver') %}
+          <li><a href="/lista-de-op" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-op' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de OP</a></li>
+          {% endif %}
+          {% if tiene_permiso('odi.crear') %}
+          <li><a href="{{ url_for('viewFormOdi') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-odi' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro ODI</a></li>
+          {% endif %}
+          {% if tiene_permiso('odi.ver') %}
+          <li><a href="/lista-de-odi" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-odi' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de ODI</a></li>
+          {% endif %}
+          {% if tiene_permiso('jornadas.crear') %}
+          <li><a href="{{ url_for('viewFormJornada') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-jornada' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro Novedad</a></li>
+          {% endif %}
+          {% if tiene_permiso('jornadas.ver') %}
+          <li><a href="/lista-de-jornadas" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-jornadas' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de Novedades</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </li>
+    {% endif %}
+
+    {# ── Sección Administrar ── #}
+    {% set ver_admin = tiene_permiso('empleados.ver') or tiene_permiso('procesos.ver') or tiene_permiso('clientes.ver') or tiene_permiso('actividades.ver') or tiene_permiso('empresas.ver') %}
+    {% if ver_admin %}
+    <li class="mb-1">
+      <button
+        class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
+        data-bs-toggle="collapse" data-bs-target="#administrar-collapse" aria-expanded="false">
+        <i class="menu-icon bi-person-gear me-2"></i> Administrar
+      </button>
+      <div class="collapse" id="administrar-collapse">
+        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+          {% if tiene_permiso('empleados.crear') %}
+          <li><a href="{{ url_for('viewFormEmpleado') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-empleado' %} active {% endif %}"><i class="bi bi-person-bounding-box me-2"></i> Registrar Empleado</a></li>
+          {% endif %}
+          {% if tiene_permiso('empleados.ver') %}
+          <li><a href="/lista-de-empleados" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empleados' %} active {% endif %}"><i class="bi bi-person-lines-fill me-2"></i> Lista de Empleados</a></li>
+          {% endif %}
+          {% if tiene_permiso('procesos.crear') %}
+          <li><a href="{{ url_for('viewFormProceso') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-proceso' %} active {% endif %}"><i class="bi bi-gear me-2"></i> Registrar Proceso</a></li>
+          {% endif %}
+          {% if tiene_permiso('procesos.ver') %}
+          <li><a href="/lista-de-procesos" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-procesos' %} active {% endif %}"><i class="bi bi-gear-fill me-2"></i> Lista de Procesos</a></li>
+          {% endif %}
+          {% if tiene_permiso('clientes.crear') %}
+          <li><a href="{{ url_for('viewFormCliente') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-cliente' %} active {% endif %}"><i class="bi bi-person-vcard me-2"></i> Registrar Cliente</a></li>
+          {% endif %}
+          {% if tiene_permiso('clientes.ver') %}
+          <li><a href="/lista-de-clientes" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-clientes' %} active {% endif %}"><i class="bi bi-person-vcard-fill me-2"></i> Lista de Clientes</a></li>
+          {% endif %}
+          {% if tiene_permiso('actividades.crear') %}
+          <li><a href="{{ url_for('viewFormActividad') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-actividad' %} active {% endif %}"><i class="bi bi-universal-access-circle me-2"></i> Registrar Actividad</a></li>
+          {% endif %}
+          {% if tiene_permiso('actividades.ver') %}
+          <li><a href="/lista-de-actividades" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-actividades' %} active {% endif %}"><i class="bi bi-universal-access me-2"></i> Lista de Actividades</a></li>
+          {% endif %}
+          {% if tiene_permiso('empresas.crear') %}
+          <li><a href="{{ url_for('viewFormEmpresa') }}" class="link-dark rounded fs-6 sub-menu-item"><i class="menu-icon tf-icons bi bi-building"></i> Registrar Empresa</a></li>
+          {% endif %}
+          {% if tiene_permiso('empresas.ver') %}
+          <li><a href="/lista-de-empresas" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empresas' %} active {% endif %}"><i class="menu-icon tf-icons bi bi-building-fill"></i> Lista de Empresas</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </li>
+    {% endif %}
+
+    {# ── Sección Reportes ── #}
+    {% if tiene_permiso('reportes.ver') %}
+    <li class="mb-1">
+      <a href="/powerbi" class="btn btn-toggle align-items-center rounded fw-bold fs-5 {% if request.path == '/powerbi' %} active {% endif %}">
+        <i class="menu-icon bi bi-file-earmark-spreadsheet-fill me-2"></i> Reportes
+      </a>
+    </li>
+    {% endif %}
+
+    {# ── Sección Usuarios / Administración ── #}
+    {% set ver_usuarios = tiene_permiso('usuarios.ver') or tiene_permiso('auditoria.ver') or tiene_permiso('permisos.ver') %}
+    {% if ver_usuarios %}
+    <li class="mb-1">
+      <button
+        class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
+        data-bs-toggle="collapse" data-bs-target="#usuarios-collapse" aria-expanded="false">
         <i class="menu-icon bi-person-workspace me-2"></i> Usuarios
       </button>
       <div class="collapse" id="usuarios-collapse">
         <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
-          {% if session['rol'] == 'Administrador' %}
-          <li>
-            <a
-              href="/register-user"
-              class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/register-user' %} active {% endif %}"
-            >
-              <i class="bi bi-key me-2"></i> Crear Usuario
-            </a>
-          </li>
-          {% endif%}
-          <li>
-            <a
-              href="/lista-de-usuarios"
-              class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-usuarios' %} active {% endif %}"
-            >
-              <i class="bi bi-key-fill me-2"></i> Lista de Usuarios
-            </a>
-          </li>
-          {% if session['rol'] == 'Administrador' %}
-          <li>
-            <a
-              href="/logs-acceso"
-              class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/logs-acceso' %} active {% endif %}"
-            >
-              <i class="bi bi-shield-lock me-2"></i> Logs de Acceso
-            </a>
-          </li>
+          {% if tiene_permiso('usuarios.crear') %}
+          <li><a href="/register-user" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/register-user' %} active {% endif %}"><i class="bi bi-key me-2"></i> Crear Usuario</a></li>
+          {% endif %}
+          {% if tiene_permiso('usuarios.ver') %}
+          <li><a href="/lista-de-usuarios" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-usuarios' %} active {% endif %}"><i class="bi bi-key-fill me-2"></i> Lista de Usuarios</a></li>
+          {% endif %}
+          {% if tiene_permiso('auditoria.ver') %}
+          <li><a href="/logs-acceso" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/logs-acceso' %} active {% endif %}"><i class="bi bi-shield-lock me-2"></i> Logs de Acceso</a></li>
+          {% endif %}
+          {% if tiene_permiso('permisos.ver') %}
+          <li><a href="{{ url_for('roles_permisos') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path.startswith('/roles-permisos') %} active {% endif %}"><i class="bi bi-shield-lock-fill me-2"></i> Roles y Permisos</a></li>
           {% endif %}
         </ul>
       </div>
     </li>
     {% endif %}
     <br>
-    <br>       
+    <br>
   </ul>
   <li class="menu-item">
     <a href="{{ url_for('cerraSesion') }}" class="menu-link">

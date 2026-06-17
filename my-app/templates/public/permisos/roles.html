@@ -1,0 +1,123 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Roles y Permisos{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h3 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2"></i>ROLES Y PERMISOS</h3>
+    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalRol"
+            onclick="prepararCrear()">
+      <i class="bi bi-plus-circle me-1"></i> Nuevo Rol
+    </button>
+  </div>
+  <div class="card-body p-4">
+    <div class="alert alert-info py-2">
+      <i class="bi bi-info-circle me-2"></i>
+      Define los roles y qué puede hacer cada uno. El rol <strong>Administrador</strong> siempre
+      tiene acceso total. Para ajustar permisos, usa <strong>Editar permisos</strong>.
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Rol</th>
+            <th>Descripción</th>
+            <th class="text-center">Permisos</th>
+            <th class="text-center">Tipo</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in roles %}
+          <tr>
+            <td class="fw-semibold">{{ r.nombre_rol }}</td>
+            <td>{{ r.descripcion or '—' }}</td>
+            <td class="text-center"><span class="badge bg-label-primary">{{ r.num_permisos }}</span></td>
+            <td class="text-center">
+              {% if r.es_sistema %}
+                <span class="badge bg-secondary">Sistema</span>
+              {% else %}
+                <span class="badge bg-info">Personalizado</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('matriz_rol', id_rol=r.id_rol) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-sliders"></i> Editar permisos
+              </a>
+              <button class="btn btn-sm btn-warning"
+                      onclick="prepararEditar({{ r.id_rol }}, '{{ r.nombre_rol|e }}', '{{ r.descripcion|e }}', {{ 'true' if r.nombre_rol == 'Administrador' else 'false' }})"
+                      data-bs-toggle="modal" data-bs-target="#modalRol">
+                <i class="bi bi-pencil"></i>
+              </button>
+              {% if not r.es_sistema %}
+              <form method="POST" action="{{ url_for('eliminar_rol_route', id_rol=r.id_rol) }}" class="d-inline"
+                    onsubmit="return confirm('¿Eliminar el rol {{ r.nombre_rol|e }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash3"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Crear/Editar Rol -->
+<div class="modal fade" id="modalRol" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formRol">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tituloModalRol">Nuevo Rol</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nombre del rol <span class="text-danger">*</span></label>
+            <input type="text" name="nombre_rol" id="inputNombreRol" class="form-control" required maxlength="50">
+            <small id="avisoAdmin" class="text-muted d-none">El rol Administrador no se puede renombrar.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Descripción</label>
+            <textarea name="descripcion" id="inputDescRol" class="form-control" rows="2" maxlength="255"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script>
+  var URL_CREAR = "{{ url_for('crear_rol_route') }}";
+  var URL_ACTUALIZAR_BASE = "/roles-permisos/actualizar/";
+
+  function prepararCrear() {
+    document.getElementById('tituloModalRol').textContent = 'Nuevo Rol';
+    document.getElementById('formRol').action = URL_CREAR;
+    document.getElementById('inputNombreRol').value = '';
+    document.getElementById('inputNombreRol').readOnly = false;
+    document.getElementById('inputDescRol').value = '';
+    document.getElementById('avisoAdmin').classList.add('d-none');
+  }
+
+  function prepararEditar(id, nombre, desc, esAdmin) {
+    document.getElementById('tituloModalRol').textContent = 'Editar Rol';
+    document.getElementById('formRol').action = URL_ACTUALIZAR_BASE + id;
+    document.getElementById('inputNombreRol').value = nombre;
+    document.getElementById('inputNombreRol').readOnly = !!esAdmin;
+    document.getElementById('inputDescRol').value = desc;
+    document.getElementById('avisoAdmin').classList.toggle('d-none', !esAdmin);
+  }
+</script>
+{% endblock %}

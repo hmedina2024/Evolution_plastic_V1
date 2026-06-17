@@ -3,6 +3,7 @@ from app import app, limiter
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from conexion.models import db, Users
 from controllers.funciones_home import registrar_log_acceso
+from controllers.funciones_permisos import nombres_roles_disponibles
 from werkzeug.security import check_password_hash
 from controllers.funciones_login import (
     recibe_insert_register_user, procesar_update_perfil, info_perfil_session, data_login_sesion,
@@ -48,7 +49,7 @@ def cpanel_register_user():
     if session.get('rol') != 'Administrador':
         flash('No tienes permisos para acceder a esta página.', 'error')
         return redirect(url_for('inicio'))
-    return render_template(f'{PATH_URL_LOGIN}/auth_register.html')
+    return render_template(f'{PATH_URL_LOGIN}/auth_register.html', roles=nombres_roles_disponibles())
 
 # Recuperar cuenta de usuario (ruta pública)
 @app.route('/recovery-password', methods=['GET', 'POST'])

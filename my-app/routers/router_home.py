@@ -46,7 +46,60 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         buscar_logs_acceso_bd
                                         )
 
+from controllers import funciones_permisos as fperm
+from controllers.funciones_permisos import requiere_permiso
+
 PATH_URL = "public/empleados"
+
+
+# --- Módulo de Roles y Permisos ---
+@app.route('/roles-permisos', methods=['GET'])
+@requiere_permiso('permisos.ver')
+def roles_permisos():
+    return render_template('public/permisos/roles.html', roles=fperm.listar_roles())
+
+
+@app.route('/roles-permisos/crear', methods=['POST'])
+@requiere_permiso('permisos.editar')
+def crear_rol_route():
+    ok, res = fperm.crear_rol(request.form.get('nombre_rol'), request.form.get('descripcion'))
+    flash('Rol creado correctamente.' if ok else res, 'success' if ok else 'error')
+    return redirect(url_for('roles_permisos'))
+
+
+@app.route('/roles-permisos/actualizar/<int:id_rol>', methods=['POST'])
+@requiere_permiso('permisos.editar')
+def actualizar_rol_route(id_rol):
+    ok, msg = fperm.actualizar_rol(id_rol, request.form.get('nombre_rol'), request.form.get('descripcion'))
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('roles_permisos'))
+
+
+@app.route('/roles-permisos/eliminar/<int:id_rol>', methods=['POST'])
+@requiere_permiso('permisos.editar')
+def eliminar_rol_route(id_rol):
+    ok, msg = fperm.eliminar_rol(id_rol)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('roles_permisos'))
+
+
+@app.route('/roles-permisos/<int:id_rol>', methods=['GET'])
+@requiere_permiso('permisos.ver')
+def matriz_rol(id_rol):
+    matriz = fperm.obtener_matriz_rol(id_rol)
+    if not matriz:
+        flash('Rol no encontrado.', 'error')
+        return redirect(url_for('roles_permisos'))
+    return render_template('public/permisos/matriz.html', matriz=matriz)
+
+
+@app.route('/roles-permisos/<int:id_rol>/guardar', methods=['POST'])
+@requiere_permiso('permisos.editar')
+def guardar_permisos_rol_route(id_rol):
+    claves = request.form.getlist('permisos')
+    ok, msg = fperm.guardar_permisos_rol(id_rol, claves)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('matriz_rol', id_rol=id_rol))
 
 
 # --- Dashboard ---
@@ -121,6 +174,7 @@ def view_buscar_logs_acceso():
 
 
 @app.route('/registrar-empleado', methods=['GET'])
+@requiere_permiso('empleados.crear')
 def viewFormEmpleado():
     if 'conectado' in session:
         tipo_empleado = obtener_tipo_empleado()
@@ -170,6 +224,7 @@ def form_registrar_empleado():
         return redirect(url_for('inicio'))
 
 @app.route("/lista-de-empleados", methods=['GET'])
+@requiere_permiso('empleados.ver')
 def lista_empleados():
     if 'conectado' in session:
         return render_template(f'{PATH_URL}/lista_empleados.html')
@@ -303,6 +358,7 @@ def validate_document_route():
 
 
 @app.route("/editar-empleado/<int:id>", methods=['GET'])
+@requiere_permiso('empleados.editar')
 def viewEditarEmpleado(id):
     if 'conectado' in session:
         respuestaEmpleado = buscar_empleado_unico(id)
@@ -319,6 +375,7 @@ def viewEditarEmpleado(id):
 
 
 @app.route('/actualizar-empleado/<int:id>', methods=['GET', 'POST'])
+@requiere_permiso('empleados.editar')
 def actualizar_empleado(id):
     if 'conectado' in session:
         if request.method == 'POST':
@@ -357,6 +414,7 @@ def actualizar_empleado(id):
 
 
 @app.route("/lista-de-usuarios", methods=['GET'])
+@requiere_permiso('usuarios.ver')
 def usuarios():
     if 'conectado' in session:
         return render_template('public/usuarios/lista_usuarios.html')
@@ -392,6 +450,7 @@ def view_buscar_usuarios_bd():
 
 
 @app.route('/borrar-usuario/<string:id>', methods=['POST'])
+@requiere_permiso('usuarios.eliminar')
 def borrar_usuario(id):
     resp = eliminar_usuario(id)
     if resp:
@@ -400,6 +459,7 @@ def borrar_usuario(id):
 
 
 @app.route('/borrar-empleado/<string:id_empleado>/<string:foto_empleado>', methods=['POST'])
+@requiere_permiso('empleados.eliminar')
 def borrar_empleado(id_empleado, foto_empleado):
     resp = eliminar_empleado(id_empleado, foto_empleado)
     if resp:
@@ -422,6 +482,7 @@ def reporte_bd():
 
 
 @app.route('/registrar-proceso', methods=['GET'])
+@requiere_permiso('procesos.crear')
 def viewFormProceso():
     if 'conectado' in session:
         return render_template('public/procesos/form_proceso.html')
@@ -445,6 +506,7 @@ def form_proceso():
 
 
 @app.route('/lista-de-procesos', methods=['GET'])
+@requiere_permiso('procesos.ver')
 def lista_procesos():
     if 'conectado' in session:
         return render_template('public/procesos/lista_procesos.html')
@@ -467,6 +529,7 @@ def detalle_proceso(codigo_proceso=None):
 
 
 @app.route("/editar-proceso/<int:id>", methods=['GET'])
+@requiere_permiso('procesos.editar')
 def viewEditarproceso(id):
     if 'conectado' in session:
         respuestaProceso = buscar_proceso_unico(id)
@@ -481,6 +544,7 @@ def viewEditarproceso(id):
 
 
 @app.route('/actualizar-proceso', methods=['POST'])
+@requiere_permiso('procesos.editar')
 def actualizar_proceso():
     result_data = procesar_actualizar_form(request)
     if result_data:
@@ -488,6 +552,7 @@ def actualizar_proceso():
 
 
 @app.route('/borrar-proceso/<int:id_proceso>', methods=['POST'])
+@requiere_permiso('procesos.eliminar')
 def borrar_proceso(id_proceso):
     success, message = eliminar_proceso(id_proceso)
     if success:
@@ -500,6 +565,7 @@ def borrar_proceso(id_proceso):
 
 
 @app.route('/registrar-cliente', methods=['GET'])
+@requiere_permiso('clientes.crear')
 def viewFormCliente():
     tipo_documento = obtener_tipo_documento()
     if 'conectado' in session:
@@ -536,6 +602,7 @@ def validate_document_cliente():
 
 
 @app.route('/lista-de-clientes', methods=['GET'])
+@requiere_permiso('clientes.ver')
 def lista_clientes():
     if 'conectado' in session:
         return render_template('public/clientes/lista_clientes.html')
@@ -593,6 +660,7 @@ def view_buscar_cliente_bd():
 
 
 @app.route("/editar-cliente/<int:id>", methods=['GET'])
+@requiere_permiso('clientes.editar')
 def viewEditarCliente(id):
     if 'conectado' in session:
         respuestaCliente = buscar_cliente_unico(id)
@@ -608,6 +676,7 @@ def viewEditarCliente(id):
 
 
 @app.route('/actualizar-cliente', methods=['POST'])
+@requiere_permiso('clientes.editar')
 def actualizar_cliente():
     result_data = procesar_actualizacion_cliente(request)
     if result_data:
@@ -624,6 +693,7 @@ def actualizar_cliente():
 
 
 @app.route('/borrar-cliente/<string:id_cliente>/<string:foto_cliente>', methods=['POST'])
+@requiere_permiso('clientes.eliminar')
 def borrar_cliente(id_cliente, foto_cliente):
     resp = eliminar_cliente(id_cliente, foto_cliente)
     if resp:
@@ -637,6 +707,7 @@ def borrar_cliente(id_cliente, foto_cliente):
 
 
 @app.route('/registrar-actividad', methods=['GET'])
+@requiere_permiso('actividades.crear')
 def viewFormActividad():
     if 'conectado' in session:
         return render_template('public/actividades/form_actividades.html')
@@ -660,6 +731,7 @@ def form_actividad():
 
 
 @app.route('/lista-de-actividades', methods=['GET'])
+@requiere_permiso('actividades.ver')
 def lista_actividades():
     if 'conectado' in session:
         return render_template('public/actividades/lista_actividades.html')
@@ -683,6 +755,7 @@ def detalle_actividad(codigo_actividad=None):
 
 
 @app.route("/editar-actividad/<int:id>", methods=['GET'])
+@requiere_permiso('actividades.editar')
 def viewEditaractividad(id):
     if 'conectado' in session:
         respuesta_actividad = buscar_actividad_unico(id)
@@ -697,6 +770,7 @@ def viewEditaractividad(id):
 
 
 @app.route('/actualizar-actividad', methods=['POST'])
+@requiere_permiso('actividades.editar')
 def actualizar_actividad():
     result_data = procesar_actualizar_actividad(request)
     if result_data:
@@ -706,6 +780,7 @@ def actualizar_actividad():
 
 
 @app.route('/borrar-actividad/<int:id_actividad>', methods=['POST'])
+@requiere_permiso('actividades.eliminar')
 def borrar_actividad(id_actividad):
     resp = eliminar_actividad(id_actividad)
     if resp:
@@ -716,6 +791,7 @@ def borrar_actividad(id_actividad):
 
 
 @app.route('/registrar-operacion', methods=['GET', 'POST'])
+@requiere_permiso('operaciones.crear')
 def viewFormOperacion():
     if request.method == 'POST':
         id_empleado = request.form.get('id_empleado')
@@ -750,6 +826,7 @@ def form_operacion():
 
 
 @app.route('/lista-de-operaciones', methods=['GET'])
+@requiere_permiso('operaciones.ver')
 def lista_operaciones():
     if 'conectado' in session:
         return render_template('public/operaciones/lista_operaciones.html')
@@ -824,6 +901,7 @@ def detalle_operacion(id_operacion=None):
 
 
 @app.route("/editar-operacion/<int:id>", methods=['GET', 'POST'])
+@requiere_permiso('operaciones.editar')
 def view_editar_operacion(id):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -848,6 +926,7 @@ def view_editar_operacion(id):
 
 
 @app.route('/actualizar-operacion', methods=['POST'])
+@requiere_permiso('operaciones.editar')
 def actualizar_operacion():
     result_data = procesar_actualizacion_operacion(request)
     if result_data:
@@ -855,6 +934,7 @@ def actualizar_operacion():
 
 
 @app.route('/borrar-operacion/<int:id_operacion>', methods=['POST'])
+@requiere_permiso('operaciones.eliminar')
 def borrar_operacion(id_operacion):
     resp = eliminar_operacion(id_operacion)
     if resp:
@@ -865,6 +945,7 @@ def borrar_operacion(id_operacion):
 
 
 @app.route('/registrar-op', methods=['GET'])
+@requiere_permiso('op.crear')
 def viewFormOp():
     if 'conectado' in session:
         # Usamos la versión paginada, pero aquí solo necesitamos una lista
@@ -877,6 +958,7 @@ def viewFormOp():
         return redirect(url_for('inicio'))
     
 @app.route('/registrar-odi', methods=['GET'])
+@requiere_permiso('odi.crear')
 def viewFormOdi():
     if 'conectado' in session:
         return render_template('public/ordendisenoindustrial/form_odi.html')
@@ -939,6 +1021,7 @@ def form_odi():
 
 
 @app.route('/lista-de-op', methods=['GET'])
+@requiere_permiso('op.ver')
 def lista_op():
     if 'conectado' in session:
         return render_template('public/ordenproduccion/lista_op.html')
@@ -947,6 +1030,7 @@ def lista_op():
         return redirect(url_for('inicio'))
     
 @app.route('/lista-de-odi', methods=['GET'])
+@requiere_permiso('odi.ver')
 def lista_odi():
     if 'conectado' in session:
         return render_template('public/ordendisenoindustrial/lista_odi.html')
@@ -989,6 +1073,7 @@ def detalle_odi(codigo_odi=None):
 
 
 @app.route("/editar-op/<string:codigo_op>", methods=['GET'])
+@requiere_permiso('op.editar')
 def viewEditarop(codigo_op=None): # Esta será la única función para esta ruta
     if 'conectado' not in session or not session.get('conectado'):
         flash('Primero debes iniciar sesión.', 'error')
@@ -1032,6 +1117,7 @@ def viewEditarop(codigo_op=None): # Esta será la única función para esta ruta
     
     
 @app.route("/editar-odi/<string:codigo_odi>", methods=['GET'])
+@requiere_permiso('odi.editar')
 def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ruta
     if 'conectado' not in session or not session.get('conectado'):
         flash('Primero debes iniciar sesión.', 'error')
@@ -1074,6 +1160,7 @@ def viewEditarodi(codigo_odi=None): # Esta será la única función para esta ru
                            page_title=page_title)
  
 @app.route('/actualizar-op/<string:codigo_op>', methods=['POST'])
+@requiere_permiso('op.editar')
 def actualizar_op(codigo_op):
     result_data = procesar_actualizar_form_op(codigo_op, request.form, request.files)
     if isinstance(result_data, tuple):
@@ -1085,6 +1172,7 @@ def actualizar_op(codigo_op):
         return jsonify({'status': 'error', 'message': 'Error desconocido al procesar la solicitud'}), 500
     
 @app.route('/actualizar-odi/<string:codigo_odi>', methods=['POST'])
+@requiere_permiso('odi.editar')
 def actualizar_odi(codigo_odi):
     # Pasar codigo_odi a la función de procesamiento
     result_data = procesar_actualizar_form_odi(codigo_odi, request.form, request.files)
@@ -1094,6 +1182,7 @@ def actualizar_odi(codigo_odi):
         return jsonify({'success': False, 'message': 'Error desconocido al procesar la solicitud'})
 
 @app.route('/borrar-op/<int:id_op>', methods=['POST'])
+@requiere_permiso('op.eliminar')
 def borrar_op(id_op):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -1108,6 +1197,7 @@ def borrar_op(id_op):
     return redirect(url_for('lista_op'))
 
 @app.route('/borrar-odi/<int:id_odi>', methods=['POST'])
+@requiere_permiso('odi.eliminar')
 def borrar_odi(id_odi):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -1272,6 +1362,7 @@ def buscando_jornadas_route(): # Renombrada para evitar conflicto si 'buscando_j
 
 
 @app.route('/registrar-jornada', methods=['GET', 'POST'])
+@requiere_permiso('jornadas.crear')
 def viewFormJornada():
     if request.method == 'POST':
         id_empleado = request.form.get('id_empleado')
@@ -1288,6 +1379,7 @@ def viewFormJornada():
 
 
 @app.route('/lista-de-jornadas', methods=['GET'])
+@requiere_permiso('jornadas.ver')
 def lista_jornadas():
     if 'conectado' in session:
         page, per_page, offset = get_page_args(
@@ -1338,6 +1430,7 @@ def detalle_jornada(id_jornada=None):
 
 
 @app.route("/editar-jornada/<int:id>", methods=['GET'])
+@requiere_permiso('jornadas.editar')
 def viewEditarJornada(id):
     if 'conectado' in session:
         respuesta_jornada = buscar_jornada_unico(id)
@@ -1356,11 +1449,13 @@ def viewEditarJornada(id):
 
 
 @app.route('/actualizar-jornada', methods=['POST'])
+@requiere_permiso('jornadas.editar')
 def actualizar_jornada():
     result_data = procesar_actualizacion_jornada(request)
     if result_data:
         return redirect(url_for('lista_jornadas'))
 @app.route('/actualizar-jornada/<int:id_jornada>', methods=['POST'])
+@requiere_permiso('jornadas.editar')
 def actualizar_jornada_post(id_jornada):
     if 'conectado' not in session:
         flash('Primero debes iniciar sesión.', 'error')
@@ -1385,6 +1480,7 @@ def actualizar_jornada_post(id_jornada):
 
 
 @app.route('/borrar-jornada/<int:id_jornada>', methods=['POST'])
+@requiere_permiso('jornadas.eliminar')
 def borrar_jornada(id_jornada):
     resp = eliminar_jornada(id_jornada)
     if resp:
@@ -1640,6 +1736,7 @@ def api_all_users():
 # EMPRESAS
 
 @app.route('/registrar-empresa', methods=['GET'])
+@requiere_permiso('empresas.crear')
 def viewFormEmpresa():
     if 'conectado' in session:
         return render_template('public/empresas/form_empresa.html')
@@ -1689,6 +1786,7 @@ def form_registrar_empresa():
 
 
 @app.route('/lista-de-empresas', methods=['GET'])
+@requiere_permiso('empresas.ver')
 def lista_empresas():
     if 'conectado' in session:
         page, per_page, offset = get_page_args(
@@ -1726,6 +1824,7 @@ def detalle_empresa(id_empresa=None):
 
 
 @app.route("/editar-empresa/<int:id>", methods=['GET'])
+@requiere_permiso('empresas.editar')
 def viewEditarEmpresa(id):
     if 'conectado' in session:
         respuestaEmpresa = buscar_empresa_unica(id)
@@ -1740,6 +1839,7 @@ def viewEditarEmpresa(id):
 
 
 @app.route('/borrar-empresa/<int:id_empresa>', methods=['POST'])
+@requiere_permiso('empresas.eliminar')
 def borrar_empresa(id_empresa):
     if 'conectado' in session:
         resp = eliminar_empresa(id_empresa)
@@ -1754,6 +1854,7 @@ def borrar_empresa(id_empresa):
 
 
 @app.route('/actualizar-empresa', methods=['POST'])
+@requiere_permiso('empresas.editar')
 def actualizar_empresa():
     if 'conectado' in session:
         resultado = procesar_actualizar_empresa(request)
