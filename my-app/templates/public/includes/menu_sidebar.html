@@ -1,178 +1,267 @@
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme"  >
-  <div class="app-brand demo">
-    <a href="{{ url_for('inicio') }}" class="app-brand-link">
-      <span class="app-brand-logo demo">
-        <img
-          src="{{ url_for('static', filename ='assets/img/logo.png') }}"
-          alt="Evolution Control"
-          style="width: 70%; height: auto;" />
-      </span>
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+
+  {# ── Header: logo, nunca scrollea ── #}
+  <div class="sidebar-header">
+    <a href="{{ url_for('inicio') }}">
+      <img src="{{ url_for('static', filename='assets/img/logo.png') }}" alt="Evolution Control">
     </a>
-    
-    <a
-      href="javascript:void(0);"
-      class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
-      <i class="bx bx-chevron-left bx-sm align-middle"></i>
+    <a href="javascript:void(0);" class="layout-menu-toggle menu-link d-block d-xl-none ms-auto">
+      <i class="bx bx-x bx-sm align-middle"></i>
     </a>
   </div>
 
   <div class="menu-inner-shadow"></div>
-  <ul class="menu-inner py-1">
+
+  {# Variables para auto-expandir la sección activa #}
+  {% set control_paths = ['/registrar-operacion', '/lista-de-operaciones', '/registrar-op', '/lista-de-op', '/registrar-odi', '/lista-de-odi', '/registrar-jornada', '/lista-de-jornadas'] %}
+  {% set admin_paths   = ['/registrar-empleado', '/lista-de-empleados', '/registrar-proceso', '/lista-de-procesos', '/registrar-cliente', '/lista-de-clientes', '/registrar-actividad', '/lista-de-actividades', '/registrar-empresa', '/lista-de-empresas'] %}
+  {% set user_paths    = ['/register-user', '/lista-de-usuarios', '/logs-acceso'] %}
+
+  {% set control_open  = request.path in control_paths %}
+  {% set admin_open    = request.path in admin_paths %}
+  {% set usuarios_open = request.path in user_paths or request.path.startswith('/roles-permisos') %}
+
+  {# ── Navegación: scrolleable ── #}
+  <nav class="sidebar-nav">
+
+    {# ── Dashboards ── #}
     {% if tiene_permiso('dashboard.ver') %}
-    <li class="mb-1">
-      <a
-        href="{{ url_for('dashboard') }}"
-        class="btn btn-toggle align-items-center rounded fw-bold fs-5 {% if request.path == '/dashboard' %} active {% endif %}"
-      >
-        <i class="menu-icon bi-speedometer2 me-2"></i> Dashboard
-      </a>
-    </li>
-    <li class="mb-1">
-      <a
-        href="{{ url_for('dashboard_operaciones') }}"
-        class="btn btn-toggle align-items-center rounded fw-bold fs-5 {% if request.path == '/dashboard-operaciones' %} active {% endif %}"
-      >
-        <i class="menu-icon bi-clipboard-data me-2"></i> Dashboard Operaciones
-      </a>
-    </li>
+    {% set dash_open = request.path in ['/dashboard', '/dashboard-operaciones'] %}
+    <div>
+      <button class="snav-toggle"
+              data-bs-toggle="collapse" data-bs-target="#nav-dashboards"
+              aria-expanded="{{ 'true' if dash_open else 'false' }}"
+              aria-controls="nav-dashboards">
+        <span class="snav-toggle-left">
+          <i class="bi bi-speedometer2"></i>
+          Dashboards
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
+      </button>
+      <div class="collapse {% if dash_open %}show{% endif %}" id="nav-dashboards">
+        <ul class="snav-sublist">
+          <li>
+            <a href="{{ url_for('dashboard') }}"
+               class="snav-subitem {% if request.path == '/dashboard' %}is-active{% endif %}">
+              <i class="bi bi-bar-chart-line-fill"></i> Órdenes de Producción
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('dashboard_operaciones') }}"
+               class="snav-subitem {% if request.path == '/dashboard-operaciones' %}is-active{% endif %}">
+              <i class="bi bi-clipboard-data-fill"></i> Operaciones
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
     {% endif %}
 
-    {# ── Sección Control ── #}
-    {% set ver_control = tiene_permiso('operaciones.ver') or tiene_permiso('op.ver') or tiene_permiso('odi.ver') or tiene_permiso('jornadas.ver') or tiene_permiso('operaciones.crear') or tiene_permiso('jornadas.crear') %}
+    {# ── Control ── #}
+    {% set ver_control = tiene_permiso('operaciones.ver') or tiene_permiso('operaciones.crear')
+                      or tiene_permiso('op.ver') or tiene_permiso('op.crear')
+                      or tiene_permiso('odi.ver') or tiene_permiso('odi.crear')
+                      or tiene_permiso('jornadas.ver') or tiene_permiso('jornadas.crear') %}
     {% if ver_control %}
-    <li class="mb-1">
-      <button
-        class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-        data-bs-toggle="collapse" data-bs-target="#control-collapse" aria-expanded="false">
-        <i class="menu-icon bi-ui-checks-grid me-2"></i> Control
+    <div>
+      <button class="snav-toggle"
+              data-bs-toggle="collapse" data-bs-target="#nav-control"
+              aria-expanded="{{ 'true' if control_open else 'false' }}"
+              aria-controls="nav-control">
+        <span class="snav-toggle-left">
+          <i class="bi bi-ui-checks-grid"></i>
+          Control
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
       </button>
-      <div class="collapse" id="control-collapse">
-        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+      <div class="collapse {% if control_open %}show{% endif %}" id="nav-control">
+        <ul class="snav-sublist">
           {% if tiene_permiso('operaciones.crear') %}
-          <li><a href="{{ url_for('viewFormOperacion') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-operacion' %} active {% endif %}"><i class="bi bi-pass me-2"></i> Operación Diaria</a></li>
+          <li><a href="{{ url_for('viewFormOperacion') }}"
+                 class="snav-subitem {% if request.path == '/registrar-operacion' %}is-active{% endif %}">
+            <i class="bi bi-pass"></i> Operación Diaria</a></li>
           {% endif %}
           {% if tiene_permiso('operaciones.ver') %}
-          <li><a href="/lista-de-operaciones" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-operaciones' %} active {% endif %}"><i class="bi bi-pass-fill me-2"></i> Lista de Operaciones</a></li>
+          <li><a href="/lista-de-operaciones"
+                 class="snav-subitem {% if request.path == '/lista-de-operaciones' %}is-active{% endif %}">
+            <i class="bi bi-pass-fill"></i> Lista de Operaciones</a></li>
           {% endif %}
           {% if tiene_permiso('op.crear') %}
-          <li><a href="{{ url_for('viewFormOp') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-op' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro OP</a></li>
+          <li><a href="{{ url_for('viewFormOp') }}"
+                 class="snav-subitem {% if request.path == '/registrar-op' %}is-active{% endif %}">
+            <i class="bi bi-file-plus"></i> Registro OP</a></li>
           {% endif %}
           {% if tiene_permiso('op.ver') %}
-          <li><a href="/lista-de-op" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-op' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de OP</a></li>
+          <li><a href="/lista-de-op"
+                 class="snav-subitem {% if request.path == '/lista-de-op' %}is-active{% endif %}">
+            <i class="bi bi-file-text-fill"></i> Lista de OP</a></li>
           {% endif %}
           {% if tiene_permiso('odi.crear') %}
-          <li><a href="{{ url_for('viewFormOdi') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-odi' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro ODI</a></li>
+          <li><a href="{{ url_for('viewFormOdi') }}"
+                 class="snav-subitem {% if request.path == '/registrar-odi' %}is-active{% endif %}">
+            <i class="bi bi-pencil-square"></i> Registro ODI</a></li>
           {% endif %}
           {% if tiene_permiso('odi.ver') %}
-          <li><a href="/lista-de-odi" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-odi' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de ODI</a></li>
+          <li><a href="/lista-de-odi"
+                 class="snav-subitem {% if request.path == '/lista-de-odi' %}is-active{% endif %}">
+            <i class="bi bi-journal-text"></i> Lista de ODI</a></li>
           {% endif %}
           {% if tiene_permiso('jornadas.crear') %}
-          <li><a href="{{ url_for('viewFormJornada') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-jornada' %} active {% endif %}"><i class="bi bi-file-minus me-2"></i> Registro Novedad</a></li>
+          <li><a href="{{ url_for('viewFormJornada') }}"
+                 class="snav-subitem {% if request.path == '/registrar-jornada' %}is-active{% endif %}">
+            <i class="bi bi-calendar-plus"></i> Registro Novedad</a></li>
           {% endif %}
           {% if tiene_permiso('jornadas.ver') %}
-          <li><a href="/lista-de-jornadas" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-jornadas' %} active {% endif %}"><i class="bi bi-file-minus-fill me-2"></i> Lista de Novedades</a></li>
+          <li><a href="/lista-de-jornadas"
+                 class="snav-subitem {% if request.path == '/lista-de-jornadas' %}is-active{% endif %}">
+            <i class="bi bi-calendar-check-fill"></i> Lista de Novedades</a></li>
           {% endif %}
         </ul>
       </div>
-    </li>
+    </div>
     {% endif %}
 
-    {# ── Sección Administrar ── #}
-    {% set ver_admin = tiene_permiso('empleados.ver') or tiene_permiso('procesos.ver') or tiene_permiso('clientes.ver') or tiene_permiso('actividades.ver') or tiene_permiso('empresas.ver') %}
+    {# ── Administrar ── #}
+    {% set ver_admin = tiene_permiso('empleados.ver') or tiene_permiso('empleados.crear')
+                    or tiene_permiso('procesos.ver') or tiene_permiso('procesos.crear')
+                    or tiene_permiso('clientes.ver') or tiene_permiso('clientes.crear')
+                    or tiene_permiso('actividades.ver') or tiene_permiso('actividades.crear')
+                    or tiene_permiso('empresas.ver') or tiene_permiso('empresas.crear') %}
     {% if ver_admin %}
-    <li class="mb-1">
-      <button
-        class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-        data-bs-toggle="collapse" data-bs-target="#administrar-collapse" aria-expanded="false">
-        <i class="menu-icon bi-person-gear me-2"></i> Administrar
+    <div>
+      <button class="snav-toggle"
+              data-bs-toggle="collapse" data-bs-target="#nav-admin"
+              aria-expanded="{{ 'true' if admin_open else 'false' }}"
+              aria-controls="nav-admin">
+        <span class="snav-toggle-left">
+          <i class="bi bi-person-gear"></i>
+          Administrar
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
       </button>
-      <div class="collapse" id="administrar-collapse">
-        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+      <div class="collapse {% if admin_open %}show{% endif %}" id="nav-admin">
+        <ul class="snav-sublist">
           {% if tiene_permiso('empleados.crear') %}
-          <li><a href="{{ url_for('viewFormEmpleado') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-empleado' %} active {% endif %}"><i class="bi bi-person-bounding-box me-2"></i> Registrar Empleado</a></li>
+          <li><a href="{{ url_for('viewFormEmpleado') }}"
+                 class="snav-subitem {% if request.path == '/registrar-empleado' %}is-active{% endif %}">
+            <i class="bi bi-person-add"></i> Registrar Empleado</a></li>
           {% endif %}
           {% if tiene_permiso('empleados.ver') %}
-          <li><a href="/lista-de-empleados" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empleados' %} active {% endif %}"><i class="bi bi-person-lines-fill me-2"></i> Lista de Empleados</a></li>
-          {% endif %}
-          {% if tiene_permiso('procesos.crear') %}
-          <li><a href="{{ url_for('viewFormProceso') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-proceso' %} active {% endif %}"><i class="bi bi-gear me-2"></i> Registrar Proceso</a></li>
-          {% endif %}
-          {% if tiene_permiso('procesos.ver') %}
-          <li><a href="/lista-de-procesos" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-procesos' %} active {% endif %}"><i class="bi bi-gear-fill me-2"></i> Lista de Procesos</a></li>
+          <li><a href="/lista-de-empleados"
+                 class="snav-subitem {% if request.path == '/lista-de-empleados' %}is-active{% endif %}">
+            <i class="bi bi-people-fill"></i> Lista de Empleados</a></li>
           {% endif %}
           {% if tiene_permiso('clientes.crear') %}
-          <li><a href="{{ url_for('viewFormCliente') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-cliente' %} active {% endif %}"><i class="bi bi-person-vcard me-2"></i> Registrar Cliente</a></li>
+          <li><a href="{{ url_for('viewFormCliente') }}"
+                 class="snav-subitem {% if request.path == '/registrar-cliente' %}is-active{% endif %}">
+            <i class="bi bi-person-vcard"></i> Registrar Cliente</a></li>
           {% endif %}
           {% if tiene_permiso('clientes.ver') %}
-          <li><a href="/lista-de-clientes" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-clientes' %} active {% endif %}"><i class="bi bi-person-vcard-fill me-2"></i> Lista de Clientes</a></li>
+          <li><a href="/lista-de-clientes"
+                 class="snav-subitem {% if request.path == '/lista-de-clientes' %}is-active{% endif %}">
+            <i class="bi bi-person-vcard-fill"></i> Lista de Clientes</a></li>
+          {% endif %}
+          {% if tiene_permiso('procesos.crear') %}
+          <li><a href="{{ url_for('viewFormProceso') }}"
+                 class="snav-subitem {% if request.path == '/registrar-proceso' %}is-active{% endif %}">
+            <i class="bi bi-gear"></i> Registrar Proceso</a></li>
+          {% endif %}
+          {% if tiene_permiso('procesos.ver') %}
+          <li><a href="/lista-de-procesos"
+                 class="snav-subitem {% if request.path == '/lista-de-procesos' %}is-active{% endif %}">
+            <i class="bi bi-gear-fill"></i> Lista de Procesos</a></li>
           {% endif %}
           {% if tiene_permiso('actividades.crear') %}
-          <li><a href="{{ url_for('viewFormActividad') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/registrar-actividad' %} active {% endif %}"><i class="bi bi-universal-access-circle me-2"></i> Registrar Actividad</a></li>
+          <li><a href="{{ url_for('viewFormActividad') }}"
+                 class="snav-subitem {% if request.path == '/registrar-actividad' %}is-active{% endif %}">
+            <i class="bi bi-diagram-3"></i> Registrar Actividad</a></li>
           {% endif %}
           {% if tiene_permiso('actividades.ver') %}
-          <li><a href="/lista-de-actividades" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-actividades' %} active {% endif %}"><i class="bi bi-universal-access me-2"></i> Lista de Actividades</a></li>
+          <li><a href="/lista-de-actividades"
+                 class="snav-subitem {% if request.path == '/lista-de-actividades' %}is-active{% endif %}">
+            <i class="bi bi-diagram-3-fill"></i> Lista de Actividades</a></li>
           {% endif %}
           {% if tiene_permiso('empresas.crear') %}
-          <li><a href="{{ url_for('viewFormEmpresa') }}" class="link-dark rounded fs-6 sub-menu-item"><i class="menu-icon tf-icons bi bi-building"></i> Registrar Empresa</a></li>
+          <li><a href="{{ url_for('viewFormEmpresa') }}"
+                 class="snav-subitem">
+            <i class="bi bi-building-add"></i> Registrar Empresa</a></li>
           {% endif %}
           {% if tiene_permiso('empresas.ver') %}
-          <li><a href="/lista-de-empresas" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-empresas' %} active {% endif %}"><i class="menu-icon tf-icons bi bi-building-fill"></i> Lista de Empresas</a></li>
+          <li><a href="/lista-de-empresas"
+                 class="snav-subitem {% if request.path == '/lista-de-empresas' %}is-active{% endif %}">
+            <i class="bi bi-building-fill"></i> Lista de Empresas</a></li>
           {% endif %}
         </ul>
       </div>
-    </li>
+    </div>
     {% endif %}
 
-    {# ── Sección Reportes ── #}
+    {# ── Reportes ── #}
     {% if tiene_permiso('reportes.ver') %}
-    <li class="mb-1">
-      <a href="/powerbi" class="btn btn-toggle align-items-center rounded fw-bold fs-5 {% if request.path == '/powerbi' %} active {% endif %}">
-        <i class="menu-icon bi bi-file-earmark-spreadsheet-fill me-2"></i> Reportes
+    <div>
+      <a href="/powerbi"
+         class="snav-item {% if request.path == '/powerbi' %}is-active{% endif %}">
+        <i class="bi bi-bar-chart-fill"></i>
+        <span>Reportes</span>
       </a>
-    </li>
+    </div>
     {% endif %}
 
-    {# ── Sección Usuarios / Administración ── #}
-    {% set ver_usuarios = tiene_permiso('usuarios.ver') or tiene_permiso('auditoria.ver') or tiene_permiso('permisos.ver') %}
+    {# ── Usuarios / Administración ── #}
+    {% set ver_usuarios = tiene_permiso('usuarios.ver') or tiene_permiso('usuarios.crear')
+                       or tiene_permiso('auditoria.ver') or tiene_permiso('permisos.ver') %}
     {% if ver_usuarios %}
-    <li class="mb-1">
-      <button
-        class="btn btn-toggle align-items-center rounded collapsed fw-bold fs-5"
-        data-bs-toggle="collapse" data-bs-target="#usuarios-collapse" aria-expanded="false">
-        <i class="menu-icon bi-person-workspace me-2"></i> Usuarios
+    <div>
+      <button class="snav-toggle"
+              data-bs-toggle="collapse" data-bs-target="#nav-usuarios"
+              aria-expanded="{{ 'true' if usuarios_open else 'false' }}"
+              aria-controls="nav-usuarios">
+        <span class="snav-toggle-left">
+          <i class="bi bi-person-workspace"></i>
+          Usuarios
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
       </button>
-      <div class="collapse" id="usuarios-collapse">
-        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ps-3">
+      <div class="collapse {% if usuarios_open %}show{% endif %}" id="nav-usuarios">
+        <ul class="snav-sublist">
           {% if tiene_permiso('usuarios.crear') %}
-          <li><a href="/register-user" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/register-user' %} active {% endif %}"><i class="bi bi-key me-2"></i> Crear Usuario</a></li>
+          <li><a href="/register-user"
+                 class="snav-subitem {% if request.path == '/register-user' %}is-active{% endif %}">
+            <i class="bi bi-person-plus-fill"></i> Crear Usuario</a></li>
           {% endif %}
           {% if tiene_permiso('usuarios.ver') %}
-          <li><a href="/lista-de-usuarios" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/lista-de-usuarios' %} active {% endif %}"><i class="bi bi-key-fill me-2"></i> Lista de Usuarios</a></li>
+          <li><a href="/lista-de-usuarios"
+                 class="snav-subitem {% if request.path == '/lista-de-usuarios' %}is-active{% endif %}">
+            <i class="bi bi-people"></i> Lista de Usuarios</a></li>
           {% endif %}
           {% if tiene_permiso('auditoria.ver') %}
-          <li><a href="/logs-acceso" class="link-dark rounded fs-6 sub-menu-item {% if request.path == '/logs-acceso' %} active {% endif %}"><i class="bi bi-shield-lock me-2"></i> Logs de Acceso</a></li>
+          <li><a href="/logs-acceso"
+                 class="snav-subitem {% if request.path == '/logs-acceso' %}is-active{% endif %}">
+            <i class="bi bi-shield-check"></i> Logs de Acceso</a></li>
           {% endif %}
           {% if tiene_permiso('permisos.ver') %}
-          <li><a href="{{ url_for('roles_permisos') }}" class="link-dark rounded fs-6 sub-menu-item {% if request.path.startswith('/roles-permisos') %} active {% endif %}"><i class="bi bi-shield-lock-fill me-2"></i> Roles y Permisos</a></li>
+          <li><a href="{{ url_for('roles_permisos') }}"
+                 class="snav-subitem {% if request.path.startswith('/roles-permisos') %}is-active{% endif %}">
+            <i class="bi bi-shield-lock-fill"></i> Roles y Permisos</a></li>
           {% endif %}
         </ul>
       </div>
-    </li>
+    </div>
     {% endif %}
-    <br>
-    <br>
-  </ul>
-  <li class="menu-item">
-    <a href="{{ url_for('cerraSesion') }}" class="menu-link">
-      <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-      <div data-i18n="Tables">Salir</div>
+
+  </nav>
+
+  {# ── Footer: usuario y salir, no scrollean ── #}
+  <div class="sidebar-footer">
+    <a href="/mi-perfil"
+       class="snav-footer-item {% if request.path == '/mi-perfil' %}is-active{% endif %}">
+      <i class="bi bi-person-circle"></i>
+      <span>{{ session['name_surname'] }}</span>
     </a>
-  </li> 
-  <li
-      class="menu-item {% if request.path == '/mi-perfil' %} active {% endif %}">
-      <a href="/mi-perfil" class="menu-link">
-        <i class="menu-icon  bi-person-circle"></i>
-        <div data-i18n="Tables">{{ session['name_surname'] }}</div>
-      </a>
-    </li>  
+    <a href="{{ url_for('cerraSesion') }}" class="snav-footer-item snav-logout">
+      <i class="bx bx-log-out"></i>
+      <span>Salir</span>
+    </a>
+  </div>
+
 </aside>
