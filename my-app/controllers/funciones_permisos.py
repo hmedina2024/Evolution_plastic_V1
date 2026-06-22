@@ -332,13 +332,14 @@ def guardar_permisos_rol(id_rol, claves_seleccionadas):
         claves = {c for c in (claves_seleccionadas or []) if c in validas}
         perm_por_clave = {p.clave: p for p in db.session.query(Permiso).all()}
 
-        # Reemplazar vía la relación ORM: el cascade 'all, delete-orphan' elimina
-        # las asignaciones anteriores e inserta las nuevas de forma consistente
-        # (evita el conflicto entre delete() masivo y la colección gestionada).
-        rol.permisos = [
-            RolPermiso(id_permiso=perm_por_clave[c].id_permiso)
-            for c in claves if c in perm_por_clave
-        ]
+        # Limpiar permisos actuales y hacer flush para que los DELETE se
+        # ejecuten ANTES de los INSERT (evita violar uq_rol_permiso).
+        rol.permisos.clear()
+        db.session.flush()
+
+        for c in claves:
+            if c in perm_por_clave:
+                rol.permisos.append(RolPermiso(id_permiso=perm_por_clave[c].id_permiso))
         db.session.commit()
         return True, 'Permisos actualizados correctamente.'
     except Exception as e:
