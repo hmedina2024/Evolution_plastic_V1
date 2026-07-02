@@ -863,10 +863,10 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
     deleteImageBtn.addEventListener('click', function() {
         imageUpload.value = '';
-        // Al hacer clic en "Quitar", se limpia el campo oculto para indicar que se quiere eliminar el render existente.
+        // Limpiar el campo oculto indica al backend que se quiere eliminar el render existente.
         $('#existing_render_path').val('');
-        formData.append('eliminar_render', 'true');
-        updateRenderPreview(); // Esto debería mostrar la imagen por defecto.
+        deleteImageBtn.style.display = 'none';
+        updateRenderPreview();
     });
 
     // Llamada inicial para asegurar que el preview y el botón de borrar reflejen el estado del render existente.
@@ -1249,34 +1249,17 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
 
     // Render (manejo de imagen existente)
-    if (datosOpExistente.renders && datosOpExistente.renders.length > 0 && datosOpExistente.renders[0].render_path) {
-        const renderFilename = datosOpExistente.renders[0].render_path; // ej: 'imagen.png'
-        const fullRenderUrl = `{{ url_for('static', filename='render_op/') }}${renderFilename}`; // Construye /static/render_op/imagen.png
-        
+    // renders es array de strings (nombres de archivo), no de objetos.
+    if (datosOpExistente.renders && datosOpExistente.renders.length > 0 && datosOpExistente.renders[0]) {
+        const renderFilename = datosOpExistente.renders[0]; // ya es el nombre del archivo, ej: 'uuid.png'
+        const fullRenderUrl = `{{ url_for('static', filename='render_op/') }}${renderFilename}`;
+
         $('#imagePreview').css('background-image', `url(${fullRenderUrl})`);
         $('#deleteImageBtn').show();
-        
-        // El input 'existing_render_path' debe contener el path relativo a 'static' que usa url_for
-        // es decir, 'render_op/imagen.png'
-        const existingPathForInput = `render_op/${renderFilename}`;
-        
-        if ($('#existing_render_path').length === 0) {
-            $('<input>').attr({
-                type: 'hidden',
-                id: 'existing_render_path',
-                name: 'existing_render_path',
-                value: existingPathForInput
-            }).appendTo('#actualizarOpForm');
-        } else {
-            $('#existing_render_path').val(existingPathForInput);
-        }
-    } else {
-        // Si no hay render existente o se eliminó, asegurar que el campo oculto esté vacío
-         if ($('#existing_render_path').length > 0) {
-            $('#existing_render_path').val('');
-         }
-         // updateRenderPreview(); // Ya se llama al inicio, no es necesario aquí a menos que se borre activamente
+        // Preservar el valor que Jinja ya puso (o sobreescribirlo con el mismo valor)
+        $('#existing_render_path').val(renderFilename);
     }
+    // Si no hay render, el campo oculto ya está vacío desde Jinja — no tocar
 
     // Poblar Piezas Dinámicas
     if (datosOpExistente.orden_piezas && datosOpExistente.orden_piezas.length > 0) { // Cambiado de .piezas a .orden_piezas

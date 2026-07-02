@@ -21,8 +21,8 @@
   {% set admin_open    = request.path in admin_paths %}
   {% set usuarios_open = request.path in user_paths or request.path.startswith('/roles-permisos') %}
 
-  {# ── Navegación: scrolleable ── #}
-  <nav class="sidebar-nav">
+  {# ── Navegación: scrolleable (menu-inner requerido por el JS del framework Sneat) ── #}
+  <nav class="sidebar-nav menu-inner">
 
     {# ── Dashboards ── #}
     {% if tiene_permiso('dashboard.ver') %}

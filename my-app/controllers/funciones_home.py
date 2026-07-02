@@ -3478,17 +3478,15 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     
     
     # --- Documentos (Validación y preparación) ---
-    app.logger.info(f"OP Código {codigo_op}: Iniciando validación de documentos a eliminar.") # NUEVO LOG
     ids_documentos_a_eliminar_validados = []
-    for doc_id_del_str in dataForm.getlist('deleted_documentos[]'):  # Cambiado de 'documentos_a_eliminar_ids[]'
+    for doc_id_del_str in dataForm.getlist('idsDocumentosAEliminar'):
         if doc_id_del_str.isdigit():
             doc_id_int = int(doc_id_del_str)
             doc_obj_check = DocumentosOP.query.filter_by(id_documento=doc_id_int, id_op=orden.id_op).first()
             if doc_obj_check:
                 ids_documentos_a_eliminar_validados.append(doc_id_int)
             else:
-                app.logger.warning(f"Se intentó marcar para eliminar un DocumentoOP ID {doc_id_int} que no pertenece a OP {codigo_op} o no existe.")
-        # No añadir error si el ID no es dígito, simplemente se ignora. El frontend debería enviar solo dígitos.
+                app.logger.warning(f"Se intentó eliminar DocumentoOP ID {doc_id_int} que no pertenece a OP {codigo_op}.")
 
     nuevos_documentos_storage_list = files.getlist('documentos_nuevos[]')
     documentos_info_para_guardar = []
@@ -3758,24 +3756,7 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                 orden.renders.remove(current_render)
             orden.renders.append(nuevo_render_obj_db_val) # Añadir el nuevo a la lista en memoria
 
-        # Obtener IDs de documentos a eliminar y validarlos como enteros
-        app.logger.info(f"Contenido completo de dataForm ANTES de getlist('idsDocumentosAEliminar'): {dataForm}")
-        documentos_a_eliminar_ids_str = dataForm.getlist('idsDocumentosAEliminar')
-        app.logger.info(f"Resultado de dataForm.getlist('idsDocumentosAEliminar'): {documentos_a_eliminar_ids_str}")
-        
-        ids_documentos_a_eliminar_validados = []
-        if documentos_a_eliminar_ids_str:
-            for doc_id_str in documentos_a_eliminar_ids_str:
-                try:
-                    doc_id_int = int(doc_id_str)
-                    ids_documentos_a_eliminar_validados.append(doc_id_int)
-                except ValueError:
-                    app.logger.warning(f"ID de documento no válido '{doc_id_str}' no se pudo convertir a entero.")
-        else:
-            app.logger.info("No se recibieron strings de IDs de documentos para eliminar desde dataForm.getlist.")
-
-        # Documentos
-        app.logger.info(f"IDs de documentos marcados para eliminar (validados): {ids_documentos_a_eliminar_validados}")
+        # Documentos — eliminar los marcados (validados al inicio de la función)
         if ids_documentos_a_eliminar_validados:
             for doc_id_del_val_db in ids_documentos_a_eliminar_validados:
                 doc_obj_del_db_val = DocumentosOP.query.get(doc_id_del_val_db)

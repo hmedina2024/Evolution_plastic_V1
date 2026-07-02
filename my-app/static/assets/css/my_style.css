@@ -245,13 +245,17 @@ tbody tr:hover {
   height: auto;
 }
 
-/* Nav central: ocupa el espacio restante y tiene su propio scroll */
-.sidebar-nav {
-  flex: 1 1 0;
+/* Nav central: ocupa el espacio restante y tiene su propio scroll.
+   .menu-inner se mantiene porque el JS del framework (Sneat) lo necesita
+   para que funcione el toggle móvil. Los overrides evitan que las reglas
+   del framework (height:100%, flex:1 1 auto, padding:0) rompan el layout. */
+.sidebar-nav.menu-inner {
+  flex: 1 1 0 !important;
   min-height: 0;
-  overflow-y: auto;
+  height: auto !important;
+  overflow-y: auto !important;
   overflow-x: hidden;
-  padding: 0.5rem 0 0.75rem;
+  padding: 0.5rem 0 0.75rem !important;
   scrollbar-width: thin;
   scrollbar-color: #d1d9e6 transparent;
 }
