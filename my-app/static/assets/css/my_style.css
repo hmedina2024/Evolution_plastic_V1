@@ -238,6 +238,9 @@ tbody tr:hover {
   justify-content: space-between;
   padding: 1.1rem 1.25rem 1rem;
   border-bottom: 1px solid #eef0f4;
+  position: relative;
+  z-index: 10;
+  background: inherit;
 }
 
 .sidebar-header img {

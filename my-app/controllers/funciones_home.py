@@ -2830,8 +2830,20 @@ def sql_detalles_op_bd(codigo_op):
                 'especificaciones': especificaciones_list # Nuevo
             })
  
-        # Renders y Documentos
-        renders = [render.render_path.split('/')[-1] for render in orden_obj.renders if render.fecha_borrado is None]
+        # Renders y Documentos — ordenados más reciente primero, con metadatos para historial
+        renders_activos_det = sorted(
+            [r for r in orden_obj.renders if r.fecha_borrado is None],
+            key=lambda r: r.fecha_registro or datetime.min,
+            reverse=True
+        )
+        renders = [
+            {
+                'id_render': r.id_render,
+                'path': r.render_path.split('/')[-1],
+                'fecha_registro': r.fecha_registro.strftime('%d/%m/%Y %I:%M %p') if r.fecha_registro else 'Sin fecha'
+            }
+            for r in renders_activos_det
+        ]
         documentos = [{
             'id_documento': doc.id_documento, # Añadido por si es útil en el template
             'documento_path': doc.documento_path,
@@ -2940,7 +2952,11 @@ def serializar_snapshot_op(orden):
                 for d in (orden.documentos or []) if d.fecha_borrado is None
             ],
             'renders': [
-                r.render_path for r in (orden.renders or []) if r.fecha_borrado is None
+                r.render_path for r in sorted(
+                    [r for r in (orden.renders or []) if r.fecha_borrado is None],
+                    key=lambda r: r.fecha_registro or datetime.min,
+                    reverse=True
+                )
             ],
             'urls': [u.url for u in (orden.urls_op or [])],
             'piezas': [
@@ -3129,7 +3145,13 @@ def obtener_datos_op_para_edicion(codigo_op):
                 for p in orden.procesos_globales
             ],
             'op_otro_proceso': next((p.nombre_proceso for p in orden.procesos_globales if 'OTRO_' in p.nombre_proceso), ''),
-            'renders': [r.render_path.split('/')[-1] for r in orden.renders if r.fecha_borrado is None],
+            'renders': [
+                r.render_path.split('/')[-1] for r in sorted(
+                    [r for r in orden.renders if r.fecha_borrado is None],
+                    key=lambda r: r.fecha_registro or datetime.min,
+                    reverse=True
+                )
+            ],
             'documentos': [
                 {
                     'id_documento': d.id_documento,
@@ -3679,6 +3701,49 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
             app.logger.info(f"OP {codigo_op}: sin cambios detectados, no se guarda versión.")
             return {'status': 'no_changes', 'message': 'No se realizaron cambios. La Orden de Producción no fue modificada.'}, 200
 
+        # Agregar al dict de cambios los tipos no-simples para que aparezcan en el historial
+        if hay_cambios_renders:
+            renders_activos_log = sorted(
+                [r for r in orden.renders if r.fecha_borrado is None],
+                key=lambda r: r.fecha_registro or datetime.min,
+                reverse=True
+            )
+            render_ant_nombre = renders_activos_log[0].render_path.split('/')[-1] if renders_activos_log else 'Sin imagen'
+            if nombre_render_servidor_para_guardar:
+                cambios['imagen_referencia'] = {'anterior': render_ant_nombre, 'nuevo': nombre_render_servidor_para_guardar}
+            else:
+                cambios['imagen_referencia'] = {'anterior': render_ant_nombre, 'nuevo': 'Eliminada'}
+
+        if hay_cambios_docs:
+            docs_antes_count = len([d for d in orden.documentos if d.fecha_borrado is None])
+            partes = []
+            if documentos_info_para_guardar:
+                partes.append(f"+{len(documentos_info_para_guardar)} agregado(s)")
+            if ids_documentos_a_eliminar_validados:
+                partes.append(f"-{len(ids_documentos_a_eliminar_validados)} eliminado(s)")
+            cambios['documentos'] = {'anterior': f"{docs_antes_count} doc(s)", 'nuevo': ', '.join(partes)}
+
+        if hay_cambios_urls:
+            cambios['urls'] = {
+                'anterior': ', '.join(urls_actuales) if urls_actuales else 'Sin URLs',
+                'nuevo': ', '.join(urls_nuevas) if urls_nuevas else 'Sin URLs'
+            }
+
+        if hay_cambios_procesos:
+            nombres_proc_antes = [p.nombre_proceso for p in orden.procesos_globales]
+            cambios['procesos'] = {
+                'anterior': ', '.join(nombres_proc_antes) if nombres_proc_antes else 'Ninguno',
+                'nuevo': f"{len(ids_procesos_validados_global)} proceso(s) seleccionado(s)"
+            }
+
+        if hay_cambios_piezas:
+            piezas_antes_count = len(piezas_activas_db)
+            piezas_nuevas_count = len(piezas_data_validadas)
+            cambios['piezas'] = {
+                'anterior': f"{piezas_antes_count} pieza(s)",
+                'nuevo': f"{piezas_nuevas_count} pieza(s) (contenido modificado)"
+            }
+
         # Insertar el log (hay cambios confirmados)
         db.session.execute(
             text("""
@@ -3724,37 +3789,35 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         orden.id_usuario_actualizacion = id_usuario_registro
         orden.fecha_actualizacion = datetime.now(LOCAL_TIMEZONE)
 
-        # Render
-        # Render: 'renders' es una lista en el modelo. Asumimos que solo puede haber uno o cero.
-        current_render = orden.renders[0] if orden.renders else None
+        # Render: historial — nunca borrar el anterior al reemplazar; solo borrar si el usuario
+        # hace clic en "Quitar" sin subir una nueva imagen.
+        renders_activos_upd = sorted(
+            [r for r in orden.renders if r.fecha_borrado is None],
+            key=lambda r: r.fecha_registro or datetime.min,
+            reverse=True
+        )
+        current_render = renders_activos_upd[0] if renders_activos_upd else None
 
-        if eliminar_render_actual and current_render:
-            path_render_ant_fis_abs_db = os.path.join(app.root_path, 'static', 'render_op', os.path.basename(current_render.render_path))
-            app.logger.info(f"Intentando eliminar render físico anterior: {path_render_ant_fis_abs_db}")
-            if os.path.exists(path_render_ant_fis_abs_db):
+        if eliminar_render_actual and not nombre_render_servidor_para_guardar and current_render:
+            # Eliminación explícita sin reemplazo → borrar archivo y registro
+            path_render_fis = os.path.join(app.root_path, 'static', 'render_op', os.path.basename(current_render.render_path))
+            if os.path.exists(path_render_fis):
                 try:
-                    os.remove(path_render_ant_fis_abs_db)
-                    app.logger.info(f"Render físico anterior eliminado: {path_render_ant_fis_abs_db}")
-                except Exception as e_rem_r_fis_db:
-                    app.logger.error(f"Error eliminando render físico anterior {path_render_ant_fis_abs_db}: {e_rem_r_fis_db}")
-            else:
-                app.logger.warning(f"Render físico anterior no encontrado para eliminar: {path_render_ant_fis_abs_db}")
+                    os.remove(path_render_fis)
+                    app.logger.info(f"Render físico eliminado por usuario: {path_render_fis}")
+                except Exception as e_rem_r:
+                    app.logger.error(f"Error eliminando render físico {path_render_fis}: {e_rem_r}")
             db.session.delete(current_render)
-            # orden.renders ya no contendrá este objeto después del delete y commit/flush.
             db.session.flush()
 
         if nombre_render_servidor_para_guardar:
-            app.logger.info(f"Guardando nuevo render en BD. Path: {nombre_render_servidor_para_guardar}")
+            # Nueva imagen → agregar como versión nueva; el anterior queda en historial
             nuevo_render_obj_db_val = RendersOP(
                 id_op=orden.id_op,
                 render_path=nombre_render_servidor_para_guardar
             )
             db.session.add(nuevo_render_obj_db_val)
-            # Para asegurar que la relación orden.renders se actualice en memoria para esta transacción
-            # si fuera necesario inmediatamente (aunque el commit y recarga en detalle_op es lo principal)
-            if current_render in orden.renders: # Si el viejo estaba en la lista
-                orden.renders.remove(current_render)
-            orden.renders.append(nuevo_render_obj_db_val) # Añadir el nuevo a la lista en memoria
+            orden.renders.append(nuevo_render_obj_db_val)
 
         # Documentos — eliminar los marcados (validados al inicio de la función)
         if ids_documentos_a_eliminar_validados:
@@ -5242,28 +5305,16 @@ def generar_pdf_op_func(detalle_op, codigo_op):
     procesos_str = ", ".join(detalle_op.get('procesos', []))
     elements.append(Paragraph(f"<b>Procesos Asociados:</b> {procesos_str}", style_normal))
 
-    # ================= RENDERS (IMÁGENES) =================
+    # ================= RENDERS (IMAGEN ACTIVA) =================
     if detalle_op.get('renders'):
-        elements.append(Paragraph("RENDERS Y VISUALIZACIÓN", style_subtitulo))
-        render_images = []
-        row = []
-        for i, render_file in enumerate(detalle_op['renders']):
-            r_path = os.path.join(app.root_path, f"static/render_op/{render_file}")
-            if os.path.exists(r_path):
-                # Ajustar imagen a aprox 2 pulgadas de ancho manteniendo aspecto
-                img_obj = Image(r_path, width=5*inch, height=5*inch, kind='proportional')
-                row.append(img_obj)
-            
-            # Hacer filas de 3 imágenes
-            if len(row) == 3:
-                render_images.append(row)
-                row = []
-        if row: render_images.append(row)
-        
-        if render_images:
-            t_renders = Table(render_images)
-            t_renders.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
-            elements.append(t_renders)
+        render_file = detalle_op['renders'][0]  # solo la imagen actual (más reciente)
+        render_filename = render_file['path'] if isinstance(render_file, dict) else render_file
+        r_path = os.path.join(app.root_path, f"static/render_op/{render_filename}")
+        if os.path.exists(r_path):
+            elements.append(Paragraph("IMAGEN DE REFERENCIA", style_subtitulo))
+            img_obj = Image(r_path, width=5*inch, height=5*inch, kind='proportional')
+            img_obj.hAlign = 'CENTER'
+            elements.append(img_obj)
             
     # ================= DOCUMENTOS ADJUNTOS =================
     if detalle_op.get('documentos'):
@@ -5609,30 +5660,25 @@ def obtener_datos_dashboard_operaciones():
         ini_semana_dt = datetime.combine(inicio_semana, datetime.min.time())
         ini_hoy_dt = datetime.combine(hoy, datetime.min.time())
 
-        # --- KPIs ---
-        datos['kpis']['op_hoy'] = db.session.query(func.count(Operaciones.id_operacion))\
-            .filter(Operaciones.fecha_hora_inicio >= ini_hoy_dt).scalar() or 0
+        # --- KPIs: una sola query con agregación condicional (CASE WHEN) ---
+        fila_kpis = db.session.execute(text("""
+            SELECT
+                SUM(CASE WHEN fecha_hora_inicio >= :ini_hoy THEN 1 ELSE 0 END)        AS op_hoy,
+                SUM(CASE WHEN fecha_hora_inicio >= :ini_semana THEN COALESCE(cantidad, 0) ELSE 0 END) AS unidades_semana,
+                SUM(CASE WHEN fecha_hora_inicio >= :ini_semana
+                              AND novedad IS NOT NULL AND novedad <> '' THEN 1 ELSE 0 END) AS op_novedad,
+                SUM(CASE WHEN fecha_hora_inicio >= :ini_semana
+                              AND fecha_hora_fin IS NOT NULL
+                              AND fecha_hora_fin > fecha_hora_inicio
+                         THEN TIMESTAMPDIFF(SECOND, fecha_hora_inicio, fecha_hora_fin)
+                         ELSE 0 END)                                                   AS segundos_semana
+            FROM tbl_operaciones
+        """), {'ini_hoy': ini_hoy_dt, 'ini_semana': ini_semana_dt}).fetchone()
 
-        datos['kpis']['unidades_semana'] = int(db.session.query(
-            func.coalesce(func.sum(Operaciones.cantidad), 0)
-        ).filter(Operaciones.fecha_hora_inicio >= ini_semana_dt).scalar() or 0)
-
-        datos['kpis']['op_novedad'] = db.session.query(func.count(Operaciones.id_operacion))\
-            .filter(
-                Operaciones.fecha_hora_inicio >= ini_semana_dt,
-                Operaciones.novedad.isnot(None),
-                Operaciones.novedad != ''
-            ).scalar() or 0
-
-        # Horas trabajadas en la semana (suma de fin - inicio, en Python para portabilidad)
-        filas_horas = db.session.query(
-            Operaciones.fecha_hora_inicio, Operaciones.fecha_hora_fin
-        ).filter(Operaciones.fecha_hora_inicio >= ini_semana_dt).all()
-        segundos = 0
-        for ini, fin in filas_horas:
-            if ini and fin and fin > ini:
-                segundos += (fin - ini).total_seconds()
-        datos['kpis']['horas_semana'] = round(segundos / 3600, 1)
+        datos['kpis']['op_hoy']          = int(fila_kpis.op_hoy or 0)
+        datos['kpis']['unidades_semana'] = int(fila_kpis.unidades_semana or 0)
+        datos['kpis']['op_novedad']      = int(fila_kpis.op_novedad or 0)
+        datos['kpis']['horas_semana']    = round(int(fila_kpis.segundos_semana or 0) / 3600, 1)
 
         # --- Producción por proceso (semana) ---
         filas_proc = db.session.query(
@@ -5657,27 +5703,43 @@ def obtener_datos_dashboard_operaciones():
                 'cantidad': int(c)
             })
 
-        # --- Últimas 10 operaciones registradas ---
-        ultimas = db.session.query(Operaciones)\
-            .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
-        for o in ultimas:
+        # --- Últimas 10 operaciones registradas (JOIN en una sola query) ---
+        EmpOp = aliased(Empleados)
+        ProcOp = aliased(Procesos)
+        OpOP = aliased(OrdenProduccion)
+        ultimas = db.session.query(
+            func.concat(EmpOp.nombre_empleado, ' ', func.coalesce(EmpOp.apellido_empleado, '')).label('empleado'),
+            ProcOp.nombre_proceso.label('proceso'),
+            Operaciones.cantidad,
+            OpOP.codigo_op,
+            Operaciones.fecha_hora_inicio
+        ).join(EmpOp, Operaciones.id_empleado == EmpOp.id_empleado)\
+         .join(ProcOp, Operaciones.id_proceso == ProcOp.id_proceso)\
+         .outerjoin(OpOP, Operaciones.id_op == OpOP.id_op)\
+         .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
+        for row in ultimas:
             datos['ultimas_operaciones'].append({
-                'empleado': f"{o.empleado.nombre_empleado} {o.empleado.apellido_empleado or ''}".strip() if o.empleado else 'N/A',
-                'proceso': o.proceso_rel.nombre_proceso if o.proceso_rel else 'N/A',
-                'cantidad': o.cantidad or 0,
-                'codigo_op': o.orden_produccion.codigo_op if o.orden_produccion else '—',
-                'fecha': o.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if o.fecha_hora_inicio else 'N/A',
+                'empleado': row.empleado.strip() if row.empleado else 'N/A',
+                'proceso': row.proceso or 'N/A',
+                'cantidad': row.cantidad or 0,
+                'codigo_op': row.codigo_op or '—',
+                'fecha': row.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if row.fecha_hora_inicio else 'N/A',
             })
 
-        # --- Últimas 10 novedades ---
-        novedades = db.session.query(Operaciones)\
-            .filter(Operaciones.novedad.isnot(None), Operaciones.novedad != '')\
-            .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
-        for o in novedades:
+        # --- Últimas 10 novedades (JOIN en una sola query) ---
+        EmpNov = aliased(Empleados)
+        novedades = db.session.query(
+            func.concat(EmpNov.nombre_empleado, ' ', func.coalesce(EmpNov.apellido_empleado, '')).label('empleado'),
+            Operaciones.novedad,
+            Operaciones.fecha_hora_inicio
+        ).join(EmpNov, Operaciones.id_empleado == EmpNov.id_empleado)\
+         .filter(Operaciones.novedad.isnot(None), Operaciones.novedad != '')\
+         .order_by(Operaciones.fecha_hora_inicio.desc()).limit(10).all()
+        for row in novedades:
             datos['novedades_recientes'].append({
-                'empleado': f"{o.empleado.nombre_empleado} {o.empleado.apellido_empleado or ''}".strip() if o.empleado else 'N/A',
-                'novedad': o.novedad,
-                'fecha': o.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if o.fecha_hora_inicio else 'N/A',
+                'empleado': row.empleado.strip() if row.empleado else 'N/A',
+                'novedad': row.novedad,
+                'fecha': row.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if row.fecha_hora_inicio else 'N/A',
             })
 
         return datos
