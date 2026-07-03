@@ -1,4 +1,5 @@
 import os
+import time as _time
 import logging
 from datetime import timedelta
 from flask import Flask
@@ -46,8 +47,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password
 # Límite de tamaño de archivos: 10 MB
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
-# Sesiones permanentes expiran en 8 horas
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+# Sesiones permanentes expiran en 24 horas
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Cache-busting: token único generado al arrancar el servidor.
+# Cada reinicio (nuevo despliegue) cambia el valor y los navegadores
+# descartan el caché de CSS/JS propios sin que el usuario haga nada.
+app.jinja_env.globals['STATIC_V'] = str(int(_time.time()))
 
 # CSRF
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600

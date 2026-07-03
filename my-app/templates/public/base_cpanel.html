@@ -33,6 +33,6 @@
     <!--Custom JS-->
     {% block customJS %} {% endblock %}
     <!-- Mover script a un archivo externo -->
-    <script src="{{ url_for('static', filename='assets/customJS/collapse.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/customJS/collapse.js', v=STATIC_V) }}"></script>
   </body>
 </html>

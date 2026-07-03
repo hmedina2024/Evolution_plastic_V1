@@ -24,7 +24,7 @@
   {# ── Navegación: scrolleable (menu-inner requerido por el JS del framework Sneat) ── #}
   <nav class="sidebar-nav menu-inner">
 
-    {# ── Dashboards ── #}
+    <!-- {# ── Dashboards ── #}
     {% if tiene_permiso('dashboard.ver') %}
     {% set dash_open = request.path in ['/dashboard', '/dashboard-operaciones'] %}
     <div>
@@ -55,7 +55,7 @@
         </ul>
       </div>
     </div>
-    {% endif %}
+    {% endif %} -->
 
     {# ── Control ── #}
     {% set ver_control = tiene_permiso('operaciones.ver') or tiene_permiso('operaciones.crear')
