@@ -8,11 +8,12 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
 import openpyxl  # Para generar el Excel
+import statistics  # Para calcular media y desviación estándar
 import threading
 from flask import send_file, session, Flask, url_for, jsonify, flash,current_app, request
 # from conexion.models import db, Empleados, Procesos, Actividades, OrdenProduccion, Empresa, Tipo_Empleado # Ya importado arriba
@@ -6496,3 +6497,321 @@ def get_odis_paginados(page=1, per_page=10, search=''):
     except Exception as e:
         app.logger.error(f"Error en get_odis_paginados: {e}")
         return {'results': [], 'pagination': {'more': False}}
+
+
+# ─────────────────────────────────────────────────────────────
+# FUNCIONES PARA PLANIFICADOR DE PERSONAL
+# ─────────────────────────────────────────────────────────────
+
+def actualizar_estandares_procesos():
+    """
+    Calcula y actualiza los estándares de tiempo para cada proceso/actividad
+    basado en el histórico de los últimos 30 días.
+    Se ejecuta periódicamente (cron job o manualmente).
+    """
+    try:
+        desde = datetime.now(LOCAL_TIMEZONE) - timedelta(days=30)
+
+        # Obtener todas las combinaciones proceso/actividad del histórico
+        filas = db.session.query(
+            Operaciones.id_proceso,
+            Operaciones.id_actividad
+        ).filter(
+            Operaciones.fecha_hora_inicio >= desde,
+            Operaciones.fecha_hora_inicio.isnot(None),
+            Operaciones.fecha_hora_fin.isnot(None),
+            Operaciones.cantidad.isnot(None),
+            Operaciones.cantidad > 0
+        ).distinct().all()
+
+        actualizado_count = 0
+        for id_proceso, id_actividad in filas:
+            actualizado = actualizar_estandar_actividad(id_proceso, id_actividad, desde)
+            if actualizado:
+                actualizado_count += 1
+
+        app.logger.info(f"Actualizados {actualizado_count} estándares de proceso/actividad")
+        return {'status': 'ok', 'actualizados': actualizado_count}
+
+    except Exception as e:
+        app.logger.error(f"Error actualizando estándares: {e}", exc_info=True)
+        return {'status': 'error', 'message': str(e)}
+
+
+def actualizar_estandar_actividad(id_proceso, id_actividad, desde):
+    """Calcula el estándar para una actividad específica"""
+    try:
+        # Obtener todas las operaciones de esta actividad en los últimos 30 días
+        operaciones = db.session.query(Operaciones).filter(
+            Operaciones.id_proceso == id_proceso,
+            Operaciones.id_actividad == id_actividad,
+            Operaciones.fecha_hora_inicio >= desde,
+            Operaciones.fecha_hora_fin.isnot(None),
+            Operaciones.cantidad > 0
+        ).all()
+
+        if len(operaciones) < 3:  # Mínimo 3 muestras para estimar
+            return False
+
+        # Calcular tiempo por unidad para cada operación
+        tiempos_por_unidad = []
+        novedades_count = 0
+
+        for op in operaciones:
+            if op.fecha_hora_fin > op.fecha_hora_inicio:
+                tiempo_total = (op.fecha_hora_fin - op.fecha_hora_inicio).total_seconds() / 60  # en minutos
+                tiempo_unit = tiempo_total / op.cantidad
+                tiempos_por_unidad.append(tiempo_unit)
+
+                if op.novedad and op.novedad.strip():
+                    novedades_count += 1
+
+        if not tiempos_por_unidad:
+            return False
+
+        # Cálculos estadísticos
+        tiempo_promedio = statistics.mean(tiempos_por_unidad)
+        desviacion = statistics.stdev(tiempos_por_unidad) if len(tiempos_por_unidad) > 1 else 0
+        variabilidad_pct = (desviacion / tiempo_promedio * 100) if tiempo_promedio > 0 else 0
+        porcentaje_novedades = (novedades_count / len(operaciones) * 100) if operaciones else 0
+
+        # Clasificar dificultad
+        if variabilidad_pct < 5 and porcentaje_novedades < 3:
+            dificultad = 'BAJA'
+        elif variabilidad_pct < 15 and porcentaje_novedades < 8:
+            dificultad = 'MEDIA'
+        else:
+            dificultad = 'ALTA'
+
+        # Buscar o crear el registro
+        estandar = db.session.query(EstandarProcesoActividad).filter_by(
+            id_proceso=id_proceso,
+            id_actividad=id_actividad
+        ).first()
+
+        if not estandar:
+            estandar = EstandarProcesoActividad(
+                id_proceso=id_proceso,
+                id_actividad=id_actividad
+            )
+            db.session.add(estandar)
+
+        # Actualizar valores
+        estandar.tiempo_promedio_minuto = round(tiempo_promedio, 4)
+        estandar.desviacion_estandar = round(desviacion, 4)
+        estandar.tiempo_minimo = min(tiempos_por_unidad)
+        estandar.tiempo_maximo = max(tiempos_por_unidad)
+        estandar.dificultad = dificultad
+        estandar.variabilidad_porcentaje = round(variabilidad_pct, 2)
+        estandar.cantidad_muestras = len(operaciones)
+        estandar.porcentaje_novedades = round(porcentaje_novedades, 2)
+
+        db.session.commit()
+        return True
+
+    except Exception as e:
+        app.logger.error(f"Error actualizando estándar {id_proceso}-{id_actividad}: {e}")
+        db.session.rollback()
+        return False
+
+
+def obtener_actividades_de_op(id_op):
+    """Extrae todas las actividades necesarias para una OP (agrupadas por pieza)"""
+    try:
+        orden = OrdenProduccion.query.filter_by(
+            id_op=id_op,
+            fecha_borrado=None
+        ).first()
+
+        if not orden:
+            return None
+
+        piezas_info = []
+        for pieza_orden in orden.orden_piezas:
+            if pieza_orden.fecha_borrado:
+                continue
+
+            pieza_info = {
+                'id_orden_pieza': pieza_orden.id_orden_pieza,
+                'nombre_pieza': pieza_orden.nombre_pieza_op,
+                'cantidad': pieza_orden.cantidad or 1,
+                'procesos': []
+            }
+
+            # Obtener procesos de la pieza
+            procesos_pieza = db.session.query(OrdenPiezasProcesos).filter_by(
+                id_orden_pieza=pieza_orden.id_orden_pieza
+            ).all()
+
+            for proc_pieza in procesos_pieza:
+                if not proc_pieza.id_proceso:
+                    continue
+
+                proceso_info = {
+                    'id_proceso': proc_pieza.id_proceso,
+                    'nombre_proceso': proc_pieza.proceso.nombre_proceso if proc_pieza.proceso else '',
+                    'actividades': []
+                }
+
+                # Obtener actividades del proceso de la pieza
+                activ_pieza = db.session.query(OrdenPiezasActividades).filter_by(
+                    id_orden_pieza=pieza_orden.id_orden_pieza,
+                    id_proceso=proc_pieza.id_proceso
+                ).all()
+
+                for act_pieza in activ_pieza:
+                    if act_pieza.id_actividad:
+                        proceso_info['actividades'].append({
+                            'id_actividad': act_pieza.id_actividad,
+                            'nombre_actividad': act_pieza.actividad.nombre_actividad if act_pieza.actividad else '',
+                            'repeticiones': 1  # Se multiplica por cantidad de pieza después
+                        })
+
+                if proceso_info['actividades']:
+                    pieza_info['procesos'].append(proceso_info)
+
+            if pieza_info['procesos']:
+                piezas_info.append(pieza_info)
+
+        return {
+            'id_op': orden.id_op,
+            'codigo_op': orden.codigo_op,
+            'piezas': piezas_info
+        }
+
+    except Exception as e:
+        app.logger.error(f"Error obteniendo actividades de OP {id_op}: {e}")
+        return None
+
+
+def calcular_personal_necesario(ids_op, semana_inicio=None):
+    """
+    Calcula la cantidad de personal necesario para ejecutar las OPs seleccionadas
+    basado en los estándares históricos.
+
+    Args:
+        ids_op: lista de id_op o codigo_op
+        semana_inicio: fecha inicio de la semana (default: próxima semana)
+
+    Returns:
+        dict con proyección de personal, tiempos y cuellos de botella
+    """
+    try:
+        if not ids_op:
+            return {'status': 'error', 'message': 'No se seleccionaron OPs'}
+
+        if not semana_inicio:
+            hoy = datetime.now(LOCAL_TIMEZONE).date()
+            semana_inicio = hoy - timedelta(days=hoy.weekday())  # Próximo lunes
+
+        # Obtener datos de cada OP
+        ops_data = []
+        tiempo_total_minutos = 0
+        actividades_agrupadas = {}  # id_actividad → {tiempo, cantidad_repeticiones, dificultad}
+
+        for id_op in ids_op:
+            # Buscar por id o código
+            orden = OrdenProduccion.query.filter(
+                (OrdenProduccion.id_op == id_op) | (OrdenProduccion.codigo_op == id_op),
+                OrdenProduccion.fecha_borrado.is_(None)
+            ).first()
+
+            if not orden:
+                continue
+
+            op_data = obtener_actividades_de_op(orden.id_op)
+            if not op_data:
+                continue
+
+            ops_data.append(op_data)
+
+            # Procesar piezas y sus actividades
+            for pieza in op_data['piezas']:
+                cantidad_pieza = pieza['cantidad']
+
+                for proceso in pieza['procesos']:
+                    for actividad in proceso['actividades']:
+                        id_act = actividad['id_actividad']
+
+                        # Obtener estándar
+                        estandar = db.session.query(EstandarProcesoActividad).filter_by(
+                            id_actividad=id_act,
+                            id_proceso=proceso['id_proceso']
+                        ).first()
+
+                        if estandar and estandar.tiempo_promedio_minuto > 0:
+                            tiempo_unit = float(estandar.tiempo_promedio_minuto)
+                            dificultad = estandar.dificultad
+
+                            # Aplicar buffer según dificultad
+                            buffer_map = {'BAJA': 1.10, 'MEDIA': 1.25, 'ALTA': 1.40}
+                            buffer = buffer_map.get(dificultad, 1.25)
+
+                            tiempo_con_buffer = tiempo_unit * cantidad_pieza * buffer
+
+                            if id_act not in actividades_agrupadas:
+                                actividades_agrupadas[id_act] = {
+                                    'nombre': actividad['nombre_actividad'],
+                                    'proceso': proceso['nombre_proceso'],
+                                    'tiempo_total': 0,
+                                    'dificultad': dificultad,
+                                    'estandar_minuto': tiempo_unit
+                                }
+
+                            actividades_agrupadas[id_act]['tiempo_total'] += tiempo_con_buffer
+                            tiempo_total_minutos += tiempo_con_buffer
+
+        if not ops_data:
+            return {'status': 'error', 'message': 'No se encontraron OPs válidas'}
+
+        # Calcular personas necesarias
+        horas_disponibles_semana = 40  # 8 horas × 5 días
+        minutos_disponibles_brutos = horas_disponibles_semana * 60
+        factor_eficiencia = 0.85  # 85% productividad
+        minutos_productivos_persona = minutos_disponibles_brutos * factor_eficiencia
+
+        personas_necesarias = tiempo_total_minutos / minutos_productivos_persona
+        personas_recomendadas = int(personas_necesarias) if personas_necesarias == int(personas_necesarias) else int(personas_necesarias) + 1
+
+        # Detectar cuello de botella (actividad más larga)
+        cuello_botella = max(actividades_agrupadas.items(),
+                            key=lambda x: x[1]['tiempo_total'],
+                            default=None) if actividades_agrupadas else None
+
+        resultado = {
+            'status': 'ok',
+            'personas_recomendadas': personas_recomendadas,
+            'personas_necesarias_decimal': round(personas_necesarias, 2),
+            'tiempo_total_minutos': int(tiempo_total_minutos),
+            'tiempo_total_horas': round(tiempo_total_minutos / 60, 2),
+            'ops_procesadas': len(ops_data),
+            'actividades_totales': len(actividades_agrupadas),
+            'actividades': [
+                {
+                    'id_actividad': id_act,
+                    'nombre': data['nombre'],
+                    'proceso': data['proceso'],
+                    'tiempo_minutos': round(data['tiempo_total'], 1),
+                    'dificultad': data['dificultad'],
+                    'estandar_minuto': round(data['estandar_minuto'], 2)
+                }
+                for id_act, data in sorted(actividades_agrupadas.items(),
+                                          key=lambda x: x[1]['tiempo_total'],
+                                          reverse=True)
+            ],
+            'cuello_botella': {
+                'id_actividad': cuello_botella[0],
+                'nombre': cuello_botella[1]['nombre'],
+                'tiempo_minutos': round(cuello_botella[1]['tiempo_total'], 1),
+                'dificultad': cuello_botella[1]['dificultad']
+            } if cuello_botella else None,
+            'semana_inicio': semana_inicio.isoformat(),
+            'semana_fin': (semana_inicio + timedelta(days=4)).isoformat(),
+            'fiabilidad': 'Alta' if sum([1 for a in actividades_agrupadas.values() if a.get('estandar_minuto')]) > 0 else 'Baja'
+        }
+
+        return resultado
+
+    except Exception as e:
+        app.logger.error(f"Error calculando personal necesario: {e}", exc_info=True)
+        return {'status': 'error', 'message': str(e)}

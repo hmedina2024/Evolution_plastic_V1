@@ -23,6 +23,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         sql_lista_procesos_bd, sql_detalles_procesos_bd, buscar_proceso_unico, procesar_actualizar_form, buscar_procesos_bd, # procesar_actualizar_form estaba duplicado
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
+                                        actualizar_estandares_procesos, calcular_personal_necesario, obtener_actividades_de_op,
                                         buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
                                         sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad, buscar_actividades_bd,
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
@@ -2018,3 +2019,98 @@ def actualizar_lista_correo(id_lista):
         db.session.rollback()
         app.logger.error(f"Error actualizando lista {id_lista}: {str(e)}")
         return jsonify({'status': 'error', 'message': 'Error al actualizar el grupo'}), 500
+
+
+# ─────────────────────────────────────────────────────────────
+# ENDPOINTS PARA PLANIFICADOR DE PERSONAL
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/planificador-personal', methods=['GET'])
+def planificador_personal():
+    """Página principal del planificador de personal"""
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+
+    return render_template('public/planificador/planificador_personal.html')
+
+
+@app.route('/api/planificador/actualizar-estandares', methods=['POST'])
+def api_actualizar_estandares():
+    """Recalcula los estándares de proceso/actividad desde el histórico"""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+
+    resultado = actualizar_estandares_procesos()
+    return jsonify(resultado)
+
+
+@app.route('/api/planificador/calcular-personal', methods=['POST'])
+def api_calcular_personal():
+    """Calcula personal necesario para las OPs seleccionadas"""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+
+    data = request.get_json()
+    ids_op = data.get('ids_op', [])
+    semana_inicio = data.get('semana_inicio')  # ISO date string
+
+    if semana_inicio:
+        try:
+            from datetime import datetime
+            semana_inicio = datetime.fromisoformat(semana_inicio).date()
+        except:
+            semana_inicio = None
+
+    resultado = calcular_personal_necesario(ids_op, semana_inicio)
+    return jsonify(resultado)
+
+
+@app.route('/api/planificador/ops-disponibles', methods=['GET'])
+def api_ops_disponibles():
+    """Lista todas las OPs disponibles para el planificador"""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+
+    try:
+        ops = OrdenProduccion.query.filter_by(
+            fecha_borrado=None
+        ).order_by(
+            OrdenProduccion.fecha.desc()
+        ).limit(100).all()
+
+        resultado = {
+            'status': 'ok',
+            'ops': [
+                {
+                    'id_op': op.id_op,
+                    'codigo_op': op.codigo_op,
+                    'producto': op.producto,
+                    'cantidad': op.cantidad,
+                    'cliente': op.cliente.nombre_cliente if op.cliente else 'N/A',
+                    'fecha_entrega': op.fecha_entrega.isoformat() if op.fecha_entrega else None,
+                    'estado': op.estado
+                }
+                for op in ops
+            ]
+        }
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Error obteniendo OPs: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/planificador/actividades-op/<int:id_op>', methods=['GET'])
+def api_actividades_op(id_op):
+    """Obtiene las actividades detalladas de una OP específica"""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+
+    try:
+        datos = obtener_actividades_de_op(id_op)
+        if datos:
+            return jsonify({'status': 'ok', 'data': datos})
+        else:
+            return jsonify({'status': 'error', 'message': 'OP no encontrada'}), 404
+    except Exception as e:
+        app.logger.error(f"Error obteniendo actividades: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

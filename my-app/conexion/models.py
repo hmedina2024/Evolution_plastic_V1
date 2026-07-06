@@ -577,5 +577,85 @@ class RolPermiso(db.Model):
 
     __table_args__ = (db.UniqueConstraint('id_rol', 'id_permiso', name='uq_rol_permiso'),)
 
+
+# ─────────────────────────────────────────────────────────────
+# Modelos para Planificador de Personal
+# ─────────────────────────────────────────────────────────────
+
+class EstandarProcesoActividad(db.Model):
+    """Estándares de tiempo por proceso/actividad basados en histórico"""
+    __tablename__ = 'tbl_estandares_proceso_actividad'
+
+    id_estandar = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False)
+    id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad', ondelete='CASCADE'), nullable=False)
+
+    # Métricas de tiempo (en minutos)
+    tiempo_promedio_minuto = db.Column(db.Numeric(10, 4), nullable=False, default=0)
+    desviacion_estandar = db.Column(db.Numeric(10, 4), nullable=False, default=0)
+    tiempo_minimo = db.Column(db.Numeric(10, 4))
+    tiempo_maximo = db.Column(db.Numeric(10, 4))
+
+    # Clasificación de dificultad
+    dificultad = db.Column(Enum('BAJA', 'MEDIA', 'ALTA', name='dificultad_enum'), nullable=False, default='MEDIA')
+    variabilidad_porcentaje = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+
+    # Fiabilidad
+    cantidad_muestras = db.Column(db.Integer, nullable=False, default=0)
+    porcentaje_novedades = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+
+    # Auditoría
+    fecha_actualizacion = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    fecha_creacion = db.Column(db.DateTime, default=func.now())
+
+    # Relaciones
+    proceso = db.relationship('Procesos', lazy=True)
+    actividad = db.relationship('Actividades', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('id_proceso', 'id_actividad', name='uq_proceso_actividad'),
+        db.Index('idx_dificultad', 'dificultad'),
+        db.Index('idx_muestras', 'cantidad_muestras'),
+    )
+
+    def __repr__(self):
+        return f'<EstandarProcesoActividad {self.id_proceso}-{self.id_actividad}: {self.tiempo_promedio_minuto}min ({self.dificultad})>'
+
+
+class ProyeccionPersonal(db.Model):
+    """Histórico de proyecciones de personal y sus resultados reales"""
+    __tablename__ = 'tbl_proyecciones_personal'
+
+    id_proyeccion = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # Referencia a las OPs (almacenadas como JSON para flexibilidad)
+    ids_op_seleccionadas = db.Column(db.JSON, nullable=False)  # ["OP-001", "OP-002"]
+
+    # Cálculo proyectado
+    personas_necesarias_recomendado = db.Column(db.Numeric(5, 2), nullable=False)
+    personas_asignadas = db.Column(db.Integer)
+    tiempo_total_minutos = db.Column(db.Integer, nullable=False)
+
+    # Resultados reales (después de ejecutarse la semana)
+    personas_usadas_reales = db.Column(db.Integer)
+    tiempo_real_minutos = db.Column(db.Integer)
+    eficiencia_real = db.Column(db.Numeric(5, 2))  # (tiempo_real / tiempo_planeado) * 100
+
+    # Auditoría
+    semana_inicio = db.Column(db.Date, nullable=False)
+    semana_fin = db.Column(db.Date, nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'))
+    fecha_creacion = db.Column(db.DateTime, default=func.now())
+
+    # Relaciones
+    usuario = db.relationship('Users', lazy=True)
+
+    __table_args__ = (
+        db.Index('idx_semana', 'semana_inicio', 'semana_fin'),
+    )
+
+    def __repr__(self):
+        return f'<ProyeccionPersonal semana {self.semana_inicio}: {self.personas_necesarias_recomendado} personas>'
+
     def __repr__(self):
         return f'<RolPermiso rol={self.id_rol} permiso={self.id_permiso}>'

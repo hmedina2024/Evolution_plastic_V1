@@ -1,0 +1,415 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Planificador de Personal{% endblock %}
+
+{% block body %}
+<div class="row mb-4">
+  <div class="col-12 d-flex justify-content-between align-items-center">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-people-fill me-2 text-primary"></i>Planificador de Personal</h3>
+      <p class="text-muted mb-0">Calcula automáticamente el personal necesario según los rendimientos históricos</p>
+    </div>
+    <button class="btn btn-primary" id="btnActualizarEstandares" title="Recalcula los estándares desde el último mes">
+      <i class="bi bi-arrow-repeat me-1"></i>Actualizar Estándares
+    </button>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Panel Izquierdo: Selección de OPs -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Seleccionar Órdenes de Producción</h5>
+      </div>
+      <div class="card-body">
+        <!-- Buscador de OPs -->
+        <div class="mb-3">
+          <label class="form-label">Buscar OP</label>
+          <input type="text" class="form-control" id="inputBuscarOP" placeholder="Código, producto o cliente...">
+        </div>
+
+        <!-- Lista de OPs disponibles -->
+        <div class="ops-list border rounded p-3" id="listadoOPs" style="max-height: 400px; overflow-y: auto;">
+          <div class="text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Cargando órdenes...
+          </div>
+        </div>
+
+        <!-- OPs seleccionadas -->
+        <div class="mt-4">
+          <label class="form-label fw-bold">OPs Seleccionadas: <span id="countSelected">0</span></label>
+          <div class="selected-ops border rounded p-3 bg-light" id="selectedOPs" style="max-height: 250px; overflow-y: auto; min-height: 100px;">
+            <small class="text-muted">Las OPs seleccionadas aparecerán aquí</small>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="mt-3 d-grid gap-2">
+          <button class="btn btn-success" id="btnCalcular" disabled>
+            <i class="bi bi-calculator me-1"></i>Calcular Personal Necesario
+          </button>
+          <button class="btn btn-outline-secondary" id="btnLimpiarSelection">
+            <i class="bi bi-x-circle me-1"></i>Limpiar Selección
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Derecho: Resultados -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm" id="resultadoCard" style="display: none;">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Resultado de la Proyección</h5>
+      </div>
+      <div class="card-body">
+        <!-- KPIs principales -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card border-left-primary h-100">
+              <div class="card-body text-center">
+                <h6 class="text-muted small mb-2">PERSONAL RECOMENDADO</h6>
+                <h2 class="fw-bold text-primary" id="kpiPersonas">0</h2>
+                <small class="text-muted">personas necesarias</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-left-info h-100">
+              <div class="card-body text-center">
+                <h6 class="text-muted small mb-2">TIEMPO TOTAL</h6>
+                <h2 class="fw-bold text-info" id="kpiHoras">0</h2>
+                <small class="text-muted">horas de trabajo</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de actividades -->
+        <div class="mb-4">
+          <h6 class="fw-bold mb-3">Desglose por Actividad</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover" id="tablaActividades">
+              <thead class="table-light">
+                <tr>
+                  <th>Actividad</th>
+                  <th>Proceso</th>
+                  <th class="text-end">Minutos</th>
+                  <th class="text-center">Dificultad</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cuello de botella -->
+        <div id="cuellobotella" class="alert alert-warning" style="display: none;">
+          <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Cuello de Botella Detectado</h6>
+          <p class="mb-2">La actividad más crítica es: <strong id="actividadCuello"></strong></p>
+          <small id="detallesCuello"></small>
+        </div>
+
+        <!-- Información de fiabilidad -->
+        <div class="alert alert-info small">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Fiabilidad:</strong> <span id="fiabilidad">—</span>
+          <br/>
+          <small id="observaciones">Esta proyección se basa en el histórico de los últimos 30 días</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel vacío inicial -->
+    <div class="card shadow-sm text-center py-5" id="emptyCard">
+      <div class="card-body">
+        <i class="bi bi-graph-up" style="font-size: 3rem; color: #ccc;"></i>
+        <p class="text-muted mt-3">Selecciona OPs y haz clic en "Calcular" para ver la proyección de personal</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block customJS %}
+<script>
+(function() {
+  'use strict';
+
+  const API_OPS = "{{ url_for('api_ops_disponibles') }}";
+  const API_CALCULAR = "{{ url_for('api_calcular_personal') }}";
+  const API_ACTUALIZAR = "{{ url_for('api_actualizar_estandares') }}";
+
+  let opsDisponibles = [];
+  let opsSeleccionadas = [];
+
+  // ═══════════════════════════════════════════════════════════
+  // INICIALIZACIÓN
+  // ═══════════════════════════════════════════════════════════
+
+  document.addEventListener('DOMContentLoaded', function() {
+    cargarOPsDisponibles();
+    configurarEventos();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // CARGAR OPs DISPONIBLES
+  // ═══════════════════════════════════════════════════════════
+
+  function cargarOPsDisponibles() {
+    fetch(API_OPS)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.status === 'ok') {
+          opsDisponibles = data.ops || [];
+          renderizarListaOPs(opsDisponibles);
+        }
+      })
+      .catch(e => {
+        console.error('Error cargando OPs:', e);
+        document.getElementById('listadoOPs').innerHTML = '<div class="alert alert-danger">Error al cargar las OPs</div>';
+      });
+  }
+
+  function renderizarListaOPs(ops) {
+    const container = document.getElementById('listadoOPs');
+
+    if (!ops.length) {
+      container.innerHTML = '<small class="text-muted">No hay OPs disponibles</small>';
+      return;
+    }
+
+    container.innerHTML = ops.map(op => `
+      <div class="form-check mb-2">
+        <input class="form-check-input op-checkbox" type="checkbox" value="${op.id_op}" id="op_${op.id_op}">
+        <label class="form-check-label w-100 cursor-pointer" for="op_${op.id_op}">
+          <small class="d-block">
+            <strong>${op.codigo_op}</strong> - ${op.producto}
+          </small>
+          <small class="text-muted d-block">
+            ${op.cliente} | ${op.cantidad} unidades | Entrega: ${op.fecha_entrega || '—'}
+          </small>
+        </label>
+      </div>
+    `).join('');
+
+    // Agregar listeners
+    document.querySelectorAll('.op-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', actualizarSeleccion);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EVENTOS
+  // ═══════════════════════════════════════════════════════════
+
+  function configurarEventos() {
+    document.getElementById('inputBuscarOP').addEventListener('input', filtrarOPs);
+    document.getElementById('btnCalcular').addEventListener('click', calcularPersonal);
+    document.getElementById('btnLimpiarSelection').addEventListener('click', limpiarSeleccion);
+    document.getElementById('btnActualizarEstandares').addEventListener('click', actualizarEstandares);
+  }
+
+  function filtrarOPs(e) {
+    const termino = e.target.value.toLowerCase();
+    const ops_filtrados = opsDisponibles.filter(op =>
+      op.codigo_op.toLowerCase().includes(termino) ||
+      op.producto.toLowerCase().includes(termino) ||
+      op.cliente.toLowerCase().includes(termino)
+    );
+    renderizarListaOPs(ops_filtrados);
+
+    // Restaurar checkboxes seleccionados
+    opsSeleccionadas.forEach(id => {
+      const checkbox = document.getElementById(`op_${id}`);
+      if (checkbox) checkbox.checked = true;
+    });
+  }
+
+  function actualizarSeleccion(e) {
+    const id_op = parseInt(e.target.value);
+
+    if (e.target.checked) {
+      if (!opsSeleccionadas.includes(id_op)) {
+        opsSeleccionadas.push(id_op);
+      }
+    } else {
+      opsSeleccionadas = opsSeleccionadas.filter(id => id !== id_op);
+    }
+
+    actualizarVista();
+  }
+
+  function actualizarVista() {
+    // Actualizar contador
+    document.getElementById('countSelected').textContent = opsSeleccionadas.length;
+
+    // Actualizar lista de seleccionadas
+    const container = document.getElementById('selectedOPs');
+    if (opsSeleccionadas.length === 0) {
+      container.innerHTML = '<small class="text-muted">Las OPs seleccionadas aparecerán aquí</small>';
+    } else {
+      const ops_sel = opsDisponibles.filter(op => opsSeleccionadas.includes(op.id_op));
+      container.innerHTML = ops_sel.map(op => `
+        <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded border-bottom mb-2">
+          <div>
+            <strong>${op.codigo_op}</strong><br/>
+            <small class="text-muted">${op.producto}</small>
+          </div>
+          <button class="btn btn-sm btn-outline-danger" onclick="removerOP(${op.id_op})">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Habilitar/deshabilitar botón calcular
+    document.getElementById('btnCalcular').disabled = opsSeleccionadas.length === 0;
+  }
+
+  function removerOP(id_op) {
+    const checkbox = document.getElementById(`op_${id_op}`);
+    if (checkbox) checkbox.checked = false;
+    opsSeleccionadas = opsSeleccionadas.filter(id => id !== id_op);
+    actualizarVista();
+  }
+
+  function limpiarSeleccion() {
+    opsSeleccionadas = [];
+    document.querySelectorAll('.op-checkbox').forEach(cb => cb.checked = false);
+    actualizarVista();
+    document.getElementById('resultadoCard').style.display = 'none';
+    document.getElementById('emptyCard').style.display = 'block';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CALCULAR PERSONAL
+  // ═══════════════════════════════════════════════════════════
+
+  function calcularPersonal() {
+    if (opsSeleccionadas.length === 0) return;
+
+    const btnCalcular = document.getElementById('btnCalcular');
+    btnCalcular.disabled = true;
+    btnCalcular.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Calculando...';
+
+    const payload = {
+      ids_op: opsSeleccionadas,
+      semana_inicio: new Date().toISOString().split('T')[0]
+    };
+
+    fetch(API_CALCULAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          mostrarResultados(data);
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo calcular'));
+        }
+      })
+      .catch(e => alert('Error: ' + e.message))
+      .finally(() => {
+        btnCalcular.disabled = false;
+        btnCalcular.innerHTML = '<i class="bi bi-calculator me-1"></i>Calcular Personal Necesario';
+      });
+  }
+
+  function mostrarResultados(data) {
+    // Mostrar KPIs
+    document.getElementById('kpiPersonas').textContent = data.personas_recomendadas;
+    document.getElementById('kpiHoras').textContent = data.tiempo_total_horas;
+
+    // Tabla de actividades
+    const tbody = document.querySelector('#tablaActividades tbody');
+    tbody.innerHTML = (data.actividades || []).map(act => `
+      <tr>
+        <td><small>${act.nombre}</small></td>
+        <td><small>${act.proceso}</small></td>
+        <td class="text-end"><small>${act.tiempo_minutos} min</small></td>
+        <td class="text-center">
+          <span class="badge bg-${getDificultadColor(act.dificultad)}">${act.dificultad}</span>
+        </td>
+      </tr>
+    `).join('');
+
+    // Cuello de botella
+    if (data.cuello_botella) {
+      document.getElementById('cuellobotella').style.display = 'block';
+      document.getElementById('actividadCuello').textContent = data.cuello_botella.nombre;
+      document.getElementById('detallesCuello').textContent =
+        `${data.cuello_botella.tiempo_minutos} minutos (Dificultad: ${data.cuello_botella.dificultad})`;
+    } else {
+      document.getElementById('cuellobotella').style.display = 'none';
+    }
+
+    // Fiabilidad
+    document.getElementById('fiabilidad').textContent = data.fiabilidad;
+
+    // Mostrar resultados
+    document.getElementById('emptyCard').style.display = 'none';
+    document.getElementById('resultadoCard').style.display = 'block';
+  }
+
+  function getDificultadColor(dificultad) {
+    const colors = { 'BAJA': 'success', 'MEDIA': 'warning', 'ALTA': 'danger' };
+    return colors[dificultad] || 'secondary';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ACTUALIZAR ESTÁNDARES
+  // ═══════════════════════════════════════════════════════════
+
+  function actualizarEstandares() {
+    const btn = document.getElementById('btnActualizarEstandares');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Actualizando...';
+
+    fetch(API_ACTUALIZAR, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          alert(`✓ Se actualizaron ${data.actualizados} estándares`);
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo actualizar'));
+        }
+      })
+      .catch(e => alert('Error: ' + e.message))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      });
+  }
+
+  // Exposer removerOP globally
+  window.removerOP = removerOP;
+})();
+</script>
+
+<style>
+  .border-left-primary {
+    border-left: 4px solid #007bff !important;
+  }
+
+  .border-left-info {
+    border-left: 4px solid #17a2b8 !important;
+  }
+
+  .ops-list .form-check-label {
+    cursor: pointer;
+  }
+
+  #selectedOPs .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+</style>
+{% endblock %}
