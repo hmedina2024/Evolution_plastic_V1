@@ -2100,8 +2100,8 @@ def api_ops_disponibles():
 
 
 @app.route('/api/planificador/actividades-op/<int:id_op>', methods=['GET'])
-def api_actividades_op(id_op):
-    """Obtiene las actividades detalladas de una OP específica"""
+def api_actividades_op_planificador(id_op):
+    """Obtiene las actividades detalladas de una OP específica para el planificador"""
     if 'conectado' not in session:
         return jsonify({'error': 'no autorizado'}), 401
 
