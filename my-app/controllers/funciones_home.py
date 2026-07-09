@@ -6638,35 +6638,38 @@ def obtener_actividades_de_op(id_op):
                 'procesos': []
             }
 
-            # Obtener procesos de la pieza
-            procesos_pieza = db.session.query(OrdenPiezasProcesos).filter_by(
+            # Obtener actividades de la pieza (relacionadas a procesos)
+            activ_pieza = db.session.query(OrdenPiezasActividades).filter_by(
                 id_orden_pieza=pieza_orden.id_orden_pieza
             ).all()
 
-            for proc_pieza in procesos_pieza:
-                if not proc_pieza.id_proceso:
+            # Agrupar actividades por proceso
+            procesos_dict = {}
+            for act_pieza in activ_pieza:
+                if not act_pieza.id_actividad:
                     continue
 
-                proceso_info = {
-                    'id_proceso': proc_pieza.id_proceso,
-                    'nombre_proceso': proc_pieza.proceso.nombre_proceso if proc_pieza.proceso else '',
-                    'actividades': []
-                }
+                actividad_obj = db.session.query(Actividades).get(act_pieza.id_actividad)
+                if not actividad_obj:
+                    continue
 
-                # Obtener actividades del proceso de la pieza
-                activ_pieza = db.session.query(OrdenPiezasActividades).filter_by(
-                    id_orden_pieza=pieza_orden.id_orden_pieza,
-                    id_proceso=proc_pieza.id_proceso
-                ).all()
+                id_proc = actividad_obj.id_proceso
+                if id_proc not in procesos_dict:
+                    proceso_obj = db.session.query(Procesos).get(id_proc)
+                    procesos_dict[id_proc] = {
+                        'id_proceso': id_proc,
+                        'nombre_proceso': proceso_obj.nombre_proceso if proceso_obj else '',
+                        'actividades': []
+                    }
 
-                for act_pieza in activ_pieza:
-                    if act_pieza.id_actividad:
-                        proceso_info['actividades'].append({
-                            'id_actividad': act_pieza.id_actividad,
-                            'nombre_actividad': act_pieza.actividad.nombre_actividad if act_pieza.actividad else '',
-                            'repeticiones': 1  # Se multiplica por cantidad de pieza después
-                        })
+                procesos_dict[id_proc]['actividades'].append({
+                    'id_actividad': act_pieza.id_actividad,
+                    'nombre_actividad': actividad_obj.nombre_actividad,
+                    'repeticiones': 1
+                })
 
+            # Agregar procesos a la pieza
+            for proceso_info in procesos_dict.values():
                 if proceso_info['actividades']:
                     pieza_info['procesos'].append(proceso_info)
 
