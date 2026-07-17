@@ -24,6 +24,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         eliminar_proceso, procesar_form_cliente, validar_documento_cliente, obtener_tipo_documento,
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
                                         actualizar_estandares_procesos, calcular_personal_necesario, obtener_actividades_de_op,
+                                        obtener_matriz_completa, guardar_matriz_completa, obtener_tiempo_dificultad,
                                         buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
                                         sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad, buscar_actividades_bd,
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
@@ -2114,3 +2115,42 @@ def api_actividades_op_planificador(id_op):
     except Exception as e:
         app.logger.error(f"Error obteniendo actividades: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────
+# ADMIN: MATRIZ DE DIFICULTAD
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/matriz-dificultad', methods=['GET'])
+def matriz_dificultad():
+    """Pantalla de administración de la matriz de dificultad (cuadrícula completa)."""
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+    matriz = obtener_matriz_completa()
+    return render_template('public/matriz/matriz_dificultad.html',
+                           procesos=matriz['procesos'], valores=matriz['valores'])
+
+
+@app.route('/api/matriz-dificultad/guardar', methods=['POST'])
+def api_guardar_matriz():
+    """Guarda (upsert) todas las celdas editadas de la cuadrícula."""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+    data = request.get_json() or {}
+    celdas = data.get('celdas', [])
+    if not celdas:
+        return jsonify({'status': 'error', 'message': 'No hay cambios que guardar'}), 400
+    resultado = guardar_matriz_completa(celdas)
+    return jsonify(resultado)
+
+
+@app.route('/api/matriz-dificultad/tiempo', methods=['GET'])
+def api_tiempo_dificultad():
+    """Cruce OP↔matriz: días/horas de un proceso para una dificultad dada."""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+    try:
+        id_proceso = int(request.args.get('id_proceso'))
+        dificultad = int(request.args.get('dificultad'))
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Parámetros inválidos'}), 400
+    return jsonify({'status': 'ok', **obtener_tiempo_dificultad(id_proceso, dificultad)})

@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -6550,7 +6550,7 @@ def actualizar_estandar_actividad(id_proceso, id_actividad, desde):
             Operaciones.cantidad > 0
         ).all()
 
-        if len(operaciones) < 3:  # Mínimo 3 muestras para estimar
+        if len(operaciones) < 1:  # Se necesita al menos 1 muestra; la fiabilidad se refleja en cantidad_muestras
             return False
 
         # Calcular tiempo por unidad para cada operación
@@ -6711,6 +6711,7 @@ def calcular_personal_necesario(ids_op, semana_inicio=None):
         ops_data = []
         tiempo_total_minutos = 0
         actividades_agrupadas = {}  # id_actividad → {tiempo, cantidad_repeticiones, dificultad}
+        actividades_sin_estandar = {}  # id_actividad → {nombre, proceso} — sin histórico para costear
 
         for id_op in ids_op:
             # Buscar por id o código
@@ -6736,11 +6737,18 @@ def calcular_personal_necesario(ids_op, semana_inicio=None):
                     for actividad in proceso['actividades']:
                         id_act = actividad['id_actividad']
 
-                        # Obtener estándar
+                        # Obtener estándar: primero por (actividad + proceso) exacto;
+                        # si no existe, fallback por actividad (el histórico pudo
+                        # registrarse bajo otro proceso).
                         estandar = db.session.query(EstandarProcesoActividad).filter_by(
                             id_actividad=id_act,
                             id_proceso=proceso['id_proceso']
                         ).first()
+
+                        if not estandar:
+                            estandar = db.session.query(EstandarProcesoActividad).filter_by(
+                                id_actividad=id_act
+                            ).order_by(EstandarProcesoActividad.cantidad_muestras.desc()).first()
 
                         if estandar and estandar.tiempo_promedio_minuto > 0:
                             tiempo_unit = float(estandar.tiempo_promedio_minuto)
@@ -6763,6 +6771,14 @@ def calcular_personal_necesario(ids_op, semana_inicio=None):
 
                             actividades_agrupadas[id_act]['tiempo_total'] += tiempo_con_buffer
                             tiempo_total_minutos += tiempo_con_buffer
+                        else:
+                            # No hay estándar histórico → no se puede costear; se avisa al usuario
+                            if id_act not in actividades_sin_estandar:
+                                actividades_sin_estandar[id_act] = {
+                                    'id_actividad': id_act,
+                                    'nombre': actividad['nombre_actividad'],
+                                    'proceso': proceso['nombre_proceso']
+                                }
 
         if not ops_data:
             return {'status': 'error', 'message': 'No se encontraron OPs válidas'}
@@ -6810,7 +6826,8 @@ def calcular_personal_necesario(ids_op, semana_inicio=None):
             } if cuello_botella else None,
             'semana_inicio': semana_inicio.isoformat(),
             'semana_fin': (semana_inicio + timedelta(days=4)).isoformat(),
-            'fiabilidad': 'Alta' if sum([1 for a in actividades_agrupadas.values() if a.get('estandar_minuto')]) > 0 else 'Baja'
+            'fiabilidad': 'Alta' if sum([1 for a in actividades_agrupadas.values() if a.get('estandar_minuto')]) > 0 else 'Baja',
+            'actividades_sin_estandar': list(actividades_sin_estandar.values())
         }
 
         return resultado
@@ -6818,3 +6835,81 @@ def calcular_personal_necesario(ids_op, semana_inicio=None):
     except Exception as e:
         app.logger.error(f"Error calculando personal necesario: {e}", exc_info=True)
         return {'status': 'error', 'message': str(e)}
+
+# ─────────────────────────────────────────────────────────────
+# MATRIZ DE DIFICULTAD (admin) y cruce con la OP
+# ─────────────────────────────────────────────────────────────
+
+def obtener_matriz_completa():
+    """Devuelve todos los procesos y el valor de días por (proceso, dificultad).
+    Pensado para pintar la cuadrícula: dificultad en filas, procesos en columnas."""
+    try:
+        procesos = db.session.query(Procesos).filter(
+            Procesos.fecha_borrado.is_(None)
+        ).order_by(Procesos.nombre_proceso.asc()).all()
+
+        filas = db.session.query(MatrizDificultad).all()
+        # valores[id_proceso][dificultad] = tiempo_dias
+        valores = {}
+        for f in filas:
+            valores.setdefault(f.id_proceso, {})[f.dificultad] = \
+                float(f.tiempo_dias) if f.tiempo_dias is not None else 0
+
+        return {
+            'procesos': [{'id_proceso': p.id_proceso,
+                          'nombre_proceso': p.nombre_proceso or p.codigo_proceso} for p in procesos],
+            'valores': valores
+        }
+    except Exception as e:
+        app.logger.error(f"Error obteniendo matriz completa: {e}")
+        return {'procesos': [], 'valores': {}}
+
+
+def guardar_matriz_completa(celdas):
+    """Upsert de muchas celdas de la cuadrícula.
+    celdas = [{'id_proceso': X, 'dificultad': 1..10, 'tiempo_dias': n}, ...].
+    Las horas se calculan internamente como días * 8."""
+    HORAS_POR_DIA = 8
+    try:
+        for c in celdas:
+            try:
+                id_proc = int(c.get('id_proceso'))
+                dif = int(c.get('dificultad'))
+            except (TypeError, ValueError):
+                continue
+            if dif < 1 or dif > 10:
+                continue
+            dias_raw = c.get('tiempo_dias')
+            dias = float(dias_raw) if dias_raw not in (None, '') else 0
+            horas = round(dias * HORAS_POR_DIA, 2)
+
+            reg = db.session.query(MatrizDificultad).filter_by(
+                id_proceso=id_proc, dificultad=dif).first()
+            if not reg:
+                reg = MatrizDificultad(id_proceso=id_proc, dificultad=dif)
+                db.session.add(reg)
+            reg.tiempo_dias = dias
+            reg.tiempo_horas = horas
+
+        db.session.commit()
+        return {'status': 'ok', 'message': 'Matriz guardada correctamente'}
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error guardando matriz completa: {e}")
+        return {'status': 'error', 'message': str(e)}
+
+
+def obtener_tiempo_dificultad(id_proceso, dificultad):
+    """Cruce OP↔matriz: devuelve días/horas de un proceso para una dificultad dada."""
+    try:
+        reg = db.session.query(MatrizDificultad).filter_by(
+            id_proceso=id_proceso, dificultad=dificultad).first()
+        if reg:
+            return {
+                'tiempo_dias': float(reg.tiempo_dias or 0),
+                'tiempo_horas': float(reg.tiempo_horas or 0)
+            }
+        return {'tiempo_dias': 0, 'tiempo_horas': 0}
+    except Exception as e:
+        app.logger.error(f"Error obteniendo tiempo dificultad ({id_proceso},{dificultad}): {e}")
+        return {'tiempo_dias': 0, 'tiempo_horas': 0}

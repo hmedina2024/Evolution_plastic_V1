@@ -340,6 +340,7 @@ class OrdenProduccionProcesos(db.Model):
     id_orden_produccion_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
     id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False)
+    dificultad = db.Column(db.Integer, nullable=True)  # 1-10, opcional; cruza con tbl_matriz_dificultad
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False) # Cambiado a datetime.utcnow por consistencia
 
     # Relaciones (opcional, pero útil para acceder desde la tabla intermedia)
@@ -659,3 +660,24 @@ class ProyeccionPersonal(db.Model):
 
     def __repr__(self):
         return f'<RolPermiso rol={self.id_rol} permiso={self.id_permiso}>'
+
+
+class MatrizDificultad(db.Model):
+    """Tiempo (días/horas) que toma cada proceso según su grado de dificultad (1-10)."""
+    __tablename__ = 'tbl_matriz_dificultad'
+
+    id_matriz_dificultad = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    dificultad = db.Column(db.Integer, nullable=False)  # 1 a 10
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False)
+    tiempo_dias = db.Column(db.Numeric(6, 2), default=0)
+    tiempo_horas = db.Column(db.Numeric(8, 2), default=0)
+    fecha_actualizacion = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+
+    proceso = db.relationship('Procesos', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('id_proceso', 'dificultad', name='uq_proceso_dificultad'),
+    )
+
+    def __repr__(self):
+        return f'<MatrizDificultad proc={self.id_proceso} dif={self.dificultad} dias={self.tiempo_dias}>'

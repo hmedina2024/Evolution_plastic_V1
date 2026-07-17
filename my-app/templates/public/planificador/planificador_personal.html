@@ -113,6 +113,13 @@
           <small id="detallesCuello"></small>
         </div>
 
+        <!-- Actividades sin estándar (no costeadas) -->
+        <div id="sinEstandar" class="alert alert-danger" style="display: none;">
+          <h6 class="alert-heading"><i class="bi bi-exclamation-octagon me-2"></i>Actividades no incluidas en el cálculo</h6>
+          <p class="mb-2 small">Estas actividades no tienen histórico suficiente, por lo que <strong>no se costearon</strong>. La proyección puede estar subestimada:</p>
+          <ul class="mb-0 small" id="listaSinEstandar"></ul>
+        </div>
+
         <!-- Información de fiabilidad -->
         <div class="alert alert-info small">
           <i class="bi bi-info-circle me-2"></i>
@@ -143,6 +150,7 @@
   const API_OPS = "{{ url_for('api_ops_disponibles') }}";
   const API_CALCULAR = "{{ url_for('api_calcular_personal') }}";
   const API_ACTUALIZAR = "{{ url_for('api_actualizar_estandares') }}";
+  const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
   let opsDisponibles = [];
   let opsSeleccionadas = [];
@@ -185,8 +193,8 @@
 
     container.innerHTML = ops.map(op => `
       <div class="form-check mb-2">
-        <input class="form-check-input op-checkbox" type="checkbox" value="${op.id_op}" id="op_${op.id_op}">
-        <label class="form-check-label w-100 cursor-pointer" for="op_${op.id_op}">
+        <input class="form-check-input op-checkbox" type="checkbox" value="${op.codigo_op}" id="op_${op.codigo_op}">
+        <label class="form-check-label w-100 cursor-pointer" for="op_${op.codigo_op}">
           <small class="d-block">
             <strong>${op.codigo_op}</strong> - ${op.producto}
           </small>
@@ -224,21 +232,21 @@
     renderizarListaOPs(ops_filtrados);
 
     // Restaurar checkboxes seleccionados
-    opsSeleccionadas.forEach(id => {
-      const checkbox = document.getElementById(`op_${id}`);
+    opsSeleccionadas.forEach(codigo => {
+      const checkbox = document.getElementById(`op_${codigo}`);
       if (checkbox) checkbox.checked = true;
     });
   }
 
   function actualizarSeleccion(e) {
-    const id_op = parseInt(e.target.value);
+    const codigo_op = e.target.value;
 
     if (e.target.checked) {
-      if (!opsSeleccionadas.includes(id_op)) {
-        opsSeleccionadas.push(id_op);
+      if (!opsSeleccionadas.includes(codigo_op)) {
+        opsSeleccionadas.push(codigo_op);
       }
     } else {
-      opsSeleccionadas = opsSeleccionadas.filter(id => id !== id_op);
+      opsSeleccionadas = opsSeleccionadas.filter(cod => cod !== codigo_op);
     }
 
     actualizarVista();
@@ -253,14 +261,14 @@
     if (opsSeleccionadas.length === 0) {
       container.innerHTML = '<small class="text-muted">Las OPs seleccionadas aparecerán aquí</small>';
     } else {
-      const ops_sel = opsDisponibles.filter(op => opsSeleccionadas.includes(op.id_op));
+      const ops_sel = opsDisponibles.filter(op => opsSeleccionadas.includes(op.codigo_op));
       container.innerHTML = ops_sel.map(op => `
         <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded border-bottom mb-2">
           <div>
             <strong>${op.codigo_op}</strong><br/>
             <small class="text-muted">${op.producto}</small>
           </div>
-          <button class="btn btn-sm btn-outline-danger" onclick="removerOP(${op.id_op})">
+          <button class="btn btn-sm btn-outline-danger" onclick="removerOP('${op.codigo_op}')">
             <i class="bi bi-x"></i>
           </button>
         </div>
@@ -271,10 +279,10 @@
     document.getElementById('btnCalcular').disabled = opsSeleccionadas.length === 0;
   }
 
-  function removerOP(id_op) {
-    const checkbox = document.getElementById(`op_${id_op}`);
+  function removerOP(codigo_op) {
+    const checkbox = document.getElementById(`op_${codigo_op}`);
     if (checkbox) checkbox.checked = false;
-    opsSeleccionadas = opsSeleccionadas.filter(id => id !== id_op);
+    opsSeleccionadas = opsSeleccionadas.filter(cod => cod !== codigo_op);
     actualizarVista();
   }
 
@@ -304,7 +312,10 @@
 
     fetch(API_CALCULAR, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN
+      },
       body: JSON.stringify(payload)
     })
       .then(r => r.json())
@@ -350,6 +361,18 @@
       document.getElementById('cuellobotella').style.display = 'none';
     }
 
+    // Actividades sin estándar (no costeadas)
+    const sinEstandar = data.actividades_sin_estandar || [];
+    const divSinEstandar = document.getElementById('sinEstandar');
+    if (sinEstandar.length > 0) {
+      document.getElementById('listaSinEstandar').innerHTML = sinEstandar.map(act =>
+        `<li><strong>${act.nombre}</strong> (${act.proceso})</li>`
+      ).join('');
+      divSinEstandar.style.display = 'block';
+    } else {
+      divSinEstandar.style.display = 'none';
+    }
+
     // Fiabilidad
     document.getElementById('fiabilidad').textContent = data.fiabilidad;
 
@@ -373,7 +396,10 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Actualizando...';
 
-    fetch(API_ACTUALIZAR, { method: 'POST' })
+    fetch(API_ACTUALIZAR, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF_TOKEN }
+    })
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {

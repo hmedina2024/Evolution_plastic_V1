@@ -14,7 +14,7 @@
 
   {# Variables para auto-expandir la sección activa #}
   {% set control_paths = ['/registrar-operacion', '/lista-de-operaciones', '/registrar-op', '/lista-de-op', '/registrar-odi', '/lista-de-odi', '/registrar-jornada', '/lista-de-jornadas'] %}
-  {% set admin_paths   = ['/registrar-empleado', '/lista-de-empleados', '/registrar-proceso', '/lista-de-procesos', '/registrar-cliente', '/lista-de-clientes', '/registrar-actividad', '/lista-de-actividades', '/registrar-empresa', '/lista-de-empresas'] %}
+  {% set admin_paths   = ['/registrar-empleado', '/lista-de-empleados', '/registrar-proceso', '/lista-de-procesos', '/registrar-cliente', '/lista-de-clientes', '/registrar-actividad', '/lista-de-actividades', '/registrar-empresa', '/lista-de-empresas', '/planificador-personal', '/matriz-dificultad'] %}
   {% set user_paths    = ['/register-user', '/lista-de-usuarios', '/logs-acceso'] %}
 
   {% set control_open  = request.path in control_paths %}
@@ -29,7 +29,7 @@
     {% set dash_open = request.path in ['/dashboard', '/dashboard-operaciones'] %}
     <div>
       <button class="snav-toggle"
-              data-bs-toggle="collapse" data-bs-target="#nav-dashboards"
+              data-bs-target="#nav-dashboards"
               aria-expanded="{{ 'true' if dash_open else 'false' }}"
               aria-controls="nav-dashboards">
         <span class="snav-toggle-left">
@@ -65,7 +65,7 @@
     {% if ver_control %}
     <div>
       <button class="snav-toggle"
-              data-bs-toggle="collapse" data-bs-target="#nav-control"
+              data-bs-target="#nav-control"
               aria-expanded="{{ 'true' if control_open else 'false' }}"
               aria-controls="nav-control">
         <span class="snav-toggle-left">
@@ -130,7 +130,7 @@
     {% if ver_admin %}
     <div>
       <button class="snav-toggle"
-              data-bs-toggle="collapse" data-bs-target="#nav-admin"
+              data-bs-target="#nav-admin"
               aria-expanded="{{ 'true' if admin_open else 'false' }}"
               aria-controls="nav-admin">
         <span class="snav-toggle-left">
@@ -191,19 +191,16 @@
                  class="snav-subitem {% if request.path == '/lista-de-empresas' %}is-active{% endif %}">
             <i class="bi bi-building-fill"></i> Lista de Empresas</a></li>
           {% endif %}
+          <li><a href="/planificador-personal"
+                 class="snav-subitem {% if request.path == '/planificador-personal' %}is-active{% endif %}">
+            <i class="bi bi-people-fill"></i> Planificador de Personal</a></li>
+          <li><a href="/matriz-dificultad"
+                 class="snav-subitem {% if request.path == '/matriz-dificultad' %}is-active{% endif %}">
+            <i class="bi bi-grid-3x3-gap-fill"></i> Matriz de Dificultad</a></li>
         </ul>
       </div>
     </div>
     {% endif %}
-
-    {# ── Planificador de Personal ── #}
-    <div>
-      <a href="/planificador-personal"
-         class="snav-item {% if request.path == '/planificador-personal' %}is-active{% endif %}">
-        <i class="bi bi-people-fill"></i>
-        <span>Planificador de Personal</span>
-      </a>
-    </div>
 
     {# ── Reportes ── #}
     {% if tiene_permiso('reportes.ver') %}
@@ -222,7 +219,7 @@
     {% if ver_usuarios %}
     <div>
       <button class="snav-toggle"
-              data-bs-toggle="collapse" data-bs-target="#nav-usuarios"
+              data-bs-target="#nav-usuarios"
               aria-expanded="{{ 'true' if usuarios_open else 'false' }}"
               aria-controls="nav-usuarios">
         <span class="snav-toggle-left">
