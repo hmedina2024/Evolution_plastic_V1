@@ -2128,6 +2128,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
           url: `/api/listas-correos/actualizar/${idGrupo}`,
           method: 'PUT',
           contentType: 'application/json',
+          headers: { 'X-CSRFToken': $('meta[name="csrf-token"]').attr('content') },
           data: JSON.stringify({
               ids_empleados: idsSeleccionados
           }),
@@ -2135,8 +2136,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
               alert(response.message);
               cargarGruposCorreo(); // Recargar para actualizar los datos internos del select
           },
-          error: function() {
-              alert("Error al actualizar el grupo.");
+          error: function(xhr) {
+              alert((xhr.responseJSON && xhr.responseJSON.message) || "Error al actualizar el grupo.");
           }
       });
   });
@@ -2160,16 +2161,17 @@ if (imageUpload && imagePreview && deleteImageBtn) {
           url: '/api/listas-correos/crear',
           method: 'POST',
           contentType: 'application/json',
+          headers: { 'X-CSRFToken': $('meta[name="csrf-token"]').attr('content') },
           data: JSON.stringify({
               nombre: nombreGrupo,
               ids_empleados: idsSeleccionados
           }),
           success: function(response) {
               alert(response.message);
-              cargarGruposCorreo(); 
+              cargarGruposCorreo();
           },
-          error: function() {
-              alert("Error al crear el grupo.");
+          error: function(xhr) {
+              alert((xhr.responseJSON && xhr.responseJSON.message) || "Error al crear el grupo.");
           }
       });
   });
@@ -2187,14 +2189,15 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       $.ajax({
           url: `/api/listas-correos/eliminar/${idGrupo}`,
           method: 'DELETE',
+          headers: { 'X-CSRFToken': $('meta[name="csrf-token"]').attr('content') },
           success: function(response) {
               alert(response.message);
               cargarGruposCorreo();
               // Limpiar checkboxes al eliminar
               $('.destinatario-check').prop('checked', false);
           },
-          error: function() {
-              alert("Error al eliminar el grupo.");
+          error: function(xhr) {
+              alert((xhr.responseJSON && xhr.responseJSON.message) || "Error al eliminar el grupo.");
           }
       });
   });
