@@ -252,6 +252,33 @@
         </div>
       </div>
 
+      <!-- Dificultad por proceso (cruza con la matriz para estimar días) -->
+      <div id="dificultadesContainer" class="mt-4" style="display:none;">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-sliders me-1"></i>Dificultad por Proceso
+          <small class="text-muted fw-normal">(opcional)</small>
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-2">
+            <thead class="table-light">
+              <tr>
+                <th style="width:50%;">Proceso</th>
+                <th style="width:25%;" class="text-center">Dificultad (1-10)</th>
+                <th style="width:25%;" class="text-center">Días estimados</th>
+              </tr>
+            </thead>
+            <tbody id="dificultadesBody"></tbody>
+            <tfoot>
+              <tr class="table-light fw-bold">
+                <td class="text-end">Total días</td>
+                <td></td>
+                <td class="text-center" id="totalDias">0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
       <hr class="my-4">
       <h4 class="text-primary mb-3">Piezas de la Orden de Producción
         (Opcional)</h4>
@@ -1010,6 +1037,78 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         return null;
     }
   );
+
+  // --- Dificultad por proceso (cruza con la matriz de dificultad) ---
+  const API_TIEMPO_DIF = "{{ url_for('api_tiempo_dificultad') }}";
+  const dificultadesProc = {};   // { id_proceso: dificultad }
+  const diasProc = {};           // { id_proceso: dias }
+
+  function renderDificultades() {
+    const data = $opProcesosSelect.select2('data') || [];
+    const procesos = data.filter(p => p.id && p.id !== 'otro_proceso_custom_op');
+    const $body = $('#dificultadesBody');
+
+    if (!procesos.length) {
+      $('#dificultadesContainer').hide();
+      $body.empty();
+      return;
+    }
+
+    // Olvidar procesos que ya no están seleccionados
+    const idsActuales = procesos.map(p => String(p.id));
+    Object.keys(dificultadesProc).forEach(id => {
+      if (!idsActuales.includes(id)) { delete dificultadesProc[id]; delete diasProc[id]; }
+    });
+
+    $body.empty();
+    procesos.forEach(p => {
+      const val = dificultadesProc[p.id] || '';
+      let opciones = '<option value="">Sin definir</option>';
+      for (let i = 1; i <= 10; i++) {
+        opciones += `<option value="${i}" ${String(val) === String(i) ? 'selected' : ''}>${i}</option>`;
+      }
+      $body.append(
+        `<tr data-proc="${p.id}">
+           <td>${p.text}</td>
+           <td class="text-center">
+             <select class="form-select form-select-sm dif-select" data-proc="${p.id}">${opciones}</select>
+           </td>
+           <td class="text-center dif-dias">${diasProc[p.id] != null ? diasProc[p.id] : '—'}</td>
+         </tr>`
+      );
+    });
+    $('#dificultadesContainer').show();
+    actualizarTotalDias();
+  }
+
+  function actualizarTotalDias() {
+    let total = 0;
+    Object.values(diasProc).forEach(d => { total += parseFloat(d) || 0; });
+    $('#totalDias').text(Number.isInteger(total) ? total : total.toFixed(2));
+  }
+
+  $(document).on('change', '.dif-select', function() {
+    const idProc = $(this).data('proc');
+    const dif = $(this).val();
+    const $fila = $(this).closest('tr');
+    if (!dif) {
+      delete dificultadesProc[idProc];
+      delete diasProc[idProc];
+      $fila.find('.dif-dias').text('—');
+      actualizarTotalDias();
+      return;
+    }
+    dificultadesProc[idProc] = dif;
+    $.getJSON(API_TIEMPO_DIF, { id_proceso: idProc, dificultad: dif })
+      .done(function(resp) {
+        const dias = (resp && resp.tiempo_dias != null) ? resp.tiempo_dias : 0;
+        diasProc[idProc] = dias;
+        $fila.find('.dif-dias').text(dias);
+        actualizarTotalDias();
+      });
+  });
+
+  $opProcesosSelect.on('change', renderDificultades);
 
   $opProcesosSelect.on('change', function(e) {
     const selectedValues = $(this).val() || [];
@@ -1874,6 +1973,8 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         });
     }
     formData.append('op_otro_proceso', $('#op_otro_proceso').val());
+    // Dificultad elegida por proceso (cruza con la matriz)
+    formData.append('dificultades_json', JSON.stringify(dificultadesProc));
 
     // Manejo de archivos de render
     if ($('#imageUpload')[0].files[0]) {

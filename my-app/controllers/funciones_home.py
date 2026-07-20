@@ -2236,6 +2236,13 @@ def procesar_form_op(dataForm, files):
     op_otro_proceso_val = dataForm.get('op_otro_proceso', '').strip()
     ids_procesos_a_asociar = []
 
+    # Dificultad elegida por proceso (opcional): {"id_proceso": dificultad}
+    dificultades_por_proceso = {}
+    try:
+        dificultades_por_proceso = json.loads(dataForm.get('dificultades_json') or '{}')
+    except Exception:
+        dificultades_por_proceso = {}
+
     if not op_ids_procesos_form and not op_otro_proceso_val:
         errores.append("Debe seleccionar al menos un proceso global para la OP o especificar uno nuevo.")
     else:
@@ -2473,7 +2480,11 @@ def procesar_form_op(dataForm, files):
             # (aunque la lógica anterior debería prevenirlo, es una salvaguarda)
             existe_asociacion = db.session.query(OrdenProduccionProcesos).filter_by(id_op=orden.id_op, id_proceso=id_proc_asoc).first()
             if not existe_asociacion:
-                nueva_asociacion_op_proceso = OrdenProduccionProcesos(id_op=orden.id_op, id_proceso=id_proc_asoc)
+                dif_val = dificultades_por_proceso.get(str(id_proc_asoc))
+                nueva_asociacion_op_proceso = OrdenProduccionProcesos(
+                    id_op=orden.id_op, id_proceso=id_proc_asoc,
+                    dificultad=int(dif_val) if dif_val else None
+                )
                 db.session.add(nueva_asociacion_op_proceso)
             else:
                 app.logger.info(f"Asociación OP-Proceso (ID_OP: {orden.id_op}, ID_Proceso: {id_proc_asoc}) ya existía. No se duplicó.")
@@ -3145,6 +3156,11 @@ def obtener_datos_op_para_edicion(codigo_op):
                 {'id_proceso': p.id_proceso, 'nombre_proceso': p.nombre_proceso}
                 for p in orden.procesos_globales
             ],
+            'dificultades_procesos': {
+                str(opp.id_proceso): opp.dificultad
+                for opp in OrdenProduccionProcesos.query.filter_by(id_op=orden.id_op).all()
+                if opp.dificultad is not None
+            },
             'op_otro_proceso': next((p.nombre_proceso for p in orden.procesos_globales if 'OTRO_' in p.nombre_proceso), ''),
             'renders': [
                 r.render_path.split('/')[-1] for r in sorted(
@@ -3448,6 +3464,13 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
     op_ids_procesos_form = dataForm.getlist('op_ids_procesos')
     op_otro_proceso_form = dataForm.get('op_otro_proceso', '').strip()
     ids_procesos_validados_global = []
+
+    # Dificultad elegida por proceso (opcional): {"id_proceso": dificultad}
+    dificultades_por_proceso_upd = {}
+    try:
+        dificultades_por_proceso_upd = json.loads(dataForm.get('dificultades_json') or '{}')
+    except Exception:
+        dificultades_por_proceso_upd = {}
     
     if not op_ids_procesos_form and not op_otro_proceso_form:
         # Si no se envía nada y la OP ya tiene procesos, no es un error. Si no tiene, sí.
@@ -3866,7 +3889,11 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         OrdenProduccionProcesos.query.filter_by(id_op=orden.id_op).delete()
         for id_proc_v_db_val in ids_procesos_validados_global:
             # Corregido: Se elimina id_usuario_registro para OrdenProduccionProcesos
-            db.session.add(OrdenProduccionProcesos(id_op=orden.id_op, id_proceso=id_proc_v_db_val))
+            dif_val = dificultades_por_proceso_upd.get(str(id_proc_v_db_val))
+            db.session.add(OrdenProduccionProcesos(
+                id_op=orden.id_op, id_proceso=id_proc_v_db_val,
+                dificultad=int(dif_val) if dif_val else None
+            ))
         
         if 'otro' in op_ids_procesos_form and op_otro_proceso_form: # Si se especificó "otro"
             proceso_otro_check_db_val = Procesos.query.filter(func.lower(Procesos.nombre_proceso) == func.lower(op_otro_proceso_form), Procesos.fecha_borrado.is_(None)).first()
