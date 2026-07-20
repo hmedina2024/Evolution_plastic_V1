@@ -496,11 +496,12 @@ def viewFormProceso():
 @app.route('/form-registrar-proceso', methods=['POST'])
 def form_proceso():
     if 'conectado' in session:
-        resultado = procesar_form_proceso(request.form)
-        if resultado:
+        exito, mensaje = procesar_form_proceso(request.form)
+        if exito:
+            flash(mensaje, 'success')
             return redirect(url_for('lista_procesos'))
         else:
-            flash('El proceso NO fue registrado.', 'error')
+            flash(mensaje, 'error')
             return render_template('public/procesos/form_proceso.html')
     else:
         flash('primero debes iniciar sesión.', 'error')
@@ -1973,16 +1974,21 @@ def crear_lista_correo():
     if not nombre or not ids_empleados:
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
-    nueva_lista = ListasCorreos(nombre_lista=nombre)
-    db.session.add(nueva_lista)
-    db.session.flush() # Para obtener el ID de la nueva lista
+    try:
+        nueva_lista = ListasCorreos(nombre_lista=nombre)
+        db.session.add(nueva_lista)
+        db.session.flush() # Para obtener el ID de la nueva lista
 
-    for id_emp in ids_empleados:
-        nuevo_miembro = ListasMiembros(id_lista=nueva_lista.id_lista, id_empleado=id_emp)
-        db.session.add(nuevo_miembro)
-    
-    db.session.commit()
-    return jsonify({'status': 'success', 'message': 'Grupo creado correctamente'})
+        for id_emp in ids_empleados:
+            nuevo_miembro = ListasMiembros(id_lista=nueva_lista.id_lista, id_empleado=id_emp)
+            db.session.add(nuevo_miembro)
+
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Grupo creado correctamente'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creando lista de correo: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Error al crear el grupo'}), 500
 
 # Eliminar una lista
 @app.route('/api/listas-correos/eliminar/<int:id_lista>', methods=['DELETE'])
