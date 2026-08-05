@@ -2275,6 +2275,15 @@ def procesar_form_op(dataForm, files):
             if not cantidad_pieza_str.isdigit() or int(cantidad_pieza_str) <= 0:
                 errores.append(f"Pieza #{idx} ('{nombre_pieza_val}'): Cantidad es requerida y debe ser un número positivo.")
 
+            # Especificaciones obligatorias: cada pieza debe tener al menos una fila con datos
+            especificaciones_p = pieza_data_form.get('especificaciones_pieza', [])
+            tiene_especificaciones = isinstance(especificaciones_p, list) and any(
+                isinstance(e, dict) and any(str(v).strip() not in ('', 'None') for v in e.values())
+                for e in especificaciones_p
+            )
+            if not tiene_especificaciones:
+                errores.append(f"Pieza #{idx} ('{nombre_pieza_val}'): Debe registrar al menos una especificación.")
+
     # --- 4. Manejo de Errores Tempranos ---
     if errores:
         app.logger.warning(f"Errores de validación en procesar_form_op: {', '.join(errores)}")
@@ -2809,6 +2818,28 @@ def sql_detalles_op_bd(codigo_op):
             procesos_globales_nombres = [p.nombre_proceso for p in orden_obj.procesos_globales]
         app.logger.debug(f"Procesos globales para OP {orden_obj.id_op}: {procesos_globales_nombres}")
 
+        # 1b. Procesos con su dificultad y el tiempo (días/horas) según la matriz de dificultad
+        procesos_dificultad = []
+        opp_rows = db.session.query(OrdenProduccionProcesos, Procesos.nombre_proceso).join(
+            Procesos, OrdenProduccionProcesos.id_proceso == Procesos.id_proceso
+        ).filter(OrdenProduccionProcesos.id_op == orden_obj.id_op).all()
+        for opp, nombre_proc in opp_rows:
+            tiempo_dias = tiempo_horas = None
+            if opp.dificultad is not None:
+                mat = MatrizDificultad.query.filter_by(
+                    id_proceso=opp.id_proceso, dificultad=opp.dificultad
+                ).first()
+                if mat:
+                    tiempo_dias = str(mat.tiempo_dias) if mat.tiempo_dias is not None else None
+                    tiempo_horas = str(mat.tiempo_horas) if mat.tiempo_horas is not None else None
+            procesos_dificultad.append({
+                'nombre_proceso': nombre_proc,
+                'dificultad': opp.dificultad,
+                'tiempo_dias': tiempo_dias,
+                'tiempo_horas': tiempo_horas
+            })
+        app.logger.debug(f"Procesos con dificultad para OP {orden_obj.id_op}: {procesos_dificultad}")
+
         # 2. Piezas de la Orden
         # La consulta original para 'piezas' ya obtiene OrdenPiezas y el nombre de la pieza maestra.
         # Vamos a iterar sobre los objetos OrdenPiezas directamente.
@@ -2948,6 +2979,7 @@ def sql_detalles_op_bd(codigo_op):
             'documentos': documentos,
             'urls_op': urls_op_list, # Nuevo
             'procesos': procesos_globales_nombres if procesos_globales_nombres else ['s'], # Clave 'procesos' para el template
+            'procesos_dificultad': procesos_dificultad, # Procesos con dificultad + tiempos (matriz)
             'piezas': piezas_list,
             'id_disenador_grafico': orden_obj.id_disenador_grafico, # Añadido por si es útil
             'nombre_disenador_grafico': nombre_disenador_grafico if nombre_disenador_grafico else 'Sin Disenador Grafico',
@@ -3646,6 +3678,13 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     if not isinstance(especificaciones_p_val, list):
                         current_pieza_errores.append(f"Formato de especificaciones inválido.")
                     else:
+                        # Especificaciones obligatorias: al menos una fila con datos
+                        tiene_esp_val = any(
+                            isinstance(e, dict) and any(str(v).strip() not in ('', 'None') for v in e.values())
+                            for e in especificaciones_p_val
+                        )
+                        if not tiene_esp_val:
+                            current_pieza_errores.append("Debe registrar al menos una especificación.")
                         for esp_idx_p_val, esp_data_p_val in enumerate(especificaciones_p_val, 1):
                             for num_fld_p_val in ['largo', 'ancho_especificacion', 'cantidad_especificacion', 'kg', 'retal_kg']: # 'ancho' cambiado a 'ancho_especificacion'
                                 val_str_esp_val = esp_data_p_val.get(num_fld_p_val)
@@ -5381,6 +5420,31 @@ def generar_pdf_op_func(detalle_op, codigo_op):
     elements.append(Spacer(1, 10))
     procesos_str = ", ".join(detalle_op.get('procesos', []))
     elements.append(Paragraph(f"<b>Procesos Asociados:</b> {procesos_str}", style_normal))
+
+    # ── Matriz de dificultad por proceso ──
+    procesos_dif = detalle_op.get('procesos_dificultad', [])
+    if procesos_dif:
+        elements.append(Spacer(1, 8))
+        elements.append(Paragraph("Dificultad por Proceso", style_subtitulo))
+        data_dif = [['Proceso', 'Dificultad (1-10)', 'Tiempo (días)', 'Tiempo (horas)']]
+        for p in procesos_dif:
+            data_dif.append([
+                p_cell(p.get('nombre_proceso', 'N/A'), style_small),
+                p_cell(p.get('dificultad') if p.get('dificultad') is not None else 'Sin definir', style_small),
+                p_cell(p.get('tiempo_dias') if p.get('tiempo_dias') is not None else '—', style_small),
+                p_cell(p.get('tiempo_horas') if p.get('tiempo_horas') is not None else '—', style_small),
+            ])
+        t_dif = Table(data_dif, colWidths=[2.4*inch, 1.4*inch, 1.1*inch, 1.1*inch])
+        t_dif.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('ALIGN', (0,0), (0,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('PADDING', (0,0), (-1,-1), 5),
+        ]))
+        elements.append(t_dif)
 
     # ================= RENDERS (IMAGEN ACTIVA) =================
     if detalle_op.get('renders'):

@@ -158,7 +158,7 @@
               value="PREDISTRIBUCIÓN">PREDISTRIBUCIÓN</option><option
               value="INSTALACIÓN">INSTALACIÓN</option><option
               value="ENTREGAS EN CIUDAD">ENTREGAS EN CIUDAD</option><option
-              value="ENTRGA EN PLANTA">ENTRGA EN PLANTA</option>
+              value="ENTREGA EN PLANTA">ENTREGA EN PLANTA</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado.</div>
         </div>
@@ -178,11 +178,11 @@
             class="form-label fw-bold text-primary">Estado proyecto</label>
           <select name="estado_proyecto" id="estado_proyecto"
             class="form-control select2" multiple>
-            <option value="Artes en ajustes">Artes en ajustes</option>
+            <option value="Artes pendientes">Artes pendientes</option>
             <option value="Artes aprobadas">Artes aprobadas</option>
             <option value="Estructura aprobada">Estructura aprobada</option>
             <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
-            <option value="Lineas de troquel en ajuste">Lineas de troquel en ajuste</option>
+            <option value="Lineas de troquel pendientes">Lineas de troquel pendientes</option>
             <option value="Lineas de troquel aprobadas">Lineas de troquel aprobadas</option>
           </select>
           <div class="invalid-feedback">Por favor, seleccione un estado
@@ -969,7 +969,8 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
   // ── CAMPOS VINCULADOS A ODI (Update) ──
   var CAMPOS_ODI_VINCULADOS = ['#referencia'];
-  var SELECT2_ODI_VINCULADOS = ['#id_cliente', '#id_empleado', '#id_disenador_industrial', '#id_disenador_grafico'];
+  // El Cliente se selecciona siempre manualmente en la OP (no se vincula a la ODI)
+  var SELECT2_ODI_VINCULADOS = ['#id_empleado', '#id_disenador_industrial', '#id_disenador_grafico'];
 
   function bloquearCamposODI() {
     CAMPOS_ODI_VINCULADOS.forEach(function(sel) {
@@ -993,7 +994,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
   function limpiarCamposODI() {
     $('#referencia').val('');
-    $('#id_cliente').val(null).trigger('change');
+    // El Cliente no se limpia: es de selección manual, independiente de la ODI
     $('#id_empleado').val(null).trigger('change');
     $('#id_disenador_industrial').val(null).trigger('change');
     $('#id_disenador_grafico').val(null).trigger('change');
@@ -1051,13 +1052,9 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     $('#id_odi_fk_hidden').val(d.id || '');
     $('#odi_codigo_texto').val(d.codigo_odi || '');
 
-    // Auto-rellenar campos con datos de la ODI
+    // Auto-rellenar campos con datos de la ODI (el Cliente se deja para selección manual)
     $('#referencia').val(d.proyecto || '');
 
-    if (d.id_cliente && d.nombre_cliente) {
-      var optC = new Option(d.nombre_cliente, d.id_cliente, true, true);
-      $('#id_cliente').empty().append(optC).trigger('change');
-    }
     if (d.id_empleado && d.nombre_comercial) {
       var optV = new Option(d.nombre_comercial, d.id_empleado, true, true);
       $('#id_empleado').empty().append(optV).trigger('change');
@@ -2269,6 +2266,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     }
 
     let piezasValidas = true;
+    let faltanEspecificaciones = false;
     const piezasArray = [];
     $('.piece-form-group').each(function(index) {
         const $pieceGroup = $(this);
@@ -2296,7 +2294,19 @@ if (imageUpload && imagePreview && deleteImageBtn) {
  
         // Ya no se valida si actividadSelect tiene valor, solo se limpia el estado de error si existiera.
         actividadSelect.next('.select2-container').removeClass('is-invalid-select2');
- 
+
+        // Especificaciones obligatorias: la pieza debe tener al menos una fila con datos
+        const espPieza = $pieceGroup.data('especificaciones-pieza') || [];
+        const tieneEspecificaciones = espPieza.some(esp => Object.values(esp).some(val => val !== '' && val !== null && val !== undefined));
+        const $btnEsp = $(`.open-especificaciones-pieza-modal-btn[data-piece-suffix="${suffix}"]`);
+        if (!tieneEspecificaciones) {
+            piezaActualValida = false;
+            faltanEspecificaciones = true;
+            $btnEsp.removeClass('btn-warning btn-info').addClass('btn-danger');
+        } else {
+            $btnEsp.removeClass('btn-danger');
+        }
+
         if (!piezaActualValida) { piezasValidas = false; }
 
         if (piezaActualValida) { 
@@ -2326,7 +2336,9 @@ if (imageUpload && imagePreview && deleteImageBtn) {
       $(form).addClass('was-validated');
       if (!formValido) $(form).find(':invalid, .is-invalid, .is-invalid-select2 .select2-selection').first().focus();
       else if (!piezasValidas) {
-          alert("Por favor, complete todos los campos requeridos para cada pieza.");
+          alert(faltanEspecificaciones
+            ? "Cada pieza debe tener al menos una Especificación registrada. Revise las piezas marcadas en rojo."
+            : "Por favor, complete todos los campos requeridos para cada pieza.");
           $('.piece-form-group').find('.is-invalid, .is-invalid-select2 .select2-selection').first().focus();
       }
       return false; 

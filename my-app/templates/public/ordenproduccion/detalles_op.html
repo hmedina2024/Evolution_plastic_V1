@@ -183,6 +183,37 @@
       </div>
     </div>
 
+    <!-- Matriz de dificultad por proceso -->
+    {% if detalle_op.procesos_dificultad %}
+    <div class="row g-4 mt-1">
+      <div class="col-md-12">
+        <label class="form-label fw-bold text-primary">Dificultad por Proceso</label>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Proceso</th>
+                <th class="text-center">Dificultad (1-10)</th>
+                <th class="text-center">Tiempo (días)</th>
+                <th class="text-center">Tiempo (horas)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in detalle_op.procesos_dificultad %}
+              <tr>
+                <td>{{ p.nombre_proceso }}</td>
+                <td class="text-center">{{ p.dificultad if p.dificultad is not none else 'Sin definir' }}</td>
+                <td class="text-center">{{ p.tiempo_dias if p.tiempo_dias is not none else '—' }}</td>
+                <td class="text-center">{{ p.tiempo_horas if p.tiempo_horas is not none else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Renders -->
     <h4 class="fw-bold text-primary mt-5 mb-3">IMAGEN DE REFERENCIA</h4>
     {% if detalle_op.renders %}
