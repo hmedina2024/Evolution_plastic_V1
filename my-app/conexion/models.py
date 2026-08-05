@@ -171,6 +171,8 @@ class Operaciones(db.Model):
     id_actividad = db.Column(db.Integer, db.ForeignKey('tbl_actividades.id_actividad'), nullable=True)
     # FK a OrdenProduccion
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op'), nullable=True)
+    # FK a OrdenDisenoIndustrial (alternativa a id_op: solo una de las dos)
+    id_odi = db.Column(db.Integer, db.ForeignKey('tbl_ordendisenoindustrial.id_odi'), nullable=True)
     cantidad = db.Column(db.Integer, nullable=True)
     pieza_realizada = db.Column(db.String(100), nullable=True)
     novedad = db.Column(db.Text, nullable=True)
@@ -185,6 +187,7 @@ class Operaciones(db.Model):
     proceso_rel = db.relationship('Procesos', back_populates='operaciones')
     actividad_rel = db.relationship('Actividades', backref='operaciones')
     orden_produccion = db.relationship('OrdenProduccion', backref='operaciones')
+    orden_diseno = db.relationship('OrdenDisenoIndustrial', backref='operaciones')
     usuario_reg = db.relationship('Users', backref='operaciones_registradas')
 
 # --- Modelo Jornadas ---

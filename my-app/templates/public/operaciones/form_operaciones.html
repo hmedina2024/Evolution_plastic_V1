@@ -3,6 +3,13 @@
 {% block customCSS %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/file.css') }}" />
+<style>
+  /* Fix responsivo: evita que Select2 conserve un ancho fijo (px) al reducir
+     la pantalla y termine desbordando/remontándose sobre otros elementos. */
+  .select2-container { max-width: 100%; }
+  #wrap_id_op .select2-container,
+  #wrap_id_odi .select2-container { width: 100% !important; display: block; }
+</style>
 {% endblock %}
 
 {% block body %}
@@ -14,7 +21,7 @@
     <form class="form-horizontal mx-auto" method="POST" action="/form-registrar-operacion" autocomplete="off" enctype="multipart/form-data" id="registroForm">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="row g-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label for="id_empleado" class="form-label fw-bold text-primary">Nombre Empleado <span class="text-danger">*</span></label>
           <select name="id_empleado" id="id_empleado" class="form-control select2" required></select>
         </div>
@@ -26,9 +33,20 @@
           <label for="id_actividad" class="form-label fw-bold text-primary">Actividad <span class="text-danger">*</span></label>
           <select name="id_actividad" id="id_actividad" class="form-control select2" required></select>
         </div>
-        <div class="col-md-2">
-          <label for="id_op" class="form-label fw-bold text-primary">Orden de Producción <span class="text-danger">*</span></label>
-          <select name="id_op" id="id_op" class="form-control select2" required></select>
+        <div class="col-md-3">
+          <label class="form-label fw-bold text-primary d-block">Referencia <span class="text-danger">*</span></label>
+          <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Tipo de referencia">
+            <input type="radio" class="btn-check" name="tipo_referencia" id="tipo_op" value="op" checked>
+            <label class="btn btn-outline-primary" for="tipo_op">OP</label>
+            <input type="radio" class="btn-check" name="tipo_referencia" id="tipo_odi" value="odi">
+            <label class="btn btn-outline-primary" for="tipo_odi">ODI</label>
+          </div>
+          <div id="wrap_id_op">
+            <select name="id_op" id="id_op" class="form-control select2" style="width:100%"></select>
+          </div>
+          <div id="wrap_id_odi" style="display:none;">
+            <select name="id_odi" id="id_odi" class="form-control select2" style="width:100%"></select>
+          </div>
         </div>
         <hr>
     <div>
@@ -305,6 +323,48 @@ $(document).ready(function () {
     });
     setupSelect2('id_op', '/api/ordenes-produccion', 'Buscar OP...', 'ordenes', 'id_op', 'codigo_op');
 
+    // Select2 de ODI (el endpoint ya devuelve el formato nativo {results, pagination})
+    $('#id_odi').select2({
+        placeholder: 'Buscar ODI...',
+        allowClear: true,
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        width: '100%',
+        ajax: {
+            url: '/api/ordenes-diseno-industrial',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ search: params.term || '', page: params.page || 1, per_page: 10 }),
+            processResults: data => data,
+            cache: true
+        }
+    }).on('select2:open', function () {
+        setTimeout(() => { document.querySelector('.select2-search__field').focus(); }, 50);
+    });
+
+    // --- Toggle Referencia: OP u ODI (solo una) ---
+    function aplicarTipoReferencia() {
+        const tipo = $('input[name="tipo_referencia"]:checked').val();
+        if (tipo === 'odi') {
+            $('#wrap_id_op').hide();
+            $('#wrap_id_odi').show();
+            $('#id_op').val(null).trigger('change');   // limpiar la que no se usa
+        } else {
+            $('#wrap_id_odi').hide();
+            $('#wrap_id_op').show();
+            $('#id_odi').val(null).trigger('change');
+        }
+    }
+    $('input[name="tipo_referencia"]').on('change', aplicarTipoReferencia);
+    aplicarTipoReferencia(); // estado inicial (OP por defecto)
+
+    // Devuelve true si hay una referencia válida seleccionada segun el tipo
+    function referenciaValida() {
+        const tipo = $('input[name="tipo_referencia"]:checked').val();
+        if (tipo === 'odi') return !!$('#id_odi').val();
+        return !!$('#id_op').val();
+    }
+
     // Validaciones de fechas (sin cambios)
     const horaInicioInput = $('#fecha_hora_inicio');
     const horaFinInput = $('#fecha_hora_fin');
@@ -357,6 +417,10 @@ $(document).ready(function () {
     horaFinInput.on('change', validateDates);
 
     submitBtn.on('click', function () {
+        if (!referenciaValida()) {
+            alert('Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI).');
+            return;
+        }
         actionInput.val('save');
         $('#registroForm').submit();
     });
@@ -365,6 +429,10 @@ $(document).ready(function () {
         e.preventDefault();
         validateDates();
         if (submitNotifyBtn.prop('disabled')) {
+            return;
+        }
+        if (!referenciaValida()) {
+            alert('Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI).');
             return;
         }
 

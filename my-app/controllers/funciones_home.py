@@ -1434,6 +1434,7 @@ def procesar_form_operacion(dataForm):
         id_proceso = dataForm.get('id_proceso')
         id_actividad = dataForm.get('id_actividad')
         id_op = dataForm.get('id_op')
+        id_odi = dataForm.get('id_odi')
         cantidad = dataForm.get('cantidad')
         pieza_realizada = dataForm.get('pieza_realizada')
         novedad = dataForm.get('novedad')
@@ -1441,15 +1442,24 @@ def procesar_form_operacion(dataForm):
         fecha_hora_fin = dataForm.get('fecha_hora_fin')
         action = dataForm.get('action')
         mensaje_personalizado = dataForm.get('mensaje_personalizado')
-        
+
         destinatarios_ids_str = dataForm.get('destinatarios')
 
         app.logger.debug(f"Valor de action recibido: {action}")
 
-        # Validar campos obligatorios
-        if not all([id_empleado, id_proceso, id_actividad, id_op, cantidad, fecha_hora_inicio, fecha_hora_fin]):
+        # Normalizar valores vacíos a None para la referencia
+        id_op = id_op if id_op not in (None, '', 'null') else None
+        id_odi = id_odi if id_odi not in (None, '', 'null') else None
+
+        # Validar campos obligatorios (la referencia OP/ODI se valida aparte)
+        if not all([id_empleado, id_proceso, id_actividad, cantidad, fecha_hora_inicio, fecha_hora_fin]):
             app.logger.error("Faltan campos requeridos en el formulario")
             return "Faltan campos requeridos en el formulario"
+
+        # Debe asignarse EXACTAMENTE una referencia: OP u ODI (no ambas, no ninguna)
+        if bool(id_op) == bool(id_odi):
+            app.logger.error("Debe seleccionarse una OP o una ODI (solo una).")
+            return "Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI), pero no ambas."
 
         # Convertir cantidad a entero
         try:
@@ -1466,13 +1476,16 @@ def procesar_form_operacion(dataForm):
                 "No se encontró el empleado con el ID especificado")
             return "No se encontró el empleado con el ID especificado"
 
-        # Convertir id_op a entero
+        # Convertir la referencia elegida a entero
         try:
-            id_op = int(id_op)
+            if id_op is not None:
+                id_op = int(id_op)
+            if id_odi is not None:
+                id_odi = int(id_odi)
         except (ValueError, TypeError):
             app.logger.error(
-                "El código de la orden de producción no es válido")
-            return "El código de la orden de producción no es válido"
+                "La referencia seleccionada (OP/ODI) no es válida")
+            return "La referencia seleccionada (OP u ODI) no es válida"
 
         # Obtener el ID del usuario desde la sesión (ajusta según cómo almacenes el ID)
         # Ajusta 'user_id' al nombre correcto de la clave en tu sesión
@@ -1487,6 +1500,7 @@ def procesar_form_operacion(dataForm):
             id_proceso=id_proceso,
             id_actividad=id_actividad,
             id_op=id_op,
+            id_odi=id_odi,
             cantidad=cantidad,
             pieza_realizada=pieza_realizada,
             novedad=novedad,
@@ -1540,10 +1554,19 @@ def procesar_form_operacion(dataForm):
                     nombre_proceso = proceso.nombre_proceso if proceso else f"ID Proceso no encontrado ({id_proceso})"
                     nombre_actividad = actividad.nombre_actividad if actividad else f"ID Actividad no encontrado ({id_actividad})"
 
-                    orden_produccion = OrdenProduccion.query.get(id_op)
-                    codigo_op_a_mostrar = orden_produccion.codigo_op if orden_produccion else id_op
-                    op = db.session.query(OrdenProduccion).filter_by(codigo_op=codigo_op_a_mostrar).first()
-                    cliente = db.session.query(Clientes).get(orden_produccion.id_cliente) if orden_produccion else None
+                    # Datos de la referencia elegida (OP u ODI) para el correo
+                    if id_op is not None:
+                        orden_produccion = OrdenProduccion.query.get(id_op)
+                        referencia_label = "Orden de Producción"
+                        referencia_codigo = orden_produccion.codigo_op if orden_produccion else id_op
+                        producto = orden_produccion.producto if orden_produccion else 'N/A'
+                        cliente = db.session.query(Clientes).get(orden_produccion.id_cliente) if orden_produccion else None
+                    else:
+                        odi = OrdenDisenoIndustrial.query.get(id_odi)
+                        referencia_label = "Orden de Diseño Industrial"
+                        referencia_codigo = odi.codigo_odi if odi else id_odi
+                        producto = (odi.pieza or odi.proyecto or 'N/A') if odi else 'N/A'
+                        cliente = db.session.query(Clientes).get(odi.id_cliente) if (odi and odi.id_cliente) else None
                     nombre_cliente = cliente.nombre_cliente if cliente else "Cliente no encontrado"
                     
                     # CONFIGURACIÓN GMAIL (Específica para este módulo)
@@ -1562,11 +1585,11 @@ def procesar_form_operacion(dataForm):
                     
                     - Cliente: {nombre_cliente}
                     - Empleado: {empleado.nombre_empleado} {empleado.apellido_empleado or ''}
-                    - Proceso: {nombre_proceso} 
-                    - Actividad: {nombre_actividad} 
-                    - Orden de Producción: {codigo_op_a_mostrar}
+                    - Proceso: {nombre_proceso}
+                    - Actividad: {nombre_actividad}
+                    - {referencia_label}: {referencia_codigo}
                     - Cantidad Realizada: {cantidad}
-                    - Producto: {op.producto}
+                    - Producto: {producto}
                     - Fecha y Hora Inicio: {fecha_hora_inicio}
                     - Fecha y Hora Fin: {fecha_hora_fin}
                     - Pieza Realizada: {pieza_realizada if pieza_realizada else 'No especificada'}
@@ -1692,7 +1715,7 @@ def buscar_operaciones_bd(empleado_filter, fecha_filter, hora_filter, start, len
             func.concat(Empleados.nombre_empleado, ' ', Empleados.apellido_empleado).label('empleado_nombre'),
             Procesos.nombre_proceso.label('proceso_nombre'),
             Actividades.nombre_actividad.label('actividad_nombre'),
-            OrdenProduccion.codigo_op.label('orden_codigo_op'),
+            func.coalesce(OrdenProduccion.codigo_op, OrdenDisenoIndustrial.codigo_odi).label('orden_codigo_op'),
             Operaciones.cantidad,
             Operaciones.fecha_registro
             # Añade aquí otros campos de Operaciones si los necesitas devolver en el JSON
@@ -1705,7 +1728,8 @@ def buscar_operaciones_bd(empleado_filter, fecha_filter, hora_filter, start, len
             .outerjoin(Empleados, Operaciones.id_empleado == Empleados.id_empleado) \
             .outerjoin(Procesos, Operaciones.id_proceso == Procesos.id_proceso) \
             .outerjoin(Actividades, Operaciones.id_actividad == Actividades.id_actividad) \
-            .outerjoin(OrdenProduccion, Operaciones.id_op == OrdenProduccion.id_op)
+            .outerjoin(OrdenProduccion, Operaciones.id_op == OrdenProduccion.id_op) \
+            .outerjoin(OrdenDisenoIndustrial, Operaciones.id_odi == OrdenDisenoIndustrial.id_odi)
         # .outerjoin(Users, Operaciones.id_usuario_registro == Users.id) # Ejemplo de join adicional
 
         # --- Total de Registros (sin filtros) ---
@@ -1837,7 +1861,16 @@ def sql_detalles_operaciones_bd(id_operacion):
             proceso = operacion_obj.proceso_rel
             actividad = operacion_obj.actividad_rel
             orden = operacion_obj.orden_produccion
-            
+            odi = operacion_obj.orden_diseno
+
+            # Referencia: OP u ODI (solo una)
+            if orden:
+                tipo_referencia, codigo_referencia = 'OP', orden.codigo_op
+            elif odi:
+                tipo_referencia, codigo_referencia = 'ODI', odi.codigo_odi
+            else:
+                tipo_referencia, codigo_referencia = '—', 'Sin referencia'
+
             # Obtener el usuario que registró la operación a través de la relación 'usuario_reg'
             usuario_que_registro = operacion_obj.usuario_reg
             nombre_usuario_registro = usuario_que_registro.name_surname if usuario_que_registro else 'Desconocido'
@@ -1848,7 +1881,9 @@ def sql_detalles_operaciones_bd(id_operacion):
                 'nombre_empleado': f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip() if empleado else 'Desconocido',
                 'proceso': proceso.nombre_proceso if proceso else 'Desconocido',
                 'actividad': actividad.nombre_actividad if actividad else 'Desconocido',
-                'codigo_op': orden.codigo_op if orden else 'Desconocido',
+                'tipo_referencia': tipo_referencia,
+                'codigo_referencia': codigo_referencia,
+                'codigo_op': codigo_referencia,  # compatibilidad con la plantilla existente
                 'cantidad': operacion_obj.cantidad,
                 'pieza_realizada': operacion_obj.pieza_realizada,
                 'novedad': operacion_obj.novedad,
@@ -1874,6 +1909,7 @@ def buscar_operacion_unico(id):
             proceso = operacion.proceso_rel
             actividad = operacion.actividad_rel
             orden = operacion.orden_produccion
+            odi = operacion.orden_diseno
 
             return {
                 'id_operacion': operacion.id_operacion,
@@ -1884,7 +1920,10 @@ def buscar_operacion_unico(id):
                 'id_actividad': operacion.id_actividad,
                 'actividad': actividad.nombre_actividad if actividad else 'Desconocido',
                 'id_op': operacion.id_op,
-                'codigo_op': orden.codigo_op if orden else 'Desconocido',
+                'codigo_op': orden.codigo_op if orden else '',
+                'id_odi': operacion.id_odi,
+                'codigo_odi': odi.codigo_odi if odi else '',
+                'tipo_referencia': 'odi' if operacion.id_odi else 'op',
                 'cantidad': operacion.cantidad,
                 'pieza': operacion.pieza_realizada,
                 'novedad': operacion.novedad,
@@ -1912,8 +1951,18 @@ def procesar_actualizacion_operacion(data):
                 'id_proceso') else operacion.id_proceso
             operacion.id_actividad = int(data.form.get('id_actividad')) if data.form.get(
                 'id_actividad') else operacion.id_actividad
-            operacion.id_op = int(data.form.get('id_op')) if data.form.get(
-                'id_op') else operacion.id_op
+
+            # Referencia: OP u ODI (exactamente una). Se asigna explícitamente para
+            # limpiar la que ya no aplique si el usuario cambió de tipo.
+            id_op_raw = data.form.get('id_op')
+            id_odi_raw = data.form.get('id_odi')
+            id_op_val = int(id_op_raw) if id_op_raw not in (None, '', 'null') else None
+            id_odi_val = int(id_odi_raw) if id_odi_raw not in (None, '', 'null') else None
+            if bool(id_op_val) == bool(id_odi_val):
+                raise ValueError("Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI), pero no ambas.")
+            operacion.id_op = id_op_val
+            operacion.id_odi = id_odi_val
+
             operacion.cantidad = int(data.form.get('cantidad')) if data.form.get(
                 'cantidad') else operacion.cantidad
             operacion.pieza_realizada = data.form.get('pieza') if data.form.get(

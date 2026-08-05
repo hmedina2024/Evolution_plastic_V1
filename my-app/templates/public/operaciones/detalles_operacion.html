@@ -32,8 +32,10 @@
         <div class="form-control" readonly>{{ detalle_operacion.actividad }}</div>
       </div>
       <div class="col-md-3">
-        <label for="codigo_op" class="form-label fw-bold text-primary">CÓDIGO OP</label>
-        <div class="form-control" readonly>{{ detalle_operacion.codigo_op }}</div>
+        <label for="codigo_referencia" class="form-label fw-bold text-primary">
+          {% if detalle_operacion.tipo_referencia == 'ODI' %}CÓDIGO ODI{% else %}CÓDIGO OP{% endif %}
+        </label>
+        <div class="form-control" readonly>{{ detalle_operacion.codigo_referencia }}</div>
       </div>
     </div>
     <div class="row g-4 mt-3">
