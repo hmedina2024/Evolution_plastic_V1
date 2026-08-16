@@ -62,6 +62,10 @@ _ALLOWED_DOC_MIMES = {
     'image/vnd.dxf',
     'application/postscript',
     'application/octet-stream',  # DXF/AI pueden reportarse así
+    # Documentos OLE2 antiguos (.doc, .xls, .ppt) que libmagic reporta de forma genérica
+    'application/CDFV2',
+    'application/CDFV2-corrupt',
+    'application/x-ole-storage',
     'image/jpeg',
     'image/png',
     'image/jpg',
@@ -2217,15 +2221,18 @@ def procesar_form_op(dataForm, files):
 
     documentos_a_guardar = []
     documentos_adjuntos_files = files.getlist('documentos')
-    for doc_file_storage in documentos_adjuntos_files:
+    documentos_procesos_form = dataForm.getlist('documentos_procesos[]')  # proceso por doc (mismo orden)
+    for idx_doc, doc_file_storage in enumerate(documentos_adjuntos_files):
         if doc_file_storage and doc_file_storage.filename:
             valido, nombre_archivo_o_msg = procesar_imagen_perfil(doc_file_storage, 'documentos_op', ALLOWED_DOC_EXTENSIONS, _ALLOWED_DOC_MIMES)
             if not valido:
                 errores.append(f"Documento '{secure_filename(doc_file_storage.filename)}': {nombre_archivo_o_msg}")
             elif nombre_archivo_o_msg:
+                proc_doc_raw = documentos_procesos_form[idx_doc] if idx_doc < len(documentos_procesos_form) else ''
                 documentos_a_guardar.append({
                     "path": os.path.basename(nombre_archivo_o_msg),
-                    "nombre_original": secure_filename(doc_file_storage.filename)
+                    "nombre_original": secure_filename(doc_file_storage.filename),
+                    "id_proceso_raw": proc_doc_raw
                 })
 
     # --- 3. Validación de Piezas Dinámicas ---
@@ -2439,8 +2446,14 @@ def procesar_form_op(dataForm, files):
             db.session.add(nuevo_render)
 
         for doc_info in documentos_a_guardar:
+            # Resolver el proceso: solo si es uno de los procesos asociados a la OP
+            id_proc_doc = None
+            raw_proc = doc_info.get("id_proceso_raw")
+            if raw_proc and str(raw_proc).strip().isdigit() and int(raw_proc) in ids_procesos_a_asociar:
+                id_proc_doc = int(raw_proc)
             nuevo_documento = DocumentosOP(
                 id_op=orden.id_op,
+                id_proceso=id_proc_doc,
                 documento_path=doc_info["path"],
                 documento_nombre_original=doc_info["nombre_original"]
             )
@@ -2807,7 +2820,7 @@ def sql_detalles_op_bd(codigo_op):
         ).first()
 
         if not result:
-            app.logger.warning(f"No se encontró la orden de producción con id_op={id_op}")
+            app.logger.warning(f"No se encontró la orden de producción con codigo_op={codigo_op}")
             return None
 
         orden_obj, nombre_cliente, nombre_completo_vendedor, nombre_supervisor, nombre_disenador_grafico, nombre_disenador_industrial,nombre_costeador, nombre_usuario_registro = result
@@ -2939,7 +2952,8 @@ def sql_detalles_op_bd(codigo_op):
         documentos = [{
             'id_documento': doc.id_documento, # Añadido por si es útil en el template
             'documento_path': doc.documento_path,
-            'documento_nombre_original': doc.documento_nombre_original
+            'documento_nombre_original': doc.documento_nombre_original,
+            'proceso': doc.proceso.nombre_proceso if doc.proceso else None
         } for doc in orden_obj.documentos if doc.fecha_borrado is None]
         
         # URLs de la OP
@@ -2992,7 +3006,7 @@ def sql_detalles_op_bd(codigo_op):
         return detalle_op_data
 
     except Exception as e:
-        app.logger.error(f"Error en la función sql_detalles_op_bd para id_op={id_op}: {str(e)}", exc_info=True) # exc_info=True para traceback completo
+        app.logger.error(f"Error en la función sql_detalles_op_bd para codigo_op={codigo_op}: {str(e)}", exc_info=True) # exc_info=True para traceback completo
         return None
 
 def serializar_snapshot_op(orden):
@@ -3254,7 +3268,8 @@ def obtener_datos_op_para_edicion(codigo_op):
                 {
                     'id_documento': d.id_documento,
                     'documento_path': d.documento_path,
-                    'documento_nombre_original': d.documento_nombre_original
+                    'documento_nombre_original': d.documento_nombre_original,
+                    'id_proceso': d.id_proceso
                 }
                 for d in orden.documentos
             ],
@@ -3616,16 +3631,17 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                 app.logger.warning(f"Se intentó eliminar DocumentoOP ID {doc_id_int} que no pertenece a OP {codigo_op}.")
 
     nuevos_documentos_storage_list = files.getlist('documentos_nuevos[]')
+    nuevos_documentos_procesos = dataForm.getlist('documentos_nuevos_procesos[]')  # proceso por doc nuevo (mismo orden)
     documentos_info_para_guardar = []
-    
-    for doc_file_s_item in nuevos_documentos_storage_list:
+
+    for idx_nd, doc_file_s_item in enumerate(nuevos_documentos_storage_list):
         if doc_file_s_item and doc_file_s_item.filename:
             filename_s_seguro_item = secure_filename(doc_file_s_item.filename)
             extension_s_item = os.path.splitext(filename_s_seguro_item)[1].lower().strip('.')
             if extension_s_item not in ALLOWED_DOC_EXTENSIONS:
                 errores.append(f"Documento '{filename_s_seguro_item}': Extensión .{extension_s_item} no permitida.")
                 continue
-            
+
             valido_d_item, nombre_d_servidor_o_msg = procesar_imagen_perfil(doc_file_s_item, 'documentos_op', ALLOWED_DOC_EXTENSIONS, _ALLOWED_DOC_MIMES)
             if not valido_d_item: # procesar_imagen_perfil ya guardó el archivo si es valido_d_item es True
                 errores.append(f"Documento '{filename_s_seguro_item}': {nombre_d_servidor_o_msg}")
@@ -3633,7 +3649,8 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                 documentos_info_para_guardar.append({
                     'nombre_servidor': nombre_d_servidor_o_msg,
                     'nombre_original': filename_s_seguro_item,
-                    'tipo_archivo': extension_s_item
+                    'tipo_archivo': extension_s_item,
+                    'id_proceso_raw': nuevos_documentos_procesos[idx_nd] if idx_nd < len(nuevos_documentos_procesos) else ''
                 })
                 app.logger.debug(f"Nuevo documento '{filename_s_seguro_item}' validado y archivo físico guardado. Servidor: '{nombre_d_servidor_o_msg}'.")
 
@@ -3957,13 +3974,37 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
         # 2. Añadir los nuevos (archivos físicos ya guardados por procesar_imagen_perfil)
         if documentos_info_para_guardar: # Solo iterar si hay nuevos documentos
             for doc_info_v_db_val in documentos_info_para_guardar:
+                # Resolver el proceso: solo si es uno de los procesos asociados a la OP
+                id_proc_doc_new = None
+                raw_proc_new = doc_info_v_db_val.get('id_proceso_raw')
+                if raw_proc_new and str(raw_proc_new).strip().isdigit() and int(raw_proc_new) in ids_procesos_validados_global:
+                    id_proc_doc_new = int(raw_proc_new)
                 nuevo_doc_bd_obj_val = DocumentosOP(
                     id_op=orden.id_op,
+                    id_proceso=id_proc_doc_new,
                     documento_path=doc_info_v_db_val['nombre_servidor'], # Corregido
                     documento_nombre_original=doc_info_v_db_val['nombre_original'] # Corregido
                     # Corregido: Se eliminan tipo_archivo e id_usuario_registro
                 )
                 db.session.add(nuevo_doc_bd_obj_val)
+
+        # 2b. Actualizar el proceso de los documentos EXISTENTES (map {id_documento: id_proceso})
+        try:
+            docs_exist_proc_map = json.loads(dataForm.get('documentos_existentes_procesos') or '{}')
+        except Exception:
+            docs_exist_proc_map = {}
+        if isinstance(docs_exist_proc_map, dict):
+            for doc_id_str, proc_val in docs_exist_proc_map.items():
+                if not str(doc_id_str).isdigit():
+                    continue
+                doc_exist = DocumentosOP.query.filter_by(
+                    id_documento=int(doc_id_str), id_op=orden.id_op
+                ).first()
+                if doc_exist and int(doc_id_str) not in ids_documentos_a_eliminar_validados:
+                    nuevo_proc = None
+                    if proc_val and str(proc_val).strip().isdigit() and int(proc_val) in ids_procesos_validados_global:
+                        nuevo_proc = int(proc_val)
+                    doc_exist.id_proceso = nuevo_proc
             
         # URLs
         OrdenProduccionURLs.query.filter_by(id_op=orden.id_op).delete()
@@ -5462,11 +5503,14 @@ def generar_pdf_op_func(detalle_op, codigo_op):
         elements.append(Spacer(1, 10))
         elements.append(Paragraph("Documentos Adjuntos", style_subtitulo))
         
-        data_docs = [['Nombre del Archivo']]
+        data_docs = [['Nombre del Archivo', 'Proceso']]
         for documents in detalle_op['documentos']:
-            data_docs.append([p_cell(documents.get('documento_nombre_original', 'N/A'))])  # Usar nombre original del archivo
+            data_docs.append([
+                p_cell(documents.get('documento_nombre_original', 'N/A')),  # Usar nombre original del archivo
+                p_cell(documents.get('proceso') or 'Sin asignar')
+            ])
 
-        t_docs = Table(data_docs, colWidths=[6*inch])
+        t_docs = Table(data_docs, colWidths=[4.2*inch, 1.8*inch])
         t_docs.setStyle(TableStyle([
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#395c83")),  # Header azul

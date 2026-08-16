@@ -870,26 +870,65 @@ $(document).ready(function () {
   });
 
   // --- INICIO: Lógica para "Cargar Documentos" ---
-  let selectedFiles = []; 
+  let selectedFiles = [];
   const documentosInput = document.getElementById('documentos');
   const fileListUl = document.getElementById('fileList');
-  
+
+  // Procesos globales seleccionados en la OP (excluye "Otro" personalizado sin ID numérico)
+  function getProcesosOP() {
+    const $sel = $('#op_ids_procesos');
+    let data;
+    if ($sel.hasClass('select2-hidden-accessible')) {
+      data = $sel.select2('data') || [];
+    } else {
+      // Select2 aún no inicializado: leer las opciones seleccionadas directamente
+      data = $sel.find('option:selected').map(function () {
+        return { id: this.value, text: this.textContent };
+      }).get();
+    }
+    return data
+      .filter(p => p.id && /^\d+$/.test(String(p.id)))
+      .map(p => ({ id: String(p.id), text: p.text }));
+  }
+
+  // Construye el <select> de proceso para un documento
+  function buildProcesoSelect(item) {
+    const select = document.createElement('select');
+    select.className = 'form-select form-select-sm doc-proceso-select';
+    select.style.maxWidth = '220px';
+    select.appendChild(new Option('— Sin proceso —', ''));
+    getProcesosOP().forEach(p => {
+      const o = new Option(p.text, p.id);
+      if (String(item.id_proceso || '') === p.id) o.selected = true;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () { item.id_proceso = this.value; });
+    return select;
+  }
+
   function renderFileList() {
-    fileListUl.innerHTML = ''; 
+    fileListUl.innerHTML = '';
     if (selectedFiles.length > 0) {
       selectedFiles.forEach((file, index) => {
         const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2';
+        li.className = 'list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 py-1 px-2';
         const fileNameSpan = document.createElement('span');
+        fileNameSpan.className = 'text-break';
+        fileNameSpan.style.cssText = 'flex:1 1 200px; min-width:0;';
         fileNameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
         li.appendChild(fileNameSpan);
+
+        const rightGroup = document.createElement('div');
+        rightGroup.className = 'd-flex align-items-center gap-2 flex-shrink-0';
+        rightGroup.appendChild(buildProcesoSelect(file));
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'btn btn-danger btn-sm py-0 px-1';
         deleteBtn.innerHTML = '<i class="bi bi-trash" style="font-size: 0.8rem;"></i>';
         deleteBtn.title = 'Eliminar archivo';
         deleteBtn.addEventListener('click', function() { removeFileFromList(index); });
-        li.appendChild(deleteBtn);
+        rightGroup.appendChild(deleteBtn);
+        li.appendChild(rightGroup);
         fileListUl.appendChild(li);
       });
     } else {
@@ -901,8 +940,8 @@ $(document).ready(function () {
   }
 
   function removeFileFromList(indexToRemove) {
-    selectedFiles.splice(indexToRemove, 1); 
-    renderFileList(); 
+    selectedFiles.splice(indexToRemove, 1);
+    renderFileList();
   }
 
   if (documentosInput && fileListUl) {
@@ -910,13 +949,16 @@ $(document).ready(function () {
       const newFiles = Array.from(event.target.files);
       newFiles.forEach(newFile => {
         if (!selectedFiles.some(existingFile => existingFile.name === newFile.name)) {
+          newFile.id_proceso = '';
           selectedFiles.push(newFile);
         }
       });
-      renderFileList(); 
-      event.target.value = null; 
+      renderFileList();
+      event.target.value = null;
     });
   }
+  // Al cambiar los procesos globales de la OP, refrescar las opciones de cada documento
+  $('#op_ids_procesos').on('change', renderFileList);
   renderFileList();
   // --- FIN: Lógica para "Cargar Documentos" ---
 
@@ -2008,6 +2050,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
     if (selectedFiles && selectedFiles.length > 0) {
       selectedFiles.forEach(file => {
         formData.append('documentos', file, file.name); // El tercer argumento (filename) es importante
+        formData.append('documentos_procesos[]', file.id_proceso || ''); // Proceso asignado (mismo orden)
       });
     }
     

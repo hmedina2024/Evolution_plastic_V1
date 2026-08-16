@@ -267,10 +267,14 @@ class DocumentosOP(db.Model):
     __tablename__ = 'tbl_documentos_op'
     id_documento = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    # Proceso de la OP al que se asigna el documento (opcional)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso'), nullable=True)
     documento_path = db.Column(db.String(255), nullable=False)
     documento_nombre_original = db.Column(db.String(255), nullable=False)  # Nuevo campo
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    proceso = db.relationship('Procesos', lazy=True)
 
 class RendersOP(db.Model):
     __tablename__ = 'tbl_renders_op'

@@ -287,10 +287,14 @@
         <a
           href="{{ url_for('static', filename='documentos_op/' ~ doc.documento_path) }}"
           download="{{ doc.documento_nombre_original }}"
-          class="btn btn-outline-primary">
+          class="btn btn-outline-primary w-100 text-truncate">
           <i class="bi bi-download"></i> Descargar {{
           doc.documento_nombre_original }}
         </a>
+        <div class="small text-muted mt-1">
+          <i class="bi bi-diagram-3"></i> Proceso:
+          {{ doc.proceso if doc.proceso else 'Sin asignar' }}
+        </div>
       </div>
       {% endfor %}
     </div>
