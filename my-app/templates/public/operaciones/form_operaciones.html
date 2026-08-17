@@ -421,6 +421,11 @@ $(document).ready(function () {
             alert('Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI).');
             return;
         }
+        const form = document.getElementById('registroForm');
+        if (!form.checkValidity()) {
+            form.reportValidity(); // muestra los mensajes nativos (ej. Cantidad requerida)
+            return;
+        }
         actionInput.val('save');
         $('#registroForm').submit();
     });
@@ -433,6 +438,11 @@ $(document).ready(function () {
         }
         if (!referenciaValida()) {
             alert('Debe seleccionar una Orden de Producción (OP) o una Orden de Diseño Industrial (ODI).');
+            return;
+        }
+        const formNotify = document.getElementById('registroForm');
+        if (!formNotify.checkValidity()) {
+            formNotify.reportValidity(); // valida antes de abrir el modal de destinatarios
             return;
         }
 

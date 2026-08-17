@@ -71,6 +71,19 @@ _ALLOWED_DOC_MIMES = {
     'image/jpg',
 }
 
+# --- Configuración de correo (leída del .env; NO hardcodear contraseñas) ---
+# Cuenta del módulo de Operaciones (Gmail)
+MAIL_OPS_SENDER = os.getenv('MAIL_OPS_SENDER', 'evolutioncontrolweb@gmail.com')
+MAIL_OPS_PASSWORD = os.getenv('MAIL_OPS_PASSWORD', '')
+MAIL_OPS_SERVER = os.getenv('MAIL_OPS_SERVER', 'smtp.gmail.com')
+MAIL_OPS_PORT = int(os.getenv('MAIL_OPS_PORT', '465'))
+
+# Cuenta del módulo de OP/ODI (cPanel Evolution Plastic)
+MAIL_OP_SENDER = os.getenv('MAIL_OP_SENDER', 'sistema.datos@evolutionplastic.com')
+MAIL_OP_PASSWORD = os.getenv('MAIL_OP_PASSWORD', '')
+MAIL_OP_SERVER = os.getenv('MAIL_OP_SERVER', 'mail.evolutionplastic.com')
+MAIL_OP_PORT = int(os.getenv('MAIL_OP_PORT', '465'))
+
 
 # --- Auditoría de accesos y acciones críticas ---
 def _obtener_ip_cliente():
@@ -1573,11 +1586,11 @@ def procesar_form_operacion(dataForm):
                         cliente = db.session.query(Clientes).get(odi.id_cliente) if (odi and odi.id_cliente) else None
                     nombre_cliente = cliente.nombre_cliente if cliente else "Cliente no encontrado"
                     
-                    # CONFIGURACIÓN GMAIL (Específica para este módulo)
-                    email_sender = 'evolutioncontrolweb@gmail.com'
-                    email_password = 'qsmr ccyb yzjd gzkm'  # <--- TU CONTRASEÑA DE APLICACIÓN DE GMAIL
-                    smtp_server = 'smtp.gmail.com'
-                    smtp_port = 465 
+                    # CONFIGURACIÓN GMAIL (desde .env)
+                    email_sender = MAIL_OPS_SENDER
+                    email_password = MAIL_OPS_PASSWORD
+                    smtp_server = MAIL_OPS_SERVER
+                    smtp_port = MAIL_OPS_PORT
 
                     subject = 'Confirmación: Finalización de Actividad'
                     
@@ -2607,10 +2620,10 @@ def procesar_form_op(dataForm, files):
                     costeador = db.session.query(Empleados).get(orden.id_costeador) if orden.id_costeador else None
                     
                     # CONFIGURACIÓN CORREO (cPanel / Colombia Hosting)
-                    email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'NataEvo:1'  # <--- ¡IMPORTANTE! COLOCA LA CORRECTA AQUÍ
-                    smtp_server = 'mail.evolutionplastic.com'
-                    smtp_port = 465
+                    email_sender = MAIL_OP_SENDER
+                    email_password = MAIL_OP_PASSWORD
+                    smtp_server = MAIL_OP_SERVER
+                    smtp_port = MAIL_OP_PORT
 
                     subject = f'Nueva Orden de Producción Registrada: {orden.codigo_op}'
                     
@@ -4158,10 +4171,10 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     costeador = db.session.query(Empleados).get(orden.id_costeador) if orden.id_costeador else None
                     
                     # CONFIGURACIÓN CORREO (cPanel)
-                    email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'NataEvo:1'  # <--- RECUERDA VERIFICAR ESTA CONTRASEÑA
-                    smtp_server = 'mail.evolutionplastic.com'
-                    smtp_port = 465 
+                    email_sender = MAIL_OP_SENDER
+                    email_password = MAIL_OP_PASSWORD
+                    smtp_server = MAIL_OP_SERVER
+                    smtp_port = MAIL_OP_PORT 
 
                     subject = f'Actualización en Orden de Producción: {orden.codigo_op}'
                     
@@ -6114,10 +6127,10 @@ def procesar_form_odi(dataForm, files):
                     comercial_obj = db.session.query(Empleados).get(nueva_odi.id_empleado) if nueva_odi.id_empleado else None
                     disenador_obj = db.session.query(Empleados).get(nueva_odi.id_disenador_industrial) if nueva_odi.id_disenador_industrial else None
 
-                    email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'NataEvo:1'
-                    smtp_server = 'mail.evolutionplastic.com'
-                    smtp_port = 465
+                    email_sender = MAIL_OP_SENDER
+                    email_password = MAIL_OP_PASSWORD
+                    smtp_server = MAIL_OP_SERVER
+                    smtp_port = MAIL_OP_PORT
 
                     subject = f'Nueva Orden de Diseño Industrial Registrada: {codigo_odi}'
                     body_template = f"""
@@ -6552,10 +6565,10 @@ def procesar_actualizar_form_odi(codigo_odi, dataForm, files):
                     comercial_obj = db.session.query(Empleados).get(odi.id_empleado) if odi.id_empleado else None
                     disenador_obj = db.session.query(Empleados).get(odi.id_disenador_industrial) if odi.id_disenador_industrial else None
 
-                    email_sender = 'sistema.datos@evolutionplastic.com'
-                    email_password = 'NataEvo:1'
-                    smtp_server = 'mail.evolutionplastic.com'
-                    smtp_port = 465
+                    email_sender = MAIL_OP_SENDER
+                    email_password = MAIL_OP_PASSWORD
+                    smtp_server = MAIL_OP_SERVER
+                    smtp_port = MAIL_OP_PORT
 
                     subject = f'Actualización en Orden de Diseño Industrial: {codigo_odi}'
                     body_template = f"""
