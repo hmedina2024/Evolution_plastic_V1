@@ -454,6 +454,32 @@ class CorreosFijos(db.Model):
     activo = db.Column(db.Boolean, default=True)
 
 
+class AlertaProceso(db.Model):
+    """Configuración de la alerta de documentos faltantes para un proceso."""
+    __tablename__ = 'tbl_alertas_proceso'
+    id_alerta_proceso = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False, unique=True)
+    dias_limite = db.Column(db.Integer, nullable=False, default=2)   # días tras crear la OP para la 1ª alerta
+    dias_reenvio = db.Column(db.Integer, nullable=False, default=1)  # cada cuántos días recordar mientras falte
+    id_lista = db.Column(db.Integer, db.ForeignKey('tbl_listas_correos.id_lista', ondelete='SET NULL'), nullable=True)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    fecha_actualizacion = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+
+    proceso = db.relationship('Procesos', lazy=True)
+    lista = db.relationship('ListasCorreos', lazy=True)
+
+
+class AlertaDocumentoLog(db.Model):
+    """Historial de alertas de documentos enviadas (control de reenvío)."""
+    __tablename__ = 'tbl_alertas_documentos_log'
+    id_alerta_log = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_op = db.Column(db.Integer, db.ForeignKey('tbl_ordenproduccion.id_op', ondelete='CASCADE'), nullable=False)
+    id_proceso = db.Column(db.Integer, db.ForeignKey('tbl_procesos.id_proceso', ondelete='CASCADE'), nullable=False)
+    fecha_envio = db.Column(db.DateTime, default=func.now(), nullable=False)
+    destinatarios = db.Column(db.Text, nullable=True)
+
+
 # --- Modelo OrdenDisenoIndustrial (ODI) ---
 class OrdenDisenoIndustrial(db.Model):
     __tablename__ = 'tbl_ordendisenoindustrial'
