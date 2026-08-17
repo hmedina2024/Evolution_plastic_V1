@@ -1,0 +1,161 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Alertas de Documentos{% endblock %}
+
+{% set catalogo_emails = empleados_correos | map(attribute='email') | list %}
+
+{% block customCSS %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+  .select2-container { width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="row mb-4">
+  <div class="col-12 d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-bell-fill me-2 text-primary"></i>Alertas de Documentos por Proceso</h3>
+      <p class="text-muted mb-0">
+        Notifica por correo cuando una OP no tiene documentos cargados para un proceso.
+        Se envía tras <strong>días límite</strong> de creada la OP y se recuerda cada
+        <strong>días reenvío</strong>. Los destinatarios son la <strong>lista</strong> más los
+        <strong>correos adicionales</strong> que elijas.
+      </p>
+    </div>
+    <button class="btn btn-success" id="btnGuardar">
+      <i class="bi bi-save me-1"></i>Guardar cambios
+    </button>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if not procesos %}
+      <div class="alert alert-warning mb-0">No hay procesos registrados.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width:170px;">Proceso</th>
+            <th class="text-center" style="min-width:105px;">Días límite</th>
+            <th class="text-center" style="min-width:105px;">Días reenvío</th>
+            <th style="min-width:180px;">Lista de correos</th>
+            <th style="min-width:260px;">Correos adicionales</th>
+            <th class="text-center" style="min-width:80px;">Activa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in procesos %}
+          <tr data-proc="{{ p.id_proceso }}">
+            <td class="fw-semibold">{{ p.nombre_proceso }}</td>
+            <td>
+              <input type="number" min="0" step="1"
+                     class="form-control form-control-sm text-center inp-dias-limite"
+                     value="{{ p.dias_limite }}">
+            </td>
+            <td>
+              <input type="number" min="1" step="1"
+                     class="form-control form-control-sm text-center inp-dias-reenvio"
+                     value="{{ p.dias_reenvio }}">
+            </td>
+            <td>
+              <select class="form-select form-select-sm inp-lista">
+                <option value="">— Sin lista —</option>
+                {% for l in listas %}
+                <option value="{{ l.id_lista }}" {% if p.id_lista == l.id_lista %}selected{% endif %}>{{ l.nombre_lista }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <select class="inp-correos" multiple>
+                {% for e in empleados_correos %}
+                <option value="{{ e.email }}" {% if e.email in p.correos_extra %}selected{% endif %}>{{ e.nombre }} &lt;{{ e.email }}&gt;</option>
+                {% endfor %}
+                {# Correos guardados que no corresponden a un empleado del catálogo #}
+                {% for c in p.correos_extra %}
+                  {% if c not in catalogo_emails %}
+                  <option value="{{ c }}" selected>{{ c }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input inp-activo" type="checkbox" {% if p.activo %}checked{% endif %}>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(function() {
+  'use strict';
+  const API_SAVE = "{{ url_for('api_guardar_alertas_procesos') }}";
+  const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+  // Select2 en modo "tags": permite elegir correos de empleados o escribir uno nuevo
+  $('.inp-correos').select2({
+    tags: true,
+    placeholder: 'Elegir o escribir correos...',
+    tokenSeparators: [',', ' '],
+    width: '100%',
+    createTag: function (params) {
+      const term = (params.term || '').trim();
+      // Solo permite crear tags que parezcan un correo
+      if (!term || term.indexOf('@') === -1 || term.indexOf('.', term.indexOf('@')) === -1) {
+        return null;
+      }
+      return { id: term, text: term };
+    }
+  });
+
+  const btn = document.getElementById('btnGuardar');
+  if (!btn) return;
+
+  btn.addEventListener('click', function() {
+    const items = [];
+    document.querySelectorAll('tr[data-proc]').forEach(row => {
+      items.push({
+        id_proceso: parseInt(row.dataset.proc),
+        dias_limite: parseInt(row.querySelector('.inp-dias-limite').value) || 0,
+        dias_reenvio: parseInt(row.querySelector('.inp-dias-reenvio').value) || 1,
+        id_lista: row.querySelector('.inp-lista').value || null,
+        correos_extra: $(row).find('.inp-correos').val() || [],
+        activo: row.querySelector('.inp-activo').checked
+      });
+    });
+
+    if (!items.length) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+    fetch(API_SAVE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+      body: JSON.stringify({ items: items })
+    })
+      .then(r => r.json())
+      .then(data => {
+        alert(data.status === 'ok' ? '✓ ' + data.message : 'Error: ' + (data.message || 'No se pudo guardar'));
+      })
+      .catch(e => alert('Error: ' + e.message))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i>Guardar cambios';
+      });
+  });
+});
+</script>
+{% endblock %}

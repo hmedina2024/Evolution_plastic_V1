@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app  # Importa la instancia de Flask desde app.py
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad, ListasCorreos, ListasMiembros, AlertaProceso, AlertaDocumentoLog
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -7110,3 +7110,107 @@ def obtener_tiempo_dificultad(id_proceso, dificultad):
     except Exception as e:
         app.logger.error(f"Error obteniendo tiempo dificultad ({id_proceso},{dificultad}): {e}")
         return {'tiempo_dias': 0, 'tiempo_horas': 0}
+
+
+# ============================================================
+# --- Alertas de documentos por proceso (config administrable) ---
+# ============================================================
+
+def obtener_config_alertas():
+    """Procesos activos con su configuración de alerta de documentos,
+    más el catálogo de listas de correos para el desplegable."""
+    try:
+        procesos = db.session.query(Procesos).filter(
+            Procesos.fecha_borrado.is_(None)
+        ).order_by(Procesos.nombre_proceso.asc()).all()
+
+        configs = {c.id_proceso: c for c in db.session.query(AlertaProceso).all()}
+        listas = db.session.query(ListasCorreos).order_by(ListasCorreos.nombre_lista.asc()).all()
+
+        # Catálogo de correos de empleados (para elegir destinatarios sueltos)
+        empleados = db.session.query(Empleados).filter(
+            Empleados.fecha_borrado.is_(None),
+            Empleados.email_empleado.isnot(None),
+            Empleados.email_empleado != ''
+        ).order_by(Empleados.nombre_empleado.asc()).all()
+
+        filas = []
+        for p in procesos:
+            cfg = configs.get(p.id_proceso)
+            correos_extra = [e.strip() for e in (cfg.correos_extra or '').split(',') if e.strip()] if cfg else []
+            filas.append({
+                'id_proceso': p.id_proceso,
+                'nombre_proceso': p.nombre_proceso or p.codigo_proceso,
+                'dias_limite': cfg.dias_limite if cfg else 2,
+                'dias_reenvio': cfg.dias_reenvio if cfg else 1,
+                'id_lista': cfg.id_lista if cfg else None,
+                'correos_extra': correos_extra,
+                'activo': bool(cfg.activo) if cfg else False
+            })
+
+        return {
+            'procesos': filas,
+            'listas': [{'id_lista': l.id_lista, 'nombre_lista': l.nombre_lista} for l in listas],
+            'empleados_correos': [
+                {'email': e.email_empleado,
+                 'nombre': f"{e.nombre_empleado or ''} {e.apellido_empleado or ''}".strip()}
+                for e in empleados
+            ]
+        }
+    except Exception as e:
+        app.logger.error(f"Error obteniendo config de alertas: {e}")
+        return {'procesos': [], 'listas': [], 'empleados_correos': []}
+
+
+def guardar_config_alertas(items):
+    """Upsert de la configuración de alertas por proceso.
+    items = [{'id_proceso', 'dias_limite', 'dias_reenvio', 'id_lista', 'activo'}, ...]"""
+    try:
+        for it in items:
+            try:
+                id_proc = int(it.get('id_proceso'))
+            except (TypeError, ValueError):
+                continue
+            # El proceso debe existir y estar activo
+            if not db.session.query(Procesos).filter_by(id_proceso=id_proc, fecha_borrado=None).first():
+                continue
+
+            def _int(v, defecto):
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    return defecto
+
+            dias_limite = max(0, _int(it.get('dias_limite'), 2))
+            dias_reenvio = max(1, _int(it.get('dias_reenvio'), 1))
+            id_lista_raw = it.get('id_lista')
+            id_lista = int(id_lista_raw) if str(id_lista_raw).strip().isdigit() else None
+            activo = bool(it.get('activo'))
+
+            # Correos sueltos: acepta lista o string separado por coma; se valida formato básico
+            correos_raw = it.get('correos_extra') or []
+            if isinstance(correos_raw, str):
+                correos_raw = correos_raw.split(',')
+            correos_validos = []
+            for c in correos_raw:
+                c = str(c).strip()
+                if c and '@' in c and '.' in c.split('@')[-1] and c not in correos_validos:
+                    correos_validos.append(c)
+            correos_extra = ', '.join(correos_validos) if correos_validos else None
+
+            reg = db.session.query(AlertaProceso).filter_by(id_proceso=id_proc).first()
+            if not reg:
+                reg = AlertaProceso(id_proceso=id_proc)
+                db.session.add(reg)
+            reg.dias_limite = dias_limite
+            reg.dias_reenvio = dias_reenvio
+            reg.id_lista = id_lista
+            reg.correos_extra = correos_extra
+            reg.activo = activo
+
+        db.session.commit()
+        return {'status': 'ok', 'message': 'Configuración de alertas guardada correctamente'}
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error guardando config de alertas: {e}")
+        return {'status': 'error', 'message': str(e)}

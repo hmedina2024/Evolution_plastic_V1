@@ -462,6 +462,7 @@ class AlertaProceso(db.Model):
     dias_limite = db.Column(db.Integer, nullable=False, default=2)   # días tras crear la OP para la 1ª alerta
     dias_reenvio = db.Column(db.Integer, nullable=False, default=1)  # cada cuántos días recordar mientras falte
     id_lista = db.Column(db.Integer, db.ForeignKey('tbl_listas_correos.id_lista', ondelete='SET NULL'), nullable=True)
+    correos_extra = db.Column(db.Text, nullable=True)  # correos sueltos separados por coma
     activo = db.Column(db.Boolean, nullable=False, default=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
     fecha_actualizacion = db.Column(db.DateTime, default=func.now(), onupdate=func.now())

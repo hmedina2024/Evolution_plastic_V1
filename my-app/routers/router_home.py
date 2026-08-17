@@ -25,6 +25,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_imagen_cliente,  sql_detalles_clientes_bd, buscar_cliente_bd, buscar_operaciones_bd,
                                         actualizar_estandares_procesos, calcular_personal_necesario, obtener_actividades_de_op,
                                         obtener_matriz_completa, guardar_matriz_completa, obtener_tiempo_dificultad,
+                                        obtener_config_alertas, guardar_config_alertas,
                                         buscar_cliente_unico, procesar_actualizacion_cliente, eliminar_cliente, procesar_form_actividad,
                                         sql_lista_actividades_bd, sql_detalles_actividades_bd, buscar_actividad_unico, procesar_actualizar_actividad, buscar_actividades_bd,
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
@@ -2146,6 +2147,30 @@ def api_guardar_matriz():
     if not celdas:
         return jsonify({'status': 'error', 'message': 'No hay cambios que guardar'}), 400
     resultado = guardar_matriz_completa(celdas)
+    return jsonify(resultado)
+
+
+@app.route('/alertas-procesos', methods=['GET'])
+def alertas_procesos():
+    """Pantalla de administración de alertas de documentos por proceso."""
+    if 'conectado' not in session:
+        return redirect(url_for('inicio'))
+    data = obtener_config_alertas()
+    return render_template('public/alertas/alertas_procesos.html',
+                           procesos=data['procesos'], listas=data['listas'],
+                           empleados_correos=data['empleados_correos'])
+
+
+@app.route('/api/alertas-procesos/guardar', methods=['POST'])
+def api_guardar_alertas_procesos():
+    """Guarda (upsert) la configuración de alertas de todos los procesos."""
+    if 'conectado' not in session:
+        return jsonify({'error': 'no autorizado'}), 401
+    data = request.get_json() or {}
+    items = data.get('items', [])
+    if not items:
+        return jsonify({'status': 'error', 'message': 'No hay datos que guardar'}), 400
+    resultado = guardar_config_alertas(items)
     return jsonify(resultado)
 
 
