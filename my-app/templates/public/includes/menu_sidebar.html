@@ -24,38 +24,7 @@
   {# ── Navegación: scrolleable (menu-inner requerido por el JS del framework Sneat) ── #}
   <nav class="sidebar-nav menu-inner">
 
-
-    {% if tiene_permiso('dashboard.ver') %}
-    {% set dash_open = request.path in ['/dashboard', '/dashboard-operaciones'] %}
-    <div>
-      <button class="snav-toggle"
-              data-bs-target="#nav-dashboards"
-              aria-expanded="{{ 'true' if dash_open else 'false' }}"
-              aria-controls="nav-dashboards">
-        <span class="snav-toggle-left">
-          <i class="bi bi-speedometer2"></i>
-          Dashboards
-        </span>
-        <i class="bi bi-chevron-right snav-chevron"></i>
-      </button>
-      <div class="collapse {% if dash_open %}show{% endif %}" id="nav-dashboards">
-        <ul class="snav-sublist">
-          <li>
-            <a href="{{ url_for('dashboard') }}"
-               class="snav-subitem {% if request.path == '/dashboard' %}is-active{% endif %}">
-              <i class="bi bi-bar-chart-line-fill"></i> Órdenes de Producción
-            </a>
-          </li>
-          <li>
-            <a href="{{ url_for('dashboard_operaciones') }}"
-               class="snav-subitem {% if request.path == '/dashboard-operaciones' %}is-active{% endif %}">
-              <i class="bi bi-clipboard-data-fill"></i> Operaciones
-            </a>
-          </li>
-        </ul>
-      </div>
-    </div>
-    {% endif %}
+    
 
     {# ── Control ── #}
     {% set ver_control = tiene_permiso('operaciones.ver') or tiene_permiso('operaciones.crear')
@@ -197,9 +166,9 @@
           <li><a href="/matriz-dificultad"
                  class="snav-subitem {% if request.path == '/matriz-dificultad' %}is-active{% endif %}">
             <i class="bi bi-grid-3x3-gap-fill"></i> Matriz de Dificultad</a></li>
-          <li><a href="/alertas-procesos"
+          <!-- <li><a href="/alertas-procesos"
                  class="snav-subitem {% if request.path == '/alertas-procesos' %}is-active{% endif %}">
-            <i class="bi bi-bell-fill"></i> Alertas de Documentos</a></li>
+            <i class="bi bi-bell-fill"></i> Alertas de Documentos</a></li> -->
         </ul>
       </div>
     </div>
@@ -213,6 +182,38 @@
         <i class="bi bi-bar-chart-fill"></i>
         <span>Reportes</span>
       </a>
+    </div>
+    {% endif %}
+
+    {% if tiene_permiso('dashboard.ver') %}
+    {% set dash_open = request.path in ['/dashboard', '/dashboard-operaciones'] %}
+    <div>
+      <button class="snav-toggle"
+              data-bs-target="#nav-dashboards"
+              aria-expanded="{{ 'true' if dash_open else 'false' }}"
+              aria-controls="nav-dashboards">
+        <span class="snav-toggle-left">
+          <i class="bi bi-speedometer2"></i>
+          Dashboards
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
+      </button>
+      <div class="collapse {% if dash_open %}show{% endif %}" id="nav-dashboards">
+        <ul class="snav-sublist">
+          <li>
+            <a href="{{ url_for('dashboard') }}"
+               class="snav-subitem {% if request.path == '/dashboard' %}is-active{% endif %}">
+              <i class="bi bi-bar-chart-line-fill"></i> Órdenes de Producción
+            </a>
+          </li>
+          <!-- <li>
+            <a href="{{ url_for('dashboard_operaciones') }}"
+               class="snav-subitem {% if request.path == '/dashboard-operaciones' %}is-active{% endif %}">
+              <i class="bi bi-clipboard-data-fill"></i> Operaciones
+            </a>
+          </li> -->
+        </ul>
+      </div>
     </div>
     {% endif %}
 

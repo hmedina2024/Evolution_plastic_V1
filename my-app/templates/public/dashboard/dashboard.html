@@ -2,57 +2,136 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block customCSS %}
+<style>
+  :root {
+    --dash-primary: #696cff;
+    --dash-info: #03c3ec;
+    --dash-success: #71dd37;
+    --dash-warning: #ffab00;
+    --dash-danger: #ff3e1d;
+    --dash-ink: #384551;
+    --dash-muted: #8a94a6;
+  }
+
+  .dash-head { border-bottom: 1px solid #eaecf0; padding-bottom: .9rem; }
+  .dash-head h3 { color: var(--dash-ink); letter-spacing: -.3px; }
+
+  /* ── Tarjetas ── */
+  .dash-card {
+    border: 1px solid #eef0f3;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(56, 69, 81, .05);
+    transition: transform .18s ease, box-shadow .18s ease;
+    overflow: hidden;
+  }
+  .dash-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(56, 69, 81, .10); }
+  .dash-card .card-header {
+    background: #fff;
+    border-bottom: 1px solid #f1f3f5;
+    padding: .95rem 1.15rem;
+  }
+  .dash-card .card-header h5 { font-size: 1rem; font-weight: 700; color: var(--dash-ink); }
+
+  /* ── KPIs ── */
+  .kpi-card { position: relative; border-radius: 14px; border: 1px solid #eef0f3; background: #fff; }
+  .kpi-card::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 5px;
+    border-radius: 14px 0 0 14px; background: var(--kpi-color, var(--dash-primary));
+  }
+  .kpi-value { font-size: 1.75rem; font-weight: 800; line-height: 1.1; color: var(--dash-ink); }
+  .kpi-label { font-size: .78rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+  .kpi-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; background: var(--kpi-soft, rgba(105,108,255,.12)); color: var(--kpi-color, var(--dash-primary));
+  }
+
+  /* ── Tablas ── */
+  .dash-table { font-size: .875rem; }
+  .dash-table thead th {
+    background: #f8f9fb; color: var(--dash-muted); font-weight: 600;
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .4px;
+    border-bottom: 1px solid #eef0f3; white-space: nowrap; position: sticky; top: 0; z-index: 1;
+  }
+  .dash-table tbody td { vertical-align: middle; border-color: #f3f4f6; }
+  .dash-table tbody tr:hover { background: #fafbfd; }
+  .dash-scroll { max-height: 420px; overflow-y: auto; }
+
+  /* ── Barra de avance ── */
+  .avance-wrap { display: flex; align-items: center; gap: .55rem; min-width: 130px; }
+  .avance-bar { flex: 1; height: 7px; background: #eef0f3; border-radius: 99px; overflow: hidden; }
+  .avance-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+  .avance-pct { font-size: .76rem; font-weight: 700; color: var(--dash-ink); min-width: 42px; text-align: right; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .18rem .55rem; border-radius: 99px;
+    font-size: .74rem; font-weight: 600;
+  }
+  .chip-ok   { background: rgba(113,221,55,.14); color: #4b9c17; }
+  .chip-warn { background: rgba(255,171,0,.16);  color: #b57500; }
+  .chip-dang { background: rgba(255,62,29,.13);  color: #d32b0f; }
+
+  .num-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .empty-state { color: var(--dash-muted); padding: 2.2rem 1rem; text-align: center; }
+  .empty-state i { font-size: 1.8rem; opacity: .45; display: block; margin-bottom: .4rem; }
+
+  /* Filtros del avance: rejilla 2×2 (una sola columna en móvil) */
+  .avance-filtros {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: .5rem;
+    min-width: 340px;
+  }
+  @media (max-width: 575.98px) {
+    .avance-filtros { grid-template-columns: 1fr; min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="row mb-2">
-  <div class="col-12">
-    <h3 class="fw-bold mb-1"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Control</h3>
-    <p class="text-muted">Resumen general de Órdenes de Producción y Diseño Industrial.</p>
+<div class="row mb-3">
+  <div class="col-12 dash-head d-flex justify-content-between align-items-end flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Control</h3>
+      <p class="text-muted mb-0">Resumen general de Órdenes de Producción y Diseño Industrial.</p>
+    </div>
+    <small class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Actualizado <span id="ultima-actualizacion">—</span></small>
   </div>
 </div>
 
 <!-- ── KPIs ── -->
 <div class="row g-3 mb-4">
   <div class="col-md-6 col-xl-3">
-    <div class="card h-100 shadow-sm" style="border-left:5px solid #696cff;">
-      <div class="card-body d-flex align-items-center justify-content-between">
-        <div>
-          <div class="text-muted small">Total OPs</div>
-          <h3 class="fw-bold mb-0" id="kpi-total-op">{{ datos.kpis.total_op }}</h3>
-        </div>
-        <i class="bi bi-file-earmark-text fs-1 text-primary opacity-50"></i>
+    <div class="card kpi-card h-100" style="--kpi-color:#696cff; --kpi-soft:rgba(105,108,255,.12);">
+      <div class="card-body d-flex align-items-center justify-content-between ps-4">
+        <div><div class="kpi-label">Total OPs</div><div class="kpi-value" id="kpi-total-op">{{ datos.kpis.total_op }}</div></div>
+        <div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div>
       </div>
     </div>
   </div>
   <div class="col-md-6 col-xl-3">
-    <div class="card h-100 shadow-sm" style="border-left:5px solid #03c3ec;">
-      <div class="card-body d-flex align-items-center justify-content-between">
-        <div>
-          <div class="text-muted small">OPs en Proceso</div>
-          <h3 class="fw-bold mb-0" id="kpi-op-proceso">{{ datos.kpis.op_proceso }}</h3>
-        </div>
-        <i class="bi bi-gear-wide-connected fs-1 text-info opacity-50"></i>
+    <div class="card kpi-card h-100" style="--kpi-color:#03c3ec; --kpi-soft:rgba(3,195,236,.12);">
+      <div class="card-body d-flex align-items-center justify-content-between ps-4">
+        <div><div class="kpi-label">OPs en Proceso</div><div class="kpi-value" id="kpi-op-proceso">{{ datos.kpis.op_proceso }}</div></div>
+        <div class="kpi-icon"><i class="bi bi-gear-wide-connected"></i></div>
       </div>
     </div>
   </div>
   <div class="col-md-6 col-xl-3">
-    <div class="card h-100 shadow-sm" style="border-left:5px solid #71dd37;">
-      <div class="card-body d-flex align-items-center justify-content-between">
-        <div>
-          <div class="text-muted small">OPs Facturadas</div>
-          <h3 class="fw-bold mb-0" id="kpi-op-facturadas">{{ datos.kpis.op_facturadas }}</h3>
-        </div>
-        <i class="bi bi-cash-coin fs-1 text-success opacity-50"></i>
+    <div class="card kpi-card h-100" style="--kpi-color:#71dd37; --kpi-soft:rgba(113,221,55,.14);">
+      <div class="card-body d-flex align-items-center justify-content-between ps-4">
+        <div><div class="kpi-label">OPs Facturadas</div><div class="kpi-value" id="kpi-op-facturadas">{{ datos.kpis.op_facturadas }}</div></div>
+        <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
       </div>
     </div>
   </div>
   <div class="col-md-6 col-xl-3">
-    <div class="card h-100 shadow-sm" style="border-left:5px solid #ffab00;">
-      <div class="card-body d-flex align-items-center justify-content-between">
-        <div>
-          <div class="text-muted small">ODIs Activas</div>
-          <h3 class="fw-bold mb-0" id="kpi-odi-activas">{{ datos.kpis.odi_activas }}</h3>
-        </div>
-        <i class="bi bi-pencil-square fs-1 text-warning opacity-50"></i>
+    <div class="card kpi-card h-100" style="--kpi-color:#ffab00; --kpi-soft:rgba(255,171,0,.14);">
+      <div class="card-body d-flex align-items-center justify-content-between ps-4">
+        <div><div class="kpi-label">ODIs Activas</div><div class="kpi-value" id="kpi-odi-activas">{{ datos.kpis.odi_activas }}</div></div>
+        <div class="kpi-icon"><i class="bi bi-pencil-square"></i></div>
       </div>
     </div>
   </div>
@@ -61,13 +140,13 @@
 <div class="row g-3">
   <!-- ── Gráfico: OPs por estado ── -->
   <div class="col-lg-5">
-    <div class="card h-100 shadow-sm">
-      <div class="card-header"><h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>OPs por Estado</h5></div>
+    <div class="card dash-card h-100">
+      <div class="card-header"><h5 class="mb-0"><i class="bi bi-pie-chart me-2 text-primary"></i>OPs por Estado</h5></div>
       <div class="card-body">
         {% if datos.estados_op %}
         <canvas id="chartEstadosOP" style="max-height:320px;"></canvas>
         {% else %}
-        <p class="text-muted text-center my-5">No hay datos de OPs para mostrar.</p>
+        <div class="empty-state"><i class="bi bi-inbox"></i>No hay datos de OPs para mostrar.</div>
         {% endif %}
       </div>
     </div>
@@ -75,18 +154,133 @@
 
   <!-- ── OPs próximas a vencer ── -->
   <div class="col-lg-7">
-    <div class="card h-100 shadow-sm">
+    <div class="card dash-card h-100">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-alarm me-2"></i>OPs próximas a vencer (7 días)</h5>
-        <span class="badge bg-label-warning" id="badge-vencer">{{ datos.ops_por_vencer|length }}</span>
+        <h5 class="mb-0"><i class="bi bi-alarm me-2 text-warning"></i>OPs próximas a vencer (7 días)</h5>
+        <span class="chip chip-warn" id="badge-vencer">{{ datos.ops_por_vencer|length }}</span>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr><th>Cod. OP</th><th>Cliente</th><th>Entrega</th><th>Restan</th><th></th></tr>
-            </thead>
+        <div class="table-responsive dash-scroll" style="max-height:340px;">
+          <table class="table table-hover dash-table mb-0">
+            <thead><tr><th>Cod. OP</th><th>Cliente</th><th>Entrega</th><th>Restan</th><th></th></tr></thead>
             <tbody id="tbody-vencer"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Avance de producción (cantidad OP vs. producto terminado) ── -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card dash-card">
+      <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h5 class="mb-0"><i class="bi bi-box-seam me-2 text-success"></i>Avance de Producción por OP</h5>
+          <small class="text-muted">Cantidad de la OP vs. lo reportado en <strong>EN-PRODUCTO TERMINADO</strong>
+            · <span id="av-mostrando"></span></small>
+        </div>
+        <div class="avance-filtros">
+          <input type="search" id="buscarAvance" class="form-control form-control-sm" placeholder="Buscar OP o cliente...">
+          <select id="filtroAvance" class="form-select form-select-sm" title="Estado de avance">
+            <option value="pendientes">Solo pendientes</option>
+            <option value="excedidas">Solo excedidas</option>
+            <option value="completas">Solo completas</option>
+            <option value="todas">Todas</option>
+          </select>
+          <select id="periodoAvance" class="form-select form-select-sm" title="Periodo de creación">
+            <option value="90">Últimos 90 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="180">Últimos 6 meses</option>
+            <option value="0">Todo el histórico</option>
+          </select>
+          <select id="ordenAvance" class="form-select form-select-sm" title="Ordenar por">
+            <option value="recientes">Más recientes</option>
+            <option value="antiguas">Más antiguas</option>
+            <option value="avance">Menor avance</option>
+            <option value="faltante">Mayor faltante</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Mini KPIs del avance -->
+      <div class="card-body pb-0">
+        <div class="row g-3">
+          <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100" style="--kpi-color:#ffab00; --kpi-soft:rgba(255,171,0,.14);">
+              <div class="card-body py-3 ps-4 d-flex align-items-center justify-content-between">
+                <div><div class="kpi-label">OPs pendientes</div><div class="kpi-value" id="av-pendientes">0</div></div>
+                <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100" style="--kpi-color:#71dd37; --kpi-soft:rgba(113,221,55,.14);">
+              <div class="card-body py-3 ps-4 d-flex align-items-center justify-content-between">
+                <div><div class="kpi-label">OPs completas</div><div class="kpi-value" id="av-completas">0</div></div>
+                <div class="kpi-icon"><i class="bi bi-check2-circle"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100" style="--kpi-color:#ff3e1d; --kpi-soft:rgba(255,62,29,.13);">
+              <div class="card-body py-3 ps-4 d-flex align-items-center justify-content-between">
+                <div><div class="kpi-label">OPs excedidas</div><div class="kpi-value" id="av-excedidas">0</div></div>
+                <div class="kpi-icon"><i class="bi bi-arrow-up-right-circle"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100" style="--kpi-color:#03c3ec; --kpi-soft:rgba(3,195,236,.12);">
+              <div class="card-body py-3 ps-4 d-flex align-items-center justify-content-between">
+                <div><div class="kpi-label">Und. faltantes</div><div class="kpi-value" id="av-faltantes">0</div></div>
+                <div class="kpi-icon"><i class="bi bi-exclamation-diamond"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-0 mt-3">
+        <div class="table-responsive dash-scroll">
+          <table class="table table-hover dash-table mb-0">
+            <thead>
+              <tr>
+                <th>Cod. OP</th><th>Creada</th><th>Cliente</th>
+                <th class="text-end">Cant. OP</th>
+                <th class="text-end">Reportado</th>
+                <th class="text-end">Diferencia</th>
+                <th style="min-width:150px;">Avance</th>
+                <th>Estado</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-avance"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Documentos pendientes por proceso ── -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card dash-card">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Documentos pendientes por proceso
+          <span class="chip chip-dang ms-1" id="badge-pend-vencidas" title="Vencidas">0</span>
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small mb-0" for="filtroProcesoPend">Proceso:</label>
+          <select id="filtroProcesoPend" class="form-select form-select-sm" style="min-width:230px;"></select>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive dash-scroll">
+          <table class="table table-hover dash-table mb-0">
+            <thead><tr><th>Proceso</th><th>Cod. OP</th><th>Cliente</th><th>Días</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tbody-pendientes"></tbody>
           </table>
         </div>
       </div>
@@ -97,17 +291,14 @@
 <!-- ── Actividad reciente ── -->
 <div class="row g-3 mt-1">
   <div class="col-12">
-    <div class="card shadow-sm">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Actividad reciente de OPs</h5>
-        <small class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Actualiza automáticamente · <span id="ultima-actualizacion">—</span></small>
+    <div class="card dash-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-secondary"></i>Actividad reciente de OPs</h5>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr><th>Cod. OP</th><th>Usuario</th><th>Versión</th><th>Campos cambiados</th><th>Fecha</th><th></th></tr>
-            </thead>
+        <div class="table-responsive dash-scroll">
+          <table class="table table-hover dash-table mb-0">
+            <thead><tr><th>Cod. OP</th><th>Usuario</th><th>Versión</th><th>Campos cambiados</th><th>Fecha</th><th></th></tr></thead>
             <tbody id="tbody-actividad"></tbody>
           </table>
         </div>
@@ -128,7 +319,7 @@
   var chartEstados = null;
 
   var COLORES = {
-    'ANULA': '#dc3545', 'FACTU': '#71dd37', 'TER': '#198754',
+    'ANULA': '#ff3e1d', 'FACTU': '#71dd37', 'TER': '#198754',
     'CRUCE': '#03c3ec', 'PR CR': '#0dcaf0', 'INV': '#6c757d',
     'LP': '#696cff', 'PR': '#5a8dee', 'NC': '#ffab00'
   };
@@ -139,12 +330,13 @@
     });
   }
   function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+  function nfmt(n) { return (Number(n) || 0).toLocaleString('es-CO'); }
 
   function renderKPIs(d) {
-    setText('kpi-total-op', d.kpis.total_op);
-    setText('kpi-op-proceso', d.kpis.op_proceso);
-    setText('kpi-op-facturadas', d.kpis.op_facturadas);
-    setText('kpi-odi-activas', d.kpis.odi_activas);
+    setText('kpi-total-op', nfmt(d.kpis.total_op));
+    setText('kpi-op-proceso', nfmt(d.kpis.op_proceso));
+    setText('kpi-op-facturadas', nfmt(d.kpis.op_facturadas));
+    setText('kpi-odi-activas', nfmt(d.kpis.odi_activas));
   }
 
   function renderChart(d) {
@@ -161,19 +353,22 @@
     } else {
       chartEstados = new Chart(canvas, {
         type: 'doughnut',
-        data: { labels: labels, datasets: [{ data: data, backgroundColor: bg, borderWidth: 1 }] },
-        options: { responsive: true, plugins: {
-          legend: { position: 'right' },
-          tooltip: { callbacks: { label: function (c) { return ' ' + c.label + ': ' + c.parsed; } } }
-        } }
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: bg, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true, cutout: '62%',
+          plugins: {
+            legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'circle', padding: 14 } },
+            tooltip: { callbacks: { label: function (c) { return ' ' + c.label + ': ' + c.parsed; } } }
+          }
+        }
       });
     }
   }
 
   function badgeRestan(dias) {
-    if (dias <= 2) return '<span class="badge bg-danger">' + dias + ' día(s)</span>';
-    if (dias <= 5) return '<span class="badge bg-warning text-dark">' + dias + ' día(s)</span>';
-    return '<span class="badge bg-info">' + dias + ' día(s)</span>';
+    if (dias <= 2) return '<span class="chip chip-dang">' + dias + ' día(s)</span>';
+    if (dias <= 5) return '<span class="chip chip-warn">' + dias + ' día(s)</span>';
+    return '<span class="chip" style="background:rgba(3,195,236,.13);color:#0a94b3;">' + dias + ' día(s)</span>';
   }
 
   function renderVencer(d) {
@@ -181,31 +376,174 @@
     var tb = document.getElementById('tbody-vencer');
     if (!tb) return;
     if (!d.ops_por_vencer.length) {
-      tb.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-4">No hay OPs con entrega en los próximos 7 días.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="bi bi-calendar-check"></i>No hay OPs con entrega en los próximos 7 días.</div></td></tr>';
       return;
     }
     tb.innerHTML = d.ops_por_vencer.map(function (op) {
       return '<tr><td class="fw-semibold">' + esc(op.codigo_op) + '</td>'
         + '<td>' + esc(op.cliente) + '</td><td>' + esc(op.fecha_entrega) + '</td>'
         + '<td>' + badgeRestan(op.dias_restantes) + '</td>'
-        + '<td><a href="/detalles-op/' + encodeURIComponent(op.codigo_op) + '" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td></tr>';
+        + '<td class="text-end"><a href="/detalles-op/' + encodeURIComponent(op.codigo_op) + '" class="btn btn-sm btn-outline-primary" title="Ver detalle"><i class="bi bi-eye"></i></a></td></tr>';
     }).join('');
+  }
+
+  // ── Avance de producción ──
+  var avData = { ops: [], totales: {} };
+  var MAX_FILAS_AVANCE = 250;   // tope de filas renderizadas (rendimiento)
+
+  var ESTADO_AV = {
+    pendiente: { chip: 'chip-warn', icon: 'bi-hourglass-split',            txt: 'Pendiente' },
+    excedida:  { chip: 'chip-dang', icon: 'bi-arrow-up-right-circle-fill', txt: 'Excedida'  },
+    completa:  { chip: 'chip-ok',   icon: 'bi-check-circle-fill',          txt: 'Completa'  }
+  };
+
+  function colorAvance(o) {
+    if (o.estado_avance === 'excedida') return '#ff3e1d';
+    if (o.estado_avance === 'completa') return '#71dd37';
+    if (o.avance >= 70) return '#03c3ec';
+    if (o.avance >= 35) return '#ffab00';
+    return '#ff7043';
+  }
+
+  function renderTablaAvance() {
+    var tb = document.getElementById('tbody-avance');
+    if (!tb) return;
+    var filtro = (document.getElementById('filtroAvance') || {}).value || 'pendientes';
+    var q = ((document.getElementById('buscarAvance') || {}).value || '').toLowerCase().trim();
+
+    var dias = parseInt((document.getElementById('periodoAvance') || {}).value, 10);
+    if (isNaN(dias)) dias = 90;
+    var orden = (document.getElementById('ordenAvance') || {}).value || 'recientes';
+
+    // Fecha mínima según el periodo elegido (0 = todo el histórico)
+    var minIso = '';
+    if (dias > 0) {
+      var d = new Date();
+      d.setDate(d.getDate() - dias);
+      minIso = d.toISOString().slice(0, 10);
+    }
+
+    var rows = (avData.ops || []).filter(function (o) {
+      if (filtro === 'pendientes' && o.estado_avance !== 'pendiente') return false;
+      if (filtro === 'excedidas'  && o.estado_avance !== 'excedida')  return false;
+      if (filtro === 'completas'  && o.estado_avance !== 'completa')  return false;
+      if (minIso && (!o.fecha_iso || o.fecha_iso < minIso)) return false;
+      if (q && (String(o.codigo_op).toLowerCase().indexOf(q) === -1
+                && String(o.cliente).toLowerCase().indexOf(q) === -1)) return false;
+      return true;
+    });
+
+    rows.sort(function (a, b) {
+      if (orden === 'recientes') return (b.fecha_iso || '').localeCompare(a.fecha_iso || '');
+      if (orden === 'antiguas')  return (a.fecha_iso || '').localeCompare(b.fecha_iso || '');
+      if (orden === 'avance')    return a.avance - b.avance;
+      if (orden === 'faltante')  return b.faltante - a.faltante;
+      return 0;
+    });
+
+    setText('av-mostrando', rows.length ? ('Mostrando ' + Math.min(rows.length, MAX_FILAS_AVANCE) + ' de ' + nfmt(rows.length)) : '');
+
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="bi bi-check2-all"></i>No hay OPs que coincidan con los filtros seleccionados.</div></td></tr>';
+      return;
+    }
+
+    tb.innerHTML = rows.slice(0, MAX_FILAS_AVANCE).map(function (o) {
+      var pct = Math.min(o.avance, 100);
+      var col = colorAvance(o);
+      var cfg = ESTADO_AV[o.estado_avance] || ESTADO_AV.pendiente;
+      var estado = '<span class="chip ' + cfg.chip + '"><i class="bi ' + cfg.icon + '"></i>' + cfg.txt + '</span>';
+      // Diferencia: falta N (naranja) · +N excedido (rojo) · 0 exacto (verde)
+      var difTxt, difClase;
+      if (o.faltante > 0)    { difTxt = nfmt(o.faltante);        difClase = 'text-warning fw-bold'; }
+      else if (o.exceso > 0) { difTxt = '+' + nfmt(o.exceso);    difClase = 'text-danger fw-bold'; }
+      else                   { difTxt = '0';                     difClase = 'text-success'; }
+
+      return '<tr>'
+        + '<td class="fw-semibold">' + esc(o.codigo_op) + '</td>'
+        + '<td class="text-muted small text-nowrap">' + esc(o.fecha) + '</td>'
+        + '<td><div class="text-truncate" style="max-width:190px;" title="' + esc(o.cliente) + '">' + esc(o.cliente) + '</div></td>'
+        + '<td class="text-end num-cell">' + nfmt(o.cantidad_op) + '</td>'
+        + '<td class="text-end num-cell">' + nfmt(o.reportado) + '</td>'
+        + '<td class="text-end num-cell ' + difClase + '">' + difTxt + '</td>'
+        + '<td><div class="avance-wrap"><div class="avance-bar"><div class="avance-fill" style="width:' + pct + '%; background:' + col + ';"></div></div>'
+        + '<span class="avance-pct">' + o.avance + '%</span></div></td>'
+        + '<td>' + estado + '</td>'
+        + '<td class="text-end"><a href="/detalles-op/' + encodeURIComponent(o.codigo_op) + '" class="btn btn-sm btn-outline-primary" title="Ver detalle"><i class="bi bi-eye"></i></a></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function renderAvance(d) {
+    avData = (d && d.avance_produccion) ? d.avance_produccion : { ops: [], totales: {} };
+    var t = avData.totales || {};
+    setText('av-completas', nfmt(t.completas));
+    setText('av-pendientes', nfmt(t.pendientes));
+    setText('av-excedidas', nfmt(t.excedidas));
+    setText('av-faltantes', nfmt(t.unidades_faltantes));
+    renderTablaAvance();
+  }
+
+  // ── Documentos pendientes por proceso ──
+  var pendData = { procesos: [], totales: {} };
+  var procesoPendSel = '__all__';
+  var selPendPoblado = false;
+
+  function renderTablaPendientes() {
+    var tb = document.getElementById('tbody-pendientes');
+    if (!tb) return;
+    var rows = [];
+    (pendData.procesos || []).forEach(function (p) {
+      if (procesoPendSel !== '__all__' && String(p.id_proceso) !== String(procesoPendSel)) return;
+      (p.ops || []).forEach(function (op) {
+        rows.push({ proceso: p.nombre_proceso, codigo_op: op.codigo_op, cliente: op.cliente, dias: op.dias, vencida: op.vencida });
+      });
+    });
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-clipboard2-check"></i>No hay documentos pendientes.</div></td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(function (r) {
+      var estado = r.vencida
+        ? '<span class="chip chip-dang"><i class="bi bi-exclamation-triangle-fill"></i>Vencida</span>'
+        : '<span class="chip chip-warn">Pendiente</span>';
+      return '<tr><td>' + esc(r.proceso) + '</td><td class="fw-semibold">' + esc(r.codigo_op) + '</td>'
+        + '<td>' + esc(r.cliente) + '</td><td class="num-cell">' + r.dias + ' d</td><td>' + estado + '</td>'
+        + '<td class="text-end"><a href="/editar-op/' + encodeURIComponent(r.codigo_op) + '" class="btn btn-sm btn-outline-primary" title="Subir documento"><i class="bi bi-upload"></i></a></td></tr>';
+    }).join('');
+  }
+
+  function renderPendientes(d) {
+    pendData = (d && d.documentos_pendientes) ? d.documentos_pendientes : { procesos: [], totales: {} };
+    setText('badge-pend-vencidas', (pendData.totales && pendData.totales.vencidas) || 0);
+    var sel = document.getElementById('filtroProcesoPend');
+    if (sel && !selPendPoblado) {
+      var opts = '<option value="__all__">Todos los procesos</option>';
+      (pendData.procesos || []).forEach(function (p) {
+        opts += '<option value="' + p.id_proceso + '">' + esc(p.nombre_proceso) + ' (' + p.total + ')</option>';
+      });
+      sel.innerHTML = opts;
+      sel.value = procesoPendSel;
+      sel.addEventListener('change', function () { procesoPendSel = this.value; renderTablaPendientes(); });
+      selPendPoblado = true;
+    }
+    renderTablaPendientes();
   }
 
   function renderActividad(d) {
     var tb = document.getElementById('tbody-actividad');
     if (!tb) return;
     if (!d.actividad_reciente.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-4">Aún no hay actividad registrada.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-activity"></i>Aún no hay actividad registrada.</div></td></tr>';
       return;
     }
     tb.innerHTML = d.actividad_reciente.map(function (a) {
       return '<tr><td class="fw-semibold">' + esc(a.codigo_op) + '</td>'
         + '<td><i class="bi bi-person-circle me-1 text-muted"></i>' + esc(a.usuario) + '</td>'
-        + '<td><span class="badge bg-label-secondary">v' + esc(a.version) + '</span></td>'
+        + '<td><span class="chip" style="background:#eef0f3;color:#5b6673;">v' + esc(a.version) + '</span></td>'
         + '<td>' + esc(a.num_cambios) + ' campo(s)</td>'
         + '<td class="text-muted small">' + esc(a.fecha) + '</td>'
-        + '<td><a href="/op/' + encodeURIComponent(a.codigo_op) + '/historial" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock-history"></i> Historial</a></td></tr>';
+        + '<td class="text-end"><a href="/op/' + encodeURIComponent(a.codigo_op) + '/historial" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock-history"></i> Historial</a></td></tr>';
     }).join('');
   }
 
@@ -213,6 +551,8 @@
     renderKPIs(d);
     renderChart(d);
     renderVencer(d);
+    renderAvance(d);
+    renderPendientes(d);
     renderActividad(d);
     setText('ultima-actualizacion', new Date().toLocaleTimeString());
   }
@@ -229,6 +569,14 @@
     try { inicial = JSON.parse(document.getElementById('dashOpData').textContent); }
     catch (e) { inicial = null; }
     if (inicial && inicial.kpis) render(inicial);
+
+    ['filtroAvance', 'periodoAvance', 'ordenAvance'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', renderTablaAvance);
+    });
+    var ba = document.getElementById('buscarAvance');
+    if (ba) ba.addEventListener('input', renderTablaAvance);
+
     setInterval(refrescar, REFRESCO_MS);
   });
 })();

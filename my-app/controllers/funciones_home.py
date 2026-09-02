@@ -5756,6 +5756,8 @@ def obtener_datos_dashboard():
         'estados_op': [],          # [{'estado': 'PR', 'cantidad': 12}, ...]
         'actividad_reciente': [],  # últimas actualizaciones de OP
         'ops_por_vencer': [],      # OPs con entrega en los próximos 7 días
+        'documentos_pendientes': {'procesos': [], 'totales': {'total': 0, 'vencidas': 0, 'procesos': 0}},
+        'avance_produccion': {'ops': [], 'totales': {}},
     }
     try:
         # --- Conteo de OPs por estado (una sola consulta agregada) ---
@@ -5831,6 +5833,12 @@ def obtener_datos_dashboard():
                 'fecha_entrega': op.fecha_entrega.strftime('%d/%m/%Y'),
                 'dias_restantes': dias_restantes,
             })
+
+        # --- Documentos pendientes por proceso ---
+        datos['documentos_pendientes'] = obtener_documentos_pendientes()
+
+        # --- Avance de producción (cantidad OP vs. reportado en producto terminado) ---
+        datos['avance_produccion'] = obtener_avance_produccion_op()
 
         return datos
 
@@ -7214,3 +7222,340 @@ def guardar_config_alertas(items):
         db.session.rollback()
         app.logger.error(f"Error guardando config de alertas: {e}")
         return {'status': 'error', 'message': str(e)}
+
+
+def resolver_destinatarios_alerta(cfg):
+    """Destinatarios de una alerta = miembros de la lista ∪ correos_extra.
+    Devuelve un dict {email: nombre}."""
+    destinatarios = {}
+    if cfg.id_lista:
+        miembros = db.session.query(ListasMiembros).filter_by(id_lista=cfg.id_lista).all()
+        for m in miembros:
+            emp = db.session.query(Empleados).get(m.id_empleado)
+            if emp and emp.email_empleado:
+                nombre = f"{emp.nombre_empleado or ''} {emp.apellido_empleado or ''}".strip()
+                destinatarios[emp.email_empleado] = nombre or 'Colaborador'
+    if cfg.correos_extra:
+        for c in cfg.correos_extra.split(','):
+            c = c.strip()
+            if c and c not in destinatarios:
+                destinatarios[c] = 'Colaborador'
+    return destinatarios
+
+
+def _enviar_correo_alerta_sincrono(destinatarios, subject, body):
+    """Envía el correo de alerta de forma SÍNCRONA (para el cron, no en hilo).
+    Usa la cuenta de OP (MAIL_OP_*). Devuelve (ok, mensaje)."""
+    if not MAIL_OP_PASSWORD:
+        return False, "MAIL_OP_PASSWORD no configurada en el .env"
+    try:
+        import smtplib, ssl
+        from email.message import EmailMessage
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(MAIL_OP_SERVER, MAIL_OP_PORT, context=context) as smtp:
+            smtp.login(MAIL_OP_SENDER, MAIL_OP_PASSWORD)
+            for email_destino, nombre_destino in destinatarios.items():
+                em = EmailMessage()
+                em['From'] = MAIL_OP_SENDER
+                em['To'] = email_destino
+                em['Subject'] = subject
+                em.set_content(body.replace('{nombre_destino}', nombre_destino))
+                smtp.send_message(em)
+        return True, "ok"
+    except Exception as e:
+        app.logger.error(f"Error enviando alerta de documentos: {e}")
+        return False, str(e)
+
+
+def procesar_alertas_documentos(dry_run=False):
+    """Revisa las OPs activas y envía alertas por cada proceso que, tras el
+    umbral de días, no tiene documentos cargados. Reenvía según dias_reenvio.
+    Pensado para ejecutarse por cron (ver enviar_alertas.py).
+
+    dry_run=True: simula (no envía correos ni registra el log), solo reporta
+    cuántas alertas se enviarían. Útil para probar sin saturar."""
+    ahora = datetime.now()
+    hoy = ahora.date()
+    estados_cerrados = {'ANULA', 'FACTU'}  # OPs cerradas no generan alertas
+    revisadas = 0
+    enviadas = 0
+    errores = 0
+    try:
+        configs = {c.id_proceso: c for c in db.session.query(AlertaProceso).filter_by(activo=True).all()}
+        if not configs:
+            app.logger.info("Alertas documentos: no hay procesos con alerta activa.")
+            return {'status': 'ok', 'message': 'No hay procesos con alerta activa', 'enviadas': 0}
+
+        ops = db.session.query(OrdenProduccion).filter(
+            OrdenProduccion.fecha_borrado.is_(None)
+        ).all()
+
+        for op in ops:
+            if (op.estado or '').upper() in estados_cerrados:
+                continue
+            fecha_base = op.fecha or (op.fecha_registro.date() if op.fecha_registro else None)
+            if not fecha_base:
+                continue
+            dias_creacion = (hoy - fecha_base).days
+
+            proc_ids = [r[0] for r in db.session.query(OrdenProduccionProcesos.id_proceso).filter_by(id_op=op.id_op).all()]
+            for id_proc in proc_ids:
+                cfg = configs.get(id_proc)
+                if not cfg or dias_creacion < cfg.dias_limite:
+                    continue
+                # ¿ya tiene documento para ese proceso?
+                tiene_doc = db.session.query(DocumentosOP.id_documento).filter(
+                    DocumentosOP.id_op == op.id_op,
+                    DocumentosOP.id_proceso == id_proc,
+                    DocumentosOP.fecha_borrado.is_(None)
+                ).first()
+                if tiene_doc:
+                    continue
+                revisadas += 1
+                # Control de reenvío: no repetir antes de dias_reenvio
+                ultimo = db.session.query(AlertaDocumentoLog).filter_by(
+                    id_op=op.id_op, id_proceso=id_proc
+                ).order_by(AlertaDocumentoLog.fecha_envio.desc()).first()
+                if ultimo and (ahora - ultimo.fecha_envio).days < cfg.dias_reenvio:
+                    continue
+
+                destinatarios = resolver_destinatarios_alerta(cfg)
+                if not destinatarios:
+                    app.logger.warning(f"Alerta OP {op.codigo_op}/proc {id_proc}: sin destinatarios, se omite.")
+                    continue
+
+                nombre_proc = cfg.proceso.nombre_proceso if cfg.proceso else f'Proceso {id_proc}'
+                cliente = op.cliente.nombre_cliente if op.cliente else 'N/A'
+                subject = f'Alerta: OP {op.codigo_op} sin documentos para {nombre_proc}'
+                body = (
+                    "Hola {nombre_destino},\n\n"
+                    f"La Orden de Producción {op.codigo_op} tiene asignado el proceso "
+                    f"\"{nombre_proc}\" y aún NO tiene documentos cargados para ese proceso.\n\n"
+                    f"- Cliente: {cliente}\n"
+                    f"- Producto: {op.producto or 'N/A'}\n"
+                    f"- Fecha de creación: {fecha_base}\n"
+                    f"- Días transcurridos: {dias_creacion}\n\n"
+                    "Por favor cargar los documentos correspondientes en la OP.\n\n"
+                    "Mensaje automático del sistema."
+                )
+                if dry_run:
+                    enviadas += 1
+                    app.logger.info(f"[DRY-RUN] Se enviaría alerta: OP {op.codigo_op} / proceso {nombre_proc} → {list(destinatarios.keys())}")
+                    continue
+
+                ok, msg = _enviar_correo_alerta_sincrono(destinatarios, subject, body)
+                if ok:
+                    db.session.add(AlertaDocumentoLog(
+                        id_op=op.id_op, id_proceso=id_proc,
+                        destinatarios=', '.join(destinatarios.keys())
+                    ))
+                    db.session.commit()
+                    enviadas += 1
+                    app.logger.info(f"Alerta enviada: OP {op.codigo_op} / proceso {nombre_proc} → {list(destinatarios.keys())}")
+                else:
+                    errores += 1
+                    app.logger.error(f"Fallo alerta OP {op.codigo_op} / proceso {nombre_proc}: {msg}")
+
+        resumen = {'status': 'ok', 'dry_run': dry_run, 'revisadas': revisadas,
+                   'enviadas' if not dry_run else 'se_enviarian': enviadas, 'errores': errores}
+        app.logger.info(f"Alertas documentos finalizado: {resumen}")
+        return resumen
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_alertas_documentos: {e}", exc_info=True)
+        return {'status': 'error', 'message': str(e)}
+
+
+# Actividad que marca producto terminado (usada para medir avance de la OP)
+ACTIVIDAD_PRODUCTO_TERMINADO = 1563
+
+
+def obtener_avance_produccion_op():
+    """Avance por OP: cantidad pedida vs. lo reportado en operaciones de la
+    actividad EN-PRODUCTO TERMINADO (LEFT JOIN: incluye OPs sin reportes).
+
+    Estados: 'pendiente' (reportado < pedido), 'completa' (reportado == pedido)
+    y 'excedida' (reportado > pedido).
+    Se excluyen las OPs cerradas (ANULA / FACTU) para dejar solo lo accionable.
+    """
+    estados_cerrados = ('ANULA', 'FACTU')
+    try:
+        # Subconsulta: total reportado por OP en la actividad de producto terminado
+        sub = db.session.query(
+            Operaciones.id_op.label('id_op'),
+            func.sum(Operaciones.cantidad).label('cant_operacion')
+        ).filter(
+            Operaciones.id_actividad == ACTIVIDAD_PRODUCTO_TERMINADO
+        ).group_by(Operaciones.id_op).subquery()
+
+        filas = db.session.query(
+            OrdenProduccion.codigo_op,
+            OrdenProduccion.producto,
+            OrdenProduccion.cantidad,
+            OrdenProduccion.estado,
+            OrdenProduccion.fecha,
+            OrdenProduccion.fecha_registro,
+            Clientes.nombre_cliente.label('cliente'),
+            func.coalesce(sub.c.cant_operacion, 0).label('reportado')
+        ).outerjoin(
+            sub, sub.c.id_op == OrdenProduccion.id_op
+        ).outerjoin(
+            Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
+        ).filter(
+            OrdenProduccion.fecha_borrado.is_(None),
+            func.upper(func.coalesce(OrdenProduccion.estado, '')).notin_(estados_cerrados)
+        ).all()
+
+        ops = []
+        completas = pendientes = excedidas = 0
+        unidades_pedidas = unidades_reportadas = unidades_faltantes = 0
+        for f in filas:
+            pedida = int(f.cantidad or 0)
+            reportado = int(f.reportado or 0)
+            if pedida <= 0:
+                continue  # sin cantidad pedida no hay avance que medir
+
+            faltante = max(0, pedida - reportado)
+            exceso = max(0, reportado - pedida)
+            avance = round((reportado / pedida) * 100, 1)
+
+            if exceso > 0:
+                estado_avance = 'excedida'
+                excedidas += 1
+            elif faltante == 0:
+                estado_avance = 'completa'
+                completas += 1
+            else:
+                estado_avance = 'pendiente'
+                pendientes += 1
+                unidades_faltantes += faltante
+
+            unidades_pedidas += pedida
+            unidades_reportadas += reportado
+
+            # Fecha de creación (con fallback al registro) para ordenar/filtrar por recientes
+            fecha_base = f.fecha or (f.fecha_registro.date() if f.fecha_registro else None)
+
+            ops.append({
+                'codigo_op': f.codigo_op,
+                'cliente': f.cliente or 'N/A',
+                'producto': f.producto or '',
+                'cantidad_op': pedida,
+                'reportado': reportado,
+                'faltante': faltante,
+                'exceso': exceso,
+                'avance': avance,
+                'estado_avance': estado_avance,
+                'estado': f.estado or 'N/A',
+                'fecha': fecha_base.strftime('%d/%m/%Y') if fecha_base else 'N/A',
+                'fecha_iso': fecha_base.isoformat() if fecha_base else ''
+            })
+
+        # Por defecto: las más recientes primero (el orden final lo decide el usuario en el dashboard)
+        ops.sort(key=lambda o: o['fecha_iso'], reverse=True)
+
+        return {
+            'ops': ops,
+            'totales': {
+                'total': len(ops),
+                'completas': completas,
+                'pendientes': pendientes,
+                'excedidas': excedidas,
+                'unidades_pedidas': unidades_pedidas,
+                'unidades_reportadas': unidades_reportadas,
+                'unidades_faltantes': unidades_faltantes
+            }
+        }
+    except Exception as e:
+        app.logger.error(f"Error en obtener_avance_produccion_op: {e}", exc_info=True)
+        return {'ops': [], 'totales': {'total': 0, 'completas': 0, 'pendientes': 0, 'excedidas': 0,
+                                       'unidades_pedidas': 0, 'unidades_reportadas': 0,
+                                       'unidades_faltantes': 0}}
+
+
+def obtener_documentos_pendientes():
+    """Tablero por proceso: OPs activas que NO tienen documentos cargados para
+    un proceso que sí tienen asignado. Marca 'vencida' si pasó el dias_limite
+    configurado del proceso (o un umbral por defecto). Consulta en bloque."""
+    hoy = datetime.now().date()
+    estados_cerrados = {'ANULA', 'FACTU'}
+    DEFAULT_LIMITE = 2
+    try:
+        ops = db.session.query(OrdenProduccion).filter(
+            OrdenProduccion.fecha_borrado.is_(None)
+        ).all()
+        ops = [o for o in ops if (o.estado or '').upper() not in estados_cerrados]
+        if not ops:
+            return {'procesos': [], 'totales': {'total': 0, 'vencidas': 0, 'procesos': 0}}
+
+        op_por_id = {o.id_op: o for o in ops}
+        op_ids = list(op_por_id.keys())
+
+        # Procesos asignados a cada OP
+        rel = db.session.query(
+            OrdenProduccionProcesos.id_op, OrdenProduccionProcesos.id_proceso
+        ).filter(OrdenProduccionProcesos.id_op.in_(op_ids)).all()
+
+        # (op, proceso) que YA tienen documento cargado
+        docs = db.session.query(
+            DocumentosOP.id_op, DocumentosOP.id_proceso
+        ).filter(
+            DocumentosOP.id_op.in_(op_ids),
+            DocumentosOP.id_proceso.isnot(None),
+            DocumentosOP.fecha_borrado.is_(None)
+        ).all()
+        con_doc = {(d.id_op, d.id_proceso) for d in docs}
+
+        procesos = {p.id_proceso: p for p in db.session.query(Procesos).filter(
+            Procesos.fecha_borrado.is_(None)).all()}
+        limites = {c.id_proceso: c.dias_limite for c in db.session.query(AlertaProceso).all()}
+        clientes = {c.id_cliente: c.nombre_cliente for c in db.session.query(Clientes).all()}
+
+        agrupado = {}
+        for id_op, id_proc in rel:
+            if (id_op, id_proc) in con_doc:
+                continue  # ya tiene documento para ese proceso
+            op = op_por_id.get(id_op)
+            proc = procesos.get(id_proc)
+            if not op or not proc:
+                continue
+            fecha_base = op.fecha or (op.fecha_registro.date() if op.fecha_registro else None)
+            dias = (hoy - fecha_base).days if fecha_base else 0
+            limite = limites.get(id_proc, DEFAULT_LIMITE)
+            vencida = dias >= limite
+
+            if id_proc not in agrupado:
+                agrupado[id_proc] = {
+                    'id_proceso': id_proc,
+                    'nombre_proceso': proc.nombre_proceso or proc.codigo_proceso,
+                    'dias_limite': limite,
+                    'ops': []
+                }
+            agrupado[id_proc]['ops'].append({
+                'id_op': op.id_op,
+                'codigo_op': op.codigo_op,
+                'cliente': clientes.get(op.id_cliente, 'N/A'),
+                'producto': op.producto or '',
+                'dias': dias,
+                'vencida': vencida
+            })
+
+        lista = []
+        total = total_venc = 0
+        for data in agrupado.values():
+            data['ops'].sort(key=lambda x: (not x['vencida'], -x['dias']))
+            data['total'] = len(data['ops'])
+            data['vencidas'] = sum(1 for x in data['ops'] if x['vencida'])
+            total += data['total']
+            total_venc += data['vencidas']
+            lista.append(data)
+        # Procesos con más vencidas primero
+        lista.sort(key=lambda d: (d['vencidas'], d['total']), reverse=True)
+
+        return {
+            'procesos': lista,
+            'totales': {'total': total, 'vencidas': total_venc, 'procesos': len(lista)}
+        }
+    except Exception as e:
+        app.logger.error(f"Error en obtener_documentos_pendientes: {e}", exc_info=True)
+        return {'procesos': [], 'totales': {'total': 0, 'vencidas': 0, 'procesos': 0}}
