@@ -102,6 +102,43 @@
   </div>
 </div>
 
+<!-- ── Eficiencia real vs. estándar ── -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0"><i class="bi bi-speedometer me-2 text-primary"></i>Eficiencia real vs. estándar</h5>
+          <small class="text-muted">Últimos 30 días · <strong>100%</strong> = al estándar, <strong>&gt;100%</strong> más rápido, <strong>&lt;100%</strong> más lento</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-label-primary" id="ef-global">—</span>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="ef-tab-emp">Por empleado</button>
+            <button type="button" class="btn btn-outline-primary" id="ef-tab-proc">Por proceso</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:420px; overflow-y:auto;">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th id="ef-col1">Empleado</th>
+                <th class="text-end">Horas reales</th>
+                <th class="text-end">Horas estándar</th>
+                <th class="text-end">Unidades</th>
+                <th style="min-width:160px;">Eficiencia</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-eficiencia"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script id="dashOpData" type="application/json">{{ datos | tojson }}</script>
 {% endblock %}
 
@@ -208,12 +245,63 @@
     }).join('');
   }
 
+  // ── Eficiencia real vs. estándar ──
+  var efData = { por_empleado: [], por_proceso: [], totales: {} };
+  var efVista = 'empleado';
+
+  function colorEf(pct) {
+    if (pct >= 100) return '#71dd37';   // al o sobre estándar
+    if (pct >= 85)  return '#03c3ec';   // aceptable
+    if (pct >= 70)  return '#ffab00';   // bajo
+    return '#ff3e1d';                    // crítico
+  }
+
+  function renderTablaEficiencia() {
+    var tb = document.getElementById('tbody-eficiencia');
+    if (!tb) return;
+    var rows = efVista === 'empleado' ? (efData.por_empleado || []) : (efData.por_proceso || []);
+    var col1 = document.getElementById('ef-col1');
+    if (col1) col1.textContent = efVista === 'empleado' ? 'Empleado' : 'Proceso';
+
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-4">'
+        + 'Sin datos suficientes. Requiere operaciones con estándar calculado para su proceso/actividad.</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(function (r) {
+      var nombre = efVista === 'empleado' ? r.empleado : r.proceso;
+      var pct = r.eficiencia;
+      var ancho = Math.min(pct, 150) / 1.5;   // 150% ocupa la barra completa
+      var col = colorEf(pct);
+      return '<tr><td class="fw-semibold">' + esc(nombre) + '</td>'
+        + '<td class="text-end">' + r.horas_reales + ' h</td>'
+        + '<td class="text-end text-muted">' + r.horas_estandar + ' h</td>'
+        + '<td class="text-end">' + (r.unidades || 0).toLocaleString('es-CO') + '</td>'
+        + '<td><div class="d-flex align-items-center gap-2">'
+        + '<div style="flex:1;height:7px;background:#eef0f3;border-radius:99px;overflow:hidden;">'
+        + '<div style="width:' + ancho + '%;height:100%;background:' + col + ';border-radius:99px;"></div></div>'
+        + '<span style="font-size:.78rem;font-weight:700;min-width:48px;text-align:right;color:' + col + ';">'
+        + pct + '%</span></div></td></tr>';
+    }).join('');
+  }
+
+  function renderEficiencia(d) {
+    efData = (d && d.eficiencia) ? d.eficiencia : { por_empleado: [], por_proceso: [], totales: {} };
+    var t = efData.totales || {};
+    var g = document.getElementById('ef-global');
+    if (g) {
+      g.textContent = (t.eficiencia || 0) + '% global · ' + (t.empleados || 0) + ' empleados';
+    }
+    renderTablaEficiencia();
+  }
+
   function render(d) {
     renderKPIs(d);
     renderChartProcesos(d);
     renderTopEmpleados(d);
     renderUltimas(d);
     renderNovedades(d);
+    renderEficiencia(d);
     var ts = document.getElementById('ultima-actualizacion');
     if (ts) ts.textContent = new Date().toLocaleTimeString();
   }
@@ -230,6 +318,21 @@
     try { inicial = JSON.parse(document.getElementById('dashOpData').textContent); }
     catch (e) { inicial = null; }
     if (inicial && inicial.kpis) render(inicial);
+
+    // Cambio de vista: por empleado / por proceso
+    var tEmp = document.getElementById('ef-tab-emp');
+    var tProc = document.getElementById('ef-tab-proc');
+    if (tEmp && tProc) {
+      tEmp.addEventListener('click', function () {
+        efVista = 'empleado'; tEmp.classList.add('active'); tProc.classList.remove('active');
+        renderTablaEficiencia();
+      });
+      tProc.addEventListener('click', function () {
+        efVista = 'proceso'; tProc.classList.add('active'); tEmp.classList.remove('active');
+        renderTablaEficiencia();
+      });
+    }
+
     setInterval(refrescar, REFRESCO_MS);
   });
 })();

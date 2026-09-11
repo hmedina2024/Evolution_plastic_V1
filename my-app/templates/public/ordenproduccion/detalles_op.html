@@ -432,6 +432,7 @@
                   <th>KG</th>
                   <th>RETAL (kg)</th>
                   <th>Reproceso</th>
+                  <th>Orden de Compra</th>
                 </tr>
               </thead>
               <tbody>
@@ -446,6 +447,7 @@
                   <td>{{ esp.kg | default('N/A') }}</td>
                   <td>{{ esp.retal_kg | default('N/A') }}</td>
                   <td>{{ esp.reproceso | default('N/A') }}</td>
+                  <td>{{ esp.orden_compra if esp.orden_compra is not none else '' }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -517,6 +519,8 @@
           (kg)</th>
         <th
           style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Reproceso</th>
+        <th
+          style="position: sticky; top: 0; background: #395c83; color: white; z-index: 1;">Orden de Compra</th>
       </tr>
     </thead>
     <tbody>
@@ -535,6 +539,7 @@
         <td>{{ esp.kg | default('N/A') }}</td>
         <td>{{ esp.retal_kg | default('N/A') }}</td>
         <td>{{ esp.reproceso | default('N/A') }}</td>
+        <td>{{ esp.orden_compra if esp.orden_compra is not none else '' }}</td>
       </tr>
       {% endfor %}
       {% endif %}

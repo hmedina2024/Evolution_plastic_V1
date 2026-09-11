@@ -6,7 +6,7 @@ import magic
 from sqlalchemy.orm import joinedload
 import os
 from os import remove, path  # Módulos para manejar archivos
-from app import app  # Importa la instancia de Flask desde app.py
+from app import app, cache  # Instancia de Flask y caché (Flask-Caching o no-op)
 # Importa modelos desde models.py
 from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad, ListasCorreos, ListasMiembros, AlertaProceso, AlertaDocumentoLog
 # import datetime # datetime ya se importa desde datetime
@@ -2390,6 +2390,17 @@ def procesar_form_op(dataForm, files):
                  errores.append("Debe seleccionar procesos válidos o especificar un nuevo proceso global.")
 
 
+    # --- Proceso OBLIGATORIO en cada documento cargado ---
+    # Se valida aquí (y no al leer los archivos) porque solo en este punto ya se
+    # conocen los procesos asociados a la OP contra los que debe coincidir.
+    for doc_info in documentos_a_guardar:
+        raw_proc = str(doc_info.get("id_proceso_raw") or '').strip()
+        nombre_doc = doc_info.get("nombre_original", "documento")
+        if not raw_proc.isdigit():
+            errores.append(f"Documento '{nombre_doc}': debe asignarle un proceso.")
+        elif int(raw_proc) not in ids_procesos_a_asociar:
+            errores.append(f"Documento '{nombre_doc}': el proceso asignado no pertenece a los procesos de la OP.")
+
     # --- RE-CHEQUEO DE ERRORES DESPUÉS DE PROCESOS GLOBALES ---
     if errores:
         app.logger.warning(f"Errores de validación (incluyendo procesos globales) en procesar_form_op: {', '.join(errores)}")
@@ -2541,7 +2552,9 @@ def procesar_form_op(dataForm, files):
                     cantidad_esp_val = int(esp_item.get('cantidad')) if esp_item.get('cantidad') else None
                     kg_val = float(esp_item.get('kg')) if esp_item.get('kg') else None
                     retal_kg_val = float(esp_item.get('retal_kg')) if esp_item.get('retal_kg') else None
-                    
+                    oc_raw = str(esp_item.get('orden_compra') or '').strip()
+                    orden_compra_val = int(oc_raw) if oc_raw.isdigit() else None
+
                     especificacion_obj = OrdenPiezaEspecificaciones(
                         id_orden_pieza=orden_pieza_obj.id_orden_pieza,
                         item=esp_item.get('item'),
@@ -2552,7 +2565,8 @@ def procesar_form_op(dataForm, files):
                         cantidad_especificacion=cantidad_esp_val,
                         kg=kg_val,
                         retal_kg=retal_kg_val,
-                        reproceso=esp_item.get('reproceso')
+                        reproceso=esp_item.get('reproceso'),
+                        orden_compra=orden_compra_val
                     )
                     db.session.add(especificacion_obj)
             else:
@@ -2915,7 +2929,8 @@ def sql_detalles_op_bd(codigo_op):
                         'cantidad_especificacion': esp.cantidad_especificacion,
                         'kg': str(esp.kg) if esp.kg is not None else None, # Convertir Decimal a str
                         'retal_kg': str(esp.retal_kg) if esp.retal_kg is not None else None, # Convertir Decimal a str
-                        'reproceso': esp.reproceso
+                        'reproceso': esp.reproceso,
+                        'orden_compra': esp.orden_compra
                     })
             app.logger.debug(f"Especificaciones para pieza {pieza_orden_obj.id_orden_pieza}: {especificaciones_list}")
             
@@ -3323,7 +3338,8 @@ def obtener_datos_op_para_edicion(codigo_op):
                             'cantidad_especificacion': esp.cantidad_especificacion,
                             'kg': str(esp.kg) if esp.kg is not None else None,
                             'retal_kg': str(esp.retal_kg) if esp.retal_kg is not None else None,
-                            'reproceso': esp.reproceso
+                            'reproceso': esp.reproceso,
+                            'orden_compra': esp.orden_compra
                         }
                         for esp in p.especificaciones
                     ]
@@ -3386,7 +3402,8 @@ def _canonizar_piezas(piezas, es_form):
                        for v in p.get('valores_configuracion', [])]
             especs = [[_s(e.get('item')), _s(e.get('calibre')), _n(e.get('largo')),
                        _n(e.get('ancho')), _s(e.get('unidad')), _i(e.get('cantidad_especificacion')),
-                       _n(e.get('kg')), _n(e.get('retal_kg')), _s(e.get('reproceso'))]
+                       _n(e.get('kg')), _n(e.get('retal_kg')), _s(e.get('reproceso')),
+                       _i(e.get('orden_compra'))]
                       for e in p.get('especificaciones_pieza', [])]
         else:
             id_pieza = p.id_pieza
@@ -3406,7 +3423,8 @@ def _canonizar_piezas(piezas, es_form):
             valores = [[_s(v.grupo_configuracion), _s(v.valor_configuracion)]
                        for v in p.valores_config_adicional]
             especs = [[_s(e.item), _s(e.calibre), _n(e.largo), _n(e.ancho), _s(e.unidad),
-                       _i(e.cantidad_especificacion), _n(e.kg), _n(e.retal_kg), _s(e.reproceso)]
+                       _i(e.cantidad_especificacion), _n(e.kg), _n(e.retal_kg), _s(e.reproceso),
+                       _i(e.orden_compra)]
                       for e in p.especificaciones]
 
         resultado.append({
@@ -3728,6 +3746,36 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                         piezas_data_validadas.append(pieza_item_val)
         except json.JSONDecodeError:
             errores.append("Error al decodificar los datos de las piezas (JSON inválido).")
+
+    # --- Proceso OBLIGATORIO en cada documento (nuevos y existentes que se conservan) ---
+    def _validar_proceso_doc(valor, nombre_doc):
+        """Agrega el error correspondiente si el proceso falta o no es de la OP."""
+        crudo = str(valor if valor is not None else '').strip()
+        if not crudo.isdigit():
+            errores.append(f"Documento '{nombre_doc}': debe asignarle un proceso.")
+        elif int(crudo) not in ids_procesos_validados_global:
+            errores.append(f"Documento '{nombre_doc}': el proceso asignado no pertenece a los procesos de la OP.")
+
+    for doc_nuevo_val in documentos_info_para_guardar:
+        _validar_proceso_doc(doc_nuevo_val.get('id_proceso_raw'),
+                             doc_nuevo_val.get('nombre_original', 'documento'))
+
+    try:
+        _map_proc_exist = json.loads(dataForm.get('documentos_existentes_procesos') or '{}')
+    except Exception:
+        _map_proc_exist = {}
+    if not isinstance(_map_proc_exist, dict):
+        _map_proc_exist = {}
+
+    for doc_actual_val in DocumentosOP.query.filter(
+            DocumentosOP.id_op == orden.id_op,
+            DocumentosOP.fecha_borrado.is_(None)).all():
+        if doc_actual_val.id_documento in ids_documentos_a_eliminar_validados:
+            continue  # se va a eliminar, no requiere proceso
+        # Lo que envió el formulario manda; si no vino, se conserva lo que ya tenía en BD
+        enviado = _map_proc_exist.get(str(doc_actual_val.id_documento))
+        efectivo = enviado if str(enviado or '').strip() else doc_actual_val.id_proceso
+        _validar_proceso_doc(efectivo, doc_actual_val.documento_nombre_original)
 
     # --- Si hay errores de validación, retornar y limpiar archivos subidos ---
     if errores:
@@ -4121,7 +4169,9 @@ def procesar_actualizar_form_op(codigo_op, dataForm, files):
                     cantidad_especificacion=int(esp_item_p_form_db_val.get('cantidad_especificacion')) if esp_item_p_form_db_val.get('cantidad_especificacion') else None,
                     kg=float(esp_item_p_form_db_val.get('kg')) if esp_item_p_form_db_val.get('kg') else None,
                     retal_kg=float(esp_item_p_form_db_val.get('retal_kg')) if esp_item_p_form_db_val.get('retal_kg') else None,
-                    reproceso=esp_item_p_form_db_val.get('reproceso')
+                    reproceso=esp_item_p_form_db_val.get('reproceso'),
+                    orden_compra=int(str(esp_item_p_form_db_val.get('orden_compra')).strip())
+                        if str(esp_item_p_form_db_val.get('orden_compra') or '').strip().isdigit() else None
                     # Corregido: Se elimina id_usuario_registro ya que no existe en el modelo OrdenPiezaEspecificaciones
                 ))
         
@@ -5637,7 +5687,7 @@ def generar_pdf_op_func(detalle_op, codigo_op):
                 pieza_elements.append(Paragraph("<b>Especificaciones Técnicas:</b>", style_normal))
                 
                 # Headers de la tabla de especificaciones
-                data_specs = [['Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cant', 'KG', 'Retal', 'Repro.']]
+                data_specs = [['Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cant', 'KG', 'Retal', 'Repro.', 'O. Compra']]
                 for esp in pieza['especificaciones']:
                     data_specs.append([
                         p_cell(esp.get('item'), style_small),
@@ -5648,11 +5698,12 @@ def generar_pdf_op_func(detalle_op, codigo_op):
                         p_cell(esp.get('cantidad_especificacion'), style_small),
                         p_cell(esp.get('kg'), style_small), 
                         p_cell(esp.get('retal_kg'), style_small), 
-                        p_cell(esp.get('reproceso'), style_small)
+                        p_cell(esp.get('reproceso'), style_small),
+                        p_cell(esp.get('orden_compra') if esp.get('orden_compra') is not None else '', style_small)
                     ])
                 
                 # Anchos calculados para ajustar a la página
-                col_w = [1.5*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch]
+                col_w = [1.2*inch] + [0.58*inch]*9
                 t_specs = Table(data_specs, colWidths=col_w)
                 t_specs.setStyle(TableStyle([
                     ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -5673,7 +5724,7 @@ def generar_pdf_op_func(detalle_op, codigo_op):
         elements.append(Paragraph("Resumen General de Especificaciones", style_subtitulo))
         
         # Headers de la tabla resumida
-        data_resumen = [['Pieza', 'Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cantidad', 'KG', 'Retal (kg)', 'Reproceso']]
+        data_resumen = [['Pieza', 'Item', 'Calibre', 'Largo', 'Ancho', 'Unidad', 'Cantidad', 'KG', 'Retal (kg)', 'Reproceso', 'O. Compra']]
         
         # Recopilar datos de todas las piezas
         for num_pieza, pieza in enumerate(detalle_op['piezas'], start=1):
@@ -5689,12 +5740,13 @@ def generar_pdf_op_func(detalle_op, codigo_op):
                         p_cell(esp.get('cantidad_especificacion'), style_small),
                         p_cell(esp.get('kg'), style_small),
                         p_cell(esp.get('retal_kg'), style_small),
-                        p_cell(esp.get('reproceso'), style_small)
+                        p_cell(esp.get('reproceso'), style_small),
+                        p_cell(esp.get('orden_compra') if esp.get('orden_compra') is not None else '', style_small)
                     ])
         
         # Si hay datos, crear la tabla
         if len(data_resumen) > 1:
-            col_w_resumen = [1.5*inch] + [0.6*inch]*9  # Ajuste para 10 columnas
+            col_w_resumen = [1.2*inch] + [0.56*inch]*10  # Ajuste para 11 columnas
             t_resumen = Table(data_resumen, colWidths=col_w_resumen)
             t_resumen.setStyle(TableStyle([
                 ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -5744,8 +5796,13 @@ def tarea_enviar_correos_background(app, destinatarios_finales, subject, body, s
 # --- Funciones de Ordenes de Diseño Industrial (ODI) ---
 # ============================================================
 
+@cache.cached(timeout=120, key_prefix='dash_op_datos')
 def obtener_datos_dashboard():
     """Reúne los datos del panel/dashboard en consultas agregadas y livianas.
+
+    Cacheado 2 minutos: el dashboard se recalcula en cada carga y cada 5 min
+    por el auto-refresco de CADA usuario conectado. La caché se limpia sola
+    cuando se escribe en la BD (ver _limpiar_cache_referencia en app.py).
 
     Devuelve un dict con KPIs, conteo de OPs por estado (para el gráfico),
     actividad reciente (tbl_op_logs) y OPs próximas a vencer.
@@ -5858,6 +5915,7 @@ def obtener_datos_dashboard_operaciones():
         'top_empleados': [],        # [{'empleado': 'Y', 'cantidad': 8}, ...]
         'ultimas_operaciones': [],  # últimas 10 registradas
         'novedades_recientes': [],  # últimas 10 con novedad
+        'eficiencia': {'por_empleado': [], 'por_proceso': [], 'totales': {}},
     }
     try:
         ahora = datetime.now(LOCAL_TIMEZONE)
@@ -5947,6 +6005,9 @@ def obtener_datos_dashboard_operaciones():
                 'novedad': row.novedad,
                 'fecha': row.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M') if row.fecha_hora_inicio else 'N/A',
             })
+
+        # --- Eficiencia real vs. estándar (últimos 30 días, cacheada aparte) ---
+        datos['eficiencia'] = obtener_eficiencia_vs_estandar(30)
 
         return datos
 
@@ -6761,12 +6822,16 @@ def actualizar_estandar_actividad(id_proceso, id_actividad, desde):
         # Calcular tiempo por unidad para cada operación
         tiempos_por_unidad = []
         novedades_count = 0
+        minutos_totales = 0.0   # para el promedio PONDERADO
+        unidades_totales = 0
 
         for op in operaciones:
             if op.fecha_hora_fin > op.fecha_hora_inicio:
                 tiempo_total = (op.fecha_hora_fin - op.fecha_hora_inicio).total_seconds() / 60  # en minutos
                 tiempo_unit = tiempo_total / op.cantidad
                 tiempos_por_unidad.append(tiempo_unit)
+                minutos_totales += tiempo_total
+                unidades_totales += op.cantidad
 
                 if op.novedad and op.novedad.strip():
                     novedades_count += 1
@@ -6774,10 +6839,17 @@ def actualizar_estandar_actividad(id_proceso, id_actividad, desde):
         if not tiempos_por_unidad:
             return False
 
-        # Cálculos estadísticos
-        tiempo_promedio = statistics.mean(tiempos_por_unidad)
+        # Tiempo estándar por unidad = PONDERADO (minutos totales / unidades totales).
+        # Antes se usaba statistics.mean(tiempos_por_unidad), un "promedio de razones"
+        # que se disparaba con operaciones de cantidad pequeña (8h con cantidad 1 pesaba
+        # igual que 8h con cantidad 5000) e inflaba el estándar varios órdenes de magnitud.
+        tiempo_promedio = (minutos_totales / unidades_totales) if unidades_totales > 0 \
+            else statistics.mean(tiempos_por_unidad)
+        # La dispersión sí se mide sobre los tiempos por unidad (sirve para clasificar dificultad)
         desviacion = statistics.stdev(tiempos_por_unidad) if len(tiempos_por_unidad) > 1 else 0
         variabilidad_pct = (desviacion / tiempo_promedio * 100) if tiempo_promedio > 0 else 0
+        # La columna es Numeric(5,2): se acota a 999.99 (valores mayores ya son "ALTA" igual)
+        variabilidad_pct = min(variabilidad_pct, 999.99)
         porcentaje_novedades = (novedades_count / len(operaciones) * 100) if operaciones else 0
 
         # Clasificar dificultad
@@ -7473,6 +7545,115 @@ def obtener_avance_produccion_op():
                                        'unidades_faltantes': 0}}
 
 
+@cache.cached(timeout=300, key_prefix='eficiencia_estandar')
+def obtener_eficiencia_vs_estandar(dias=30):
+    """Eficiencia real vs. estándar (últimos N días), agregada en SQL.
+
+    Fórmula clásica de manufactura (horas ganadas / horas reales):
+        eficiencia % = (minutos_estandar / minutos_reales) * 100
+    donde minutos_estandar = tiempo_promedio_minuto x cantidad producida.
+
+    >100% = más rápido que el estándar · <100% = más lento.
+    Todo se calcula con GROUP BY en la base: no trae operaciones a Python.
+    """
+    resultado = {
+        'por_empleado': [], 'por_proceso': [],
+        'totales': {'eficiencia': 0, 'minutos_reales': 0, 'minutos_estandar': 0,
+                    'operaciones': 0, 'unidades': 0, 'dias': dias}
+    }
+    try:
+        desde = datetime.now() - timedelta(days=dias)
+
+        # Minutos reales de la operación y minutos estándar equivalentes
+        min_reales = func.sum(func.timestampdiff(
+            text('MINUTE'), Operaciones.fecha_hora_inicio, Operaciones.fecha_hora_fin))
+        min_estandar = func.sum(EstandarProcesoActividad.tiempo_promedio_minuto * Operaciones.cantidad)
+
+        base = db.session.query(Operaciones).join(
+            EstandarProcesoActividad,
+            db.and_(
+                EstandarProcesoActividad.id_proceso == Operaciones.id_proceso,
+                EstandarProcesoActividad.id_actividad == Operaciones.id_actividad
+            )
+        ).filter(
+            Operaciones.fecha_hora_inicio >= desde,
+            Operaciones.fecha_hora_fin.isnot(None),
+            Operaciones.cantidad.isnot(None),
+            Operaciones.cantidad > 0,
+            EstandarProcesoActividad.tiempo_promedio_minuto > 0
+        )
+
+        def _pct(est, real):
+            est, real = float(est or 0), float(real or 0)
+            return round((est / real) * 100, 1) if real > 0 else 0
+
+        # --- Por empleado ---
+        filas_emp = base.join(
+            Empleados, Empleados.id_empleado == Operaciones.id_empleado
+        ).with_entities(
+            Empleados.id_empleado,
+            func.concat(func.coalesce(Empleados.nombre_empleado, ''), ' ',
+                        func.coalesce(Empleados.apellido_empleado, '')).label('empleado'),
+            min_reales.label('min_reales'),
+            min_estandar.label('min_estandar'),
+            func.count(Operaciones.id_operacion).label('operaciones'),
+            func.sum(Operaciones.cantidad).label('unidades')
+        ).group_by(Empleados.id_empleado, Empleados.nombre_empleado, Empleados.apellido_empleado)\
+         .having(min_reales > 0).all()
+
+        for f in filas_emp:
+            resultado['por_empleado'].append({
+                'empleado': (f.empleado or '').strip() or 'Sin nombre',
+                'eficiencia': _pct(f.min_estandar, f.min_reales),
+                'horas_reales': round(float(f.min_reales or 0) / 60, 1),
+                'horas_estandar': round(float(f.min_estandar or 0) / 60, 1),
+                'operaciones': int(f.operaciones or 0),
+                'unidades': int(f.unidades or 0)
+            })
+        resultado['por_empleado'].sort(key=lambda x: x['eficiencia'], reverse=True)
+
+        # --- Por proceso ---
+        filas_proc = base.join(
+            Procesos, Procesos.id_proceso == Operaciones.id_proceso
+        ).with_entities(
+            Procesos.id_proceso,
+            Procesos.nombre_proceso.label('proceso'),
+            min_reales.label('min_reales'),
+            min_estandar.label('min_estandar'),
+            func.count(Operaciones.id_operacion).label('operaciones'),
+            func.sum(Operaciones.cantidad).label('unidades')
+        ).group_by(Procesos.id_proceso, Procesos.nombre_proceso)\
+         .having(min_reales > 0).all()
+
+        for f in filas_proc:
+            resultado['por_proceso'].append({
+                'proceso': f.proceso or 'Sin proceso',
+                'eficiencia': _pct(f.min_estandar, f.min_reales),
+                'horas_reales': round(float(f.min_reales or 0) / 60, 1),
+                'horas_estandar': round(float(f.min_estandar or 0) / 60, 1),
+                'operaciones': int(f.operaciones or 0),
+                'unidades': int(f.unidades or 0)
+            })
+        resultado['por_proceso'].sort(key=lambda x: x['eficiencia'])
+
+        # --- Totales ---
+        tot_real = sum(e['horas_reales'] for e in resultado['por_empleado'])
+        tot_est = sum(e['horas_estandar'] for e in resultado['por_empleado'])
+        resultado['totales'] = {
+            'eficiencia': _pct(tot_est, tot_real),
+            'horas_reales': round(tot_real, 1),
+            'horas_estandar': round(tot_est, 1),
+            'operaciones': sum(e['operaciones'] for e in resultado['por_empleado']),
+            'unidades': sum(e['unidades'] for e in resultado['por_empleado']),
+            'empleados': len(resultado['por_empleado']),
+            'dias': dias
+        }
+        return resultado
+    except Exception as e:
+        app.logger.error(f"Error en obtener_eficiencia_vs_estandar: {e}", exc_info=True)
+        return resultado
+
+
 def obtener_documentos_pendientes():
     """Tablero por proceso: OPs activas que NO tienen documentos cargados para
     un proceso que sí tienen asignado. Marca 'vencida' si pasó el dias_limite
@@ -7481,10 +7662,19 @@ def obtener_documentos_pendientes():
     estados_cerrados = {'ANULA', 'FACTU'}
     DEFAULT_LIMITE = 2
     try:
-        ops = db.session.query(OrdenProduccion).filter(
-            OrdenProduccion.fecha_borrado.is_(None)
+        # Solo las columnas necesarias y filtrando estados cerrados en SQL
+        # (antes traía objetos ORM completos de TODAS las OPs y filtraba en Python)
+        ops = db.session.query(
+            OrdenProduccion.id_op,
+            OrdenProduccion.codigo_op,
+            OrdenProduccion.producto,
+            OrdenProduccion.id_cliente,
+            OrdenProduccion.fecha,
+            OrdenProduccion.fecha_registro
+        ).filter(
+            OrdenProduccion.fecha_borrado.is_(None),
+            func.upper(func.coalesce(OrdenProduccion.estado, '')).notin_(tuple(estados_cerrados))
         ).all()
-        ops = [o for o in ops if (o.estado or '').upper() not in estados_cerrados]
         if not ops:
             return {'procesos': [], 'totales': {'total': 0, 'vencidas': 0, 'procesos': 0}}
 
@@ -7506,18 +7696,28 @@ def obtener_documentos_pendientes():
         ).all()
         con_doc = {(d.id_op, d.id_proceso) for d in docs}
 
-        procesos = {p.id_proceso: p for p in db.session.query(Procesos).filter(
-            Procesos.fecha_borrado.is_(None)).all()}
-        limites = {c.id_proceso: c.dias_limite for c in db.session.query(AlertaProceso).all()}
-        clientes = {c.id_cliente: c.nombre_cliente for c in db.session.query(Clientes).all()}
+        procesos = {p.id_proceso: p.nombre_proceso or p.codigo_proceso
+                    for p in db.session.query(
+                        Procesos.id_proceso, Procesos.nombre_proceso, Procesos.codigo_proceso
+                    ).filter(Procesos.fecha_borrado.is_(None)).all()}
+        limites = {c.id_proceso: c.dias_limite for c in db.session.query(
+            AlertaProceso.id_proceso, AlertaProceso.dias_limite).all()}
+
+        # Solo los clientes de estas OPs (antes traía la tabla completa)
+        cliente_ids = {o.id_cliente for o in ops if o.id_cliente}
+        clientes = {}
+        if cliente_ids:
+            clientes = {c.id_cliente: c.nombre_cliente for c in db.session.query(
+                Clientes.id_cliente, Clientes.nombre_cliente
+            ).filter(Clientes.id_cliente.in_(cliente_ids)).all()}
 
         agrupado = {}
         for id_op, id_proc in rel:
             if (id_op, id_proc) in con_doc:
                 continue  # ya tiene documento para ese proceso
             op = op_por_id.get(id_op)
-            proc = procesos.get(id_proc)
-            if not op or not proc:
+            nombre_proc = procesos.get(id_proc)
+            if not op or not nombre_proc:
                 continue
             fecha_base = op.fecha or (op.fecha_registro.date() if op.fecha_registro else None)
             dias = (hoy - fecha_base).days if fecha_base else 0
@@ -7527,7 +7727,7 @@ def obtener_documentos_pendientes():
             if id_proc not in agrupado:
                 agrupado[id_proc] = {
                     'id_proceso': id_proc,
-                    'nombre_proceso': proc.nombre_proceso or proc.codigo_proceso,
+                    'nombre_proceso': nombre_proc,
                     'dias_limite': limite,
                     'ops': []
                 }

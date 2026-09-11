@@ -597,6 +597,7 @@
                 <th>KG</th>
                 <th>RETAL (kg)</th>
                 <th>REPROCESO</th>
+                <th>ORDEN DE COMPRA</th>
                 <th>ACCIONES</th>
               </tr>
             </thead>
@@ -896,7 +897,7 @@ $(document).ready(function () {
     const select = document.createElement('select');
     select.className = 'form-select form-select-sm doc-proceso-select';
     select.style.maxWidth = '220px';
-    select.appendChild(new Option('— Sin proceso —', ''));
+    select.appendChild(new Option('— Seleccione proceso —', ''));
     getProcesosOP().forEach(p => {
       const o = new Option(p.text, p.id);
       if (String(item.id_proceso || '') === p.id) o.selected = true;
@@ -942,6 +943,16 @@ $(document).ready(function () {
   function removeFileFromList(indexToRemove) {
     selectedFiles.splice(indexToRemove, 1);
     renderFileList();
+  }
+
+  // Proceso OBLIGATORIO por documento: marca en rojo los que falten y devuelve cuántos son
+  function validarProcesoDocumentos() {
+    let faltan = 0;
+    document.querySelectorAll('#fileList .doc-proceso-select').forEach(sel => {
+      if (!sel.value) { sel.classList.add('is-invalid'); faltan++; }
+      else { sel.classList.remove('is-invalid'); }
+    });
+    return faltan;
   }
 
   if (documentosInput && fileListUl) {
@@ -1564,6 +1575,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="any"></td>
         <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="any"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
+        <td><input type="number" class="form-control esp-orden-compra" value="${data.orden_compra || ''}" min="0" step="1" inputmode="numeric" placeholder="Opcional"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
     `;
@@ -1616,6 +1628,7 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
         kg: $row.find('.esp-kg').val(),
         retal_kg: $row.find('.esp-retal_kg').val(),
         reproceso: $row.find('.esp-reproceso').val(),
+        orden_compra: $row.find('.esp-orden-compra').val(),
       });
     });
 
@@ -1973,9 +1986,18 @@ updateRenderPreview(); // Inicializar con la imagen por defecto
             : "Por favor, complete todos los campos requeridos para cada pieza.");
           $('.piece-form-group').find('.is-invalid, .is-invalid-select2 .select2-selection').first().focus();
       }
-      return false; 
+      return false;
     }
-    
+
+    // Cada documento cargado debe tener un proceso asignado
+    const docsSinProceso = validarProcesoDocumentos();
+    if (docsSinProceso > 0) {
+      alert('Debe asignar un proceso a cada documento cargado. Falta(n) ' + docsSinProceso + '.');
+      const primero = document.querySelector('#fileList .doc-proceso-select.is-invalid');
+      if (primero) { primero.scrollIntoView({ block: 'center' }); primero.focus(); }
+      return false;
+    }
+
     $('#piezas').val(JSON.stringify(piezasArray));
     
     if (isSubmitting) { return false; }

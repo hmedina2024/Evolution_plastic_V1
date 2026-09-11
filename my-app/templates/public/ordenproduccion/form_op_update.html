@@ -303,6 +303,36 @@
       <button type="button" id="addPieceBtn" class="btn btn-primary mt-2 mb-3">
         <i class="bi bi-plus-circle me-1"></i> Agregar Pieza
       </button>
+
+      <!-- ── Resumen General de Especificaciones (Orden de Compra editable) ── -->
+      <div class="card shadow-sm mt-3" id="resumenEspecificacionesCard" style="display:none;">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h5 class="mb-0 text-primary fw-bold">
+              <i class="bi bi-table me-2"></i>Resumen General de Especificaciones
+            </h5>
+            <small class="text-muted">Consolidado de todas las piezas. Solo la
+              <strong>Orden de Compra</strong> es editable aquí (opcional).</small>
+          </div>
+          <span class="badge bg-secondary" id="resumenEspTotal">0</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height:420px; overflow-y:auto;">
+            <table class="table table-bordered table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:150px;">Pieza</th>
+                  <th>Item</th><th>Calibre</th><th>Largo</th><th>Ancho</th>
+                  <th>Unidad</th><th>Cantidad</th><th>KG</th><th>Retal (kg)</th><th>Reproceso</th>
+                  <th style="min-width:140px;">Orden de Compra</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-resumen-especificaciones"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <hr class="my-4">
 
       <div class="row mt-2 g-4">
@@ -612,6 +642,7 @@
                 <th>KG</th>
                 <th>RETAL (kg)</th>
                 <th>REPROCESO</th>
+                <th>ORDEN DE COMPRA</th>
                 <th>ACCIONES</th>
               </tr>
             </thead>
@@ -800,7 +831,7 @@ $(document).ready(function () {
     const select = document.createElement('select');
     select.className = 'form-select form-select-sm doc-proceso-select';
     select.style.maxWidth = '220px';
-    select.appendChild(new Option('— Sin proceso —', ''));
+    select.appendChild(new Option('— Seleccione proceso —', ''));
     getProcesosOP().forEach(p => {
       const o = new Option(p.text, p.id);
       if (String(item.id_proceso || '') === p.id) o.selected = true;
@@ -860,6 +891,16 @@ $(document).ready(function () {
       li.textContent = 'Ningún documento adjunto.';
       fileListUl.appendChild(li);
     }
+  }
+
+  // Proceso OBLIGATORIO por documento: marca en rojo los que falten y devuelve cuántos son
+  function validarProcesoDocumentos() {
+    let faltan = 0;
+    document.querySelectorAll('#fileList .doc-proceso-select').forEach(sel => {
+      if (!sel.value) { sel.classList.add('is-invalid'); faltan++; }
+      else { sel.classList.remove('is-invalid'); }
+    });
+    return faltan;
   }
 
   function removeFileFromList(indexToRemove) {
@@ -1392,6 +1433,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 }
                 if (piezaData.especificaciones) {
                     $pieceGroup.data('especificaciones-pieza', piezaData.especificaciones);
+                    setTimeout(renderResumenEspecificaciones, 0);
                     const tieneEspecificaciones = piezaData.especificaciones.some(esp => Object.values(esp).some(val => val !== '' && val !== null));
                     const $btnEspTrigger = $(`.open-especificaciones-pieza-modal-btn[data-piece-suffix="${currentPieceSuffix}"]`);
                     if (tieneEspecificaciones) {
@@ -1731,6 +1773,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
                 if (piezaData.especificaciones) {
                     console.log('Almacenando especificaciones para', currentPieceSuffix, ':', JSON.stringify(piezaData.especificaciones));
                     $pieceGroup.data('especificaciones-pieza', piezaData.especificaciones);
+                    setTimeout(renderResumenEspecificaciones, 0);
                     const tieneEspecificaciones = piezaData.especificaciones.some(esp => Object.values(esp).some(val => val !== '' && val !== null));
                     const $btnEspTrigger = $pieceGroup.find(`.open-especificaciones-pieza-modal-btn`);
                     if (tieneEspecificaciones) {
@@ -1747,6 +1790,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
 
   $('#dynamicFormsContainer').on('click', '.removePieceBtn', function() {
     $(this).closest('.piece-form-group').remove();
+    setTimeout(renderResumenEspecificaciones, 0);
     $('.piece-form-group').each(function(index) {
         $(this).find('h5').text(`Pieza #${index + 1}`);
     });
@@ -1971,6 +2015,7 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         <td><input type="number" class="form-control esp-kg" value="${data.kg || ''}" min="0" step="any"></td>
         <td><input type="number" class="form-control esp-retal_kg" value="${data.retal_kg || ''}" min="0" step="any"></td>
         <td class="td-reproceso"><input type="text" class="form-control esp-reproceso" value="${data.reproceso || ''}"></td>
+        <td><input type="number" class="form-control esp-orden-compra" value="${data.orden_compra || ''}" min="0" step="1" inputmode="numeric" placeholder="Opcional"></td>
         <td><button type="button" class="btn btn-danger btn-sm remove-especificacion-row-btn"><i class="bi bi-trash"></i></button></td>
       </tr>
     `;
@@ -2007,6 +2052,69 @@ if (imageUpload && imagePreview && deleteImageBtn) {
     $(this).closest('tr').remove();
   });
 
+  // ── Resumen General de Especificaciones (consolidado, con Orden de Compra editable) ──
+  // Fuente de verdad ÚNICA: los datos 'especificaciones-pieza' de cada pieza, los mismos
+  // que usa el modal. Esta tabla solo escribe la columna orden_compra sobre ese arreglo,
+  // así ambas vistas quedan siempre sincronizadas y el guardado existente se encarga del resto.
+  function renderResumenEspecificaciones() {
+    const $tbody = $('#tbody-resumen-especificaciones');
+    const $card = $('#resumenEspecificacionesCard');
+    if (!$tbody.length) return;
+
+    const filas = [];
+    $('.piece-form-group').each(function (idx) {
+      const $pg = $(this);
+      const suffix = $pg.data('piece-suffix');
+      const nombrePieza = ($(`#pieza_nombre_especifico_${suffix}`).val() || '').trim()
+        || ($(`#pieza_id_pieza_maestra_${suffix} option:selected`).text() || '').trim()
+        || 'Pieza';
+      const esps = $pg.data('especificaciones-pieza') || [];
+      esps.forEach(function (esp, i) {
+        const tieneDatos = Object.keys(esp).some(k => k !== 'orden_compra' && esp[k] !== '' && esp[k] != null);
+        if (!tieneDatos) return;   // no listar filas vacías
+        filas.push({ suffix: suffix, i: i, pieza: `#${idx + 1} - ${nombrePieza}`, esp: esp });
+      });
+    });
+
+    $('#resumenEspTotal').text(filas.length);
+    if (!filas.length) { $card.hide(); $tbody.empty(); return; }
+    $card.show();
+
+    const val = v => (v === null || v === undefined) ? '' : String(v);
+    $tbody.html(filas.map(function (f) {
+      const e = f.esp;
+      const cantidad = e.cantidad_especificacion != null ? e.cantidad_especificacion : e.cantidad;
+      return '<tr>'
+        + '<td class="small">' + $('<div>').text(f.pieza).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.item)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.calibre)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.largo)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.ancho)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.unidad)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(cantidad)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.kg)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.retal_kg)).html() + '</td>'
+        + '<td class="small">' + $('<div>').text(val(e.reproceso)).html() + '</td>'
+        + '<td><input type="number" min="0" step="1" inputmode="numeric" placeholder="Opcional"'
+        + ' class="form-control form-control-sm resumen-orden-compra"'
+        + ' data-suffix="' + f.suffix + '" data-idx="' + f.i + '"'
+        + ' value="' + val(e.orden_compra) + '"></td>'
+        + '</tr>';
+    }).join(''));
+  }
+
+  // Escribe la Orden de Compra de vuelta en los datos de la pieza correspondiente
+  $(document).on('input', '.resumen-orden-compra', function () {
+    const suffix = $(this).data('suffix');
+    const idx = parseInt($(this).data('idx'), 10);
+    const $pg = $(`#piece-group-${suffix}`);
+    const esps = $pg.data('especificaciones-pieza') || [];
+    if (esps[idx]) {
+      esps[idx].orden_compra = $(this).val();
+      $pg.data('especificaciones-pieza', esps);
+    }
+  });
+
   $('#save_especificaciones_btn').on('click', function() {
     if (!currentEspecificacionesPieceSuffix) return;
 
@@ -2023,10 +2131,12 @@ if (imageUpload && imagePreview && deleteImageBtn) {
         kg: $row.find('.esp-kg').val(),
         retal_kg: $row.find('.esp-retal_kg').val(),
         reproceso: $row.find('.esp-reproceso').val(),
+        orden_compra: $row.find('.esp-orden-compra').val(),
       });
     });
 
     $(`#piece-group-${currentEspecificacionesPieceSuffix}`).data('especificaciones-pieza', especificacionesArray);
+    renderResumenEspecificaciones();
     
     const tieneEspecificaciones = especificacionesArray.some(esp => Object.values(esp).some(val => val !== '')); // Verifica si alguna especificación tiene datos
     const $btnModalTrigger = $(`.open-especificaciones-pieza-modal-btn[data-piece-suffix="${currentEspecificacionesPieceSuffix}"]`);
@@ -2383,11 +2493,20 @@ if (imageUpload && imagePreview && deleteImageBtn) {
             : "Por favor, complete todos los campos requeridos para cada pieza.");
           $('.piece-form-group').find('.is-invalid, .is-invalid-select2 .select2-selection').first().focus();
       }
-      return false; 
+      return false;
     }
-    
+
+    // Cada documento cargado debe tener un proceso asignado
+    const docsSinProceso = validarProcesoDocumentos();
+    if (docsSinProceso > 0) {
+      alert('Debe asignar un proceso a cada documento cargado. Falta(n) ' + docsSinProceso + '.');
+      const primero = document.querySelector('#fileList .doc-proceso-select.is-invalid');
+      if (primero) { primero.scrollIntoView({ block: 'center' }); primero.focus(); }
+      return false;
+    }
+
     $('#piezas').val(JSON.stringify(piezasArray));
-    
+
     if (isSubmitting) { return false; }
     isSubmitting = true;
     submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Guardando...');

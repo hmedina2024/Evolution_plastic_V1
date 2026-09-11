@@ -400,6 +400,8 @@ class OrdenPiezaEspecificaciones(db.Model):
     kg = db.Column(db.Numeric(10, 2), nullable=True)
     retal_kg = db.Column(db.Numeric(10, 2), nullable=True)
     reproceso = db.Column(db.String(255), nullable=True)
+    # Orden de compra asociada (entero, opcional, puede repetirse entre especificaciones)
+    orden_compra = db.Column(db.Integer, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
 
     def __repr__(self):
