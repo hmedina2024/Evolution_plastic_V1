@@ -31,7 +31,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         eliminar_actividad, obtener_id_empleados, obtener_nombre_empleado, obtener_proceso, obtener_actividad,
                                         procesar_form_operacion, sql_lista_operaciones_bd, sql_detalles_operaciones_bd, buscar_operacion_unico,
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
-                                        sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op,
+                                        sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op, exportar_op_excel,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
@@ -1243,6 +1243,39 @@ def buscando_ordenes_produccion():
     )
 
     return jsonify(result)
+
+
+@app.route('/exportar-op-excel', methods=['GET'])
+def exportar_ordenes_produccion_excel():
+    """Descarga en Excel las OP que cumplen los filtros actuales de la lista
+    (mismos 4 filtros del formulario: Cod. OP, Cliente, Producto, Fecha)."""
+    from datetime import datetime
+    if 'conectado' not in session:
+        flash('Primero debes iniciar sesión.', 'error')
+        return redirect(url_for('inicio'))
+
+    search_codigo_op = request.args.get('codigo_op', '')
+    search_fecha = request.args.get('fecha', '')
+    search_nombre_cliente = request.args.get('nombre_cliente', '')
+    search_producto = request.args.get('producto', '')
+
+    buffer = exportar_op_excel(
+        search_codigo_op=search_codigo_op,
+        search_fecha=search_fecha,
+        search_nombre_cliente=search_nombre_cliente,
+        search_producto=search_producto
+    )
+    if buffer is None:
+        flash('Error al generar el reporte Excel.', 'error')
+        return redirect(url_for('lista_op'))
+
+    nombre_archivo = f"Ordenes_Produccion_{datetime.now().strftime('%Y_%m_%d_%H%M%S')}.xlsx"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=nombre_archivo,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 
 @app.route('/buscando-ordenes-diseno-industrial', methods=['POST'])

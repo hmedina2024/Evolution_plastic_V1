@@ -13,6 +13,8 @@ from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActivida
 import pytz
 import re
 import openpyxl  # Para generar el Excel
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 import statistics  # Para calcular media y desviación estándar
 import threading
 from flask import send_file, session, Flask, url_for, jsonify, flash,current_app, request
@@ -2802,6 +2804,71 @@ def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fe
             "data": [],
             "error": str(e)
         }
+
+
+def exportar_op_excel(search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None):
+    """Genera un Excel (en memoria, sin escribir a disco) con las OP que
+    cumplen los mismos filtros de la lista de OP (Cod. OP, Cliente,
+    Producto, Fecha de registro). Sin paginación: exporta todo lo filtrado."""
+    try:
+        query = db.session.query(OrdenProduccion).join(
+            Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente
+        ).filter(OrdenProduccion.fecha_borrado.is_(None))
+
+        if search_codigo_op:
+            query = query.filter(OrdenProduccion.codigo_op.ilike(f"%{search_codigo_op}%"))
+        if search_nombre_cliente:
+            query = query.filter(Clientes.nombre_cliente.ilike(f"%{search_nombre_cliente}%"))
+        if search_producto:
+            query = query.filter(OrdenProduccion.producto.ilike(f"%{search_producto}%"))
+        if search_fecha:
+            query = query.filter(db.func.date(OrdenProduccion.fecha_registro) == search_fecha)
+
+        ordenes = query.order_by(OrdenProduccion.codigo_op.desc()).all()
+
+        wb = openpyxl.Workbook()
+        hoja = wb.active
+        hoja.title = "Ordenes de Produccion"
+
+        cabecera = ["Cod. OP", "Cliente", "Producto", "Referencia", "Cotización",
+                    "Estado", "Cantidad", "Vendedor", "Supervisor",
+                    "Fecha Creación", "Fecha Entrega", "Fecha Registro"]
+        hoja.append(cabecera)
+        for celda in hoja[1]:
+            celda.font = Font(bold=True)
+
+        for o in ordenes:
+            cliente = o.cliente
+            vendedor = o.empleado
+            supervisor = o.supervisor
+            hoja.append([
+                o.codigo_op,
+                cliente.nombre_cliente if cliente else 'Desconocido',
+                o.producto or '',
+                o.referencia or '',
+                o.cotizacion or '',
+                o.estado or '',
+                o.cantidad or 0,
+                f"{vendedor.nombre_empleado} {vendedor.apellido_empleado or ''}".strip() if vendedor else '',
+                f"{supervisor.nombre_empleado} {supervisor.apellido_empleado or ''}".strip() if supervisor else '',
+                o.fecha.strftime('%Y-%m-%d') if o.fecha else '',
+                o.fecha_entrega.strftime('%Y-%m-%d') if o.fecha_entrega else '',
+                o.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') if o.fecha_registro else '',
+            ])
+
+        # Ancho de columna aproximado según el contenido más largo
+        for idx, titulo in enumerate(cabecera, start=1):
+            letra = get_column_letter(idx)
+            max_len = max([len(titulo)] + [len(str(hoja.cell(row=r, column=idx).value or '')) for r in range(2, hoja.max_row + 1)])
+            hoja.column_dimensions[letra].width = min(max_len + 3, 45)
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        app.logger.error(f"Error en exportar_op_excel: {e}", exc_info=True)
+        return None
 
 
 def sql_detalles_op_bd(codigo_op):

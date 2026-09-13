@@ -39,6 +39,14 @@
       </div>
     </div>
 
+    <div class="row justify-content-end mb-2">
+      <div class="col-md-3 d-flex justify-content-end">
+        <button type="button" id="btnDescargarExcel" class="btn btn-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i> Descargar Excel
+        </button>
+      </div>
+    </div>
+
     <div class="row justify-content-center mb-2">
       <div class="table-responsive text-nowrap table-hover">
         <table id="tbl_ordenproduccion" class="table table-striped table-bordered" cellspacing="0" width="100%">
@@ -176,6 +184,17 @@ $(document).ready(function() {
         debounceTimer = setTimeout(function() {
             table.ajax.reload();
         }, 300);
+    });
+
+    // Descargar Excel manteniendo los filtros actualmente aplicados en el formulario
+    $('#btnDescargarExcel').on('click', function() {
+        var params = new URLSearchParams({
+            codigo_op: $('#filterCodOP').val() || '',
+            fecha: $('#filterFecha').val() || '',
+            nombre_cliente: $('#filterCliente').val() || '',
+            producto: $('#filterProducto').val() || ''
+        });
+        window.location.href = '/exportar-op-excel?' + params.toString();
     });
 });
 
