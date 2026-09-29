@@ -8,7 +8,7 @@ import os
 from os import remove, path  # Módulos para manejar archivos
 from app import app, cache  # Instancia de Flask y caché (Flask-Caching o no-op)
 # Importa modelos desde models.py
-from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad, ListasCorreos, ListasMiembros, AlertaProceso, AlertaDocumentoLog
+from conexion.models import db, Cargos, CorreosFijos, OPLog, OrdenPiezasActividades, OrdenPiezasProcesos, OrdenPiezas, RendersOP, DocumentosOP, Operaciones, Empleados, Tipo_Empleado, Piezas, Procesos, Actividades, Clientes, TipoDocumento, OrdenProduccion, Jornadas, Users, Empresa, OrdenProduccionProcesos, DetallesPiezaMaestra, OrdenPiezaValoresDetalle, OrdenProduccionURLs, OrdenPiezaEspecificaciones, OrdenDisenoIndustrial, DocumentosODI, OrdenDisenoIndustrialURLs, LogAcceso, EstandarProcesoActividad, ProyeccionPersonal, MatrizDificultad, ListasCorreos, ListasMiembros, AlertaProceso, AlertaDocumentoLog, Prospecto, ActividadComercial, MetaActividadVendedor, AlertaComercialLog
 # import datetime # datetime ya se importa desde datetime
 import pytz
 import re
@@ -955,6 +955,14 @@ def procesar_form_cliente(dataForm, foto_perfil_cliente):
         )
         db.session.add(cliente)
         db.session.commit()
+
+        # Si el cliente viene de convertir un Prospecto, cerrar el ciclo:
+        # marcarlo como convertido y enlazarlo al cliente recién creado,
+        # preservando todo su historial de actividad comercial.
+        id_prospecto_raw = dataForm.get('id_prospecto')
+        if id_prospecto_raw and str(id_prospecto_raw).isdigit():
+            convertir_prospecto_a_cliente(int(id_prospecto_raw), cliente.id_cliente)
+
         return 1  # Indica éxito (rowcount)
     except Exception as e:
         db.session.rollback()
@@ -7826,3 +7834,566 @@ def obtener_documentos_pendientes():
     except Exception as e:
         app.logger.error(f"Error en obtener_documentos_pendientes: {e}", exc_info=True)
         return {'procesos': [], 'totales': {'total': 0, 'vencidas': 0, 'procesos': 0}}
+
+
+# ============================================================
+# --- Actividad Comercial: Prospectos ---
+# ============================================================
+
+def get_prospectos_paginados(page=1, per_page=10, search='', solo_no_convertidos=True):
+    """Para Select2: prospectos activos (por defecto, no convertidos aun)."""
+    try:
+        offset = (page - 1) * per_page
+        query = db.session.query(Prospecto).filter(Prospecto.fecha_borrado.is_(None))
+        if solo_no_convertidos:
+            query = query.filter(Prospecto.convertido.is_(False))
+        if search:
+            query = query.filter(db.or_(
+                Prospecto.nombre_prospecto.ilike(f"%{search}%"),
+                Prospecto.empresa_prospecto.ilike(f"%{search}%")
+            ))
+        total = query.count()
+        prospectos = query.order_by(Prospecto.id_prospecto.desc()).offset(offset).limit(per_page).all()
+        resultados = [{
+            "id": p.id_prospecto,
+            "text": f"{p.nombre_prospecto}" + (f" ({p.empresa_prospecto})" if p.empresa_prospecto else "")
+        } for p in prospectos]
+        return {"results": resultados, "pagination": {"more": (offset + per_page) < total}}
+    except Exception as e:
+        app.logger.error(f"Error en get_prospectos_paginados: {e}", exc_info=True)
+        return {"results": [], "pagination": {"more": False}}
+
+
+def procesar_form_prospecto(dataForm):
+    """Crea un prospecto nuevo. Solo el nombre es obligatorio."""
+    try:
+        nombre = (dataForm.get("nombre_prospecto") or "").strip()
+        if not nombre:
+            return False, "El nombre del prospecto es requerido.", None
+        prospecto = Prospecto(
+            nombre_prospecto=nombre,
+            empresa_prospecto=(dataForm.get("empresa_prospecto") or "").strip() or None,
+            telefono_prospecto=(dataForm.get("telefono_prospecto") or "").strip() or None,
+            email_prospecto=(dataForm.get("email_prospecto") or "").strip() or None,
+            id_usuario_registro=session.get("user_id")
+        )
+        db.session.add(prospecto)
+        db.session.commit()
+        return True, "Prospecto creado correctamente.", prospecto
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_form_prospecto: {e}", exc_info=True)
+        return False, "Error interno al crear el prospecto.", None
+
+
+def buscar_prospectos_bd(nombre_filter, convertido_filter, start, length, order_info):
+    """Lista server-side (DataTables) de prospectos."""
+    try:
+        query = db.session.query(Prospecto).filter(Prospecto.fecha_borrado.is_(None))
+        if nombre_filter:
+            query = query.filter(db.or_(
+                Prospecto.nombre_prospecto.ilike(f"%{nombre_filter}%"),
+                Prospecto.empresa_prospecto.ilike(f"%{nombre_filter}%")
+            ))
+        if convertido_filter == "si":
+            query = query.filter(Prospecto.convertido.is_(True))
+        elif convertido_filter == "no":
+            query = query.filter(Prospecto.convertido.is_(False))
+
+        total_records = db.session.query(Prospecto).filter(Prospecto.fecha_borrado.is_(None)).count()
+        filtered_records = query.count()
+
+        query = query.order_by(Prospecto.id_prospecto.desc()).offset(start).limit(length)
+        prospectos = query.all()
+
+        data = []
+        for p in prospectos:
+            total_actividades = db.session.query(ActividadComercial).filter(
+                ActividadComercial.id_prospecto == p.id_prospecto,
+                ActividadComercial.fecha_borrado.is_(None)
+            ).count()
+            data.append({
+                "id_prospecto": p.id_prospecto,
+                "nombre_prospecto": p.nombre_prospecto,
+                "empresa_prospecto": p.empresa_prospecto or "",
+                "telefono_prospecto": p.telefono_prospecto or "",
+                "email_prospecto": p.email_prospecto or "",
+                "total_actividades": total_actividades,
+                "convertido": bool(p.convertido),
+                "fecha_registro": p.fecha_registro.strftime("%Y-%m-%d %H:%M") if p.fecha_registro else "",
+            })
+        return data, total_records, filtered_records
+    except Exception as e:
+        app.logger.error(f"Error en buscar_prospectos_bd: {e}", exc_info=True)
+        return [], 0, 0
+
+
+def convertir_prospecto_a_cliente(id_prospecto, id_cliente):
+    """Marca un prospecto como convertido y lo enlaza al cliente recien creado."""
+    try:
+        prospecto = db.session.query(Prospecto).filter_by(id_prospecto=id_prospecto).first()
+        if not prospecto:
+            return False
+        prospecto.convertido = True
+        prospecto.fecha_conversion = datetime.now()
+        prospecto.id_cliente_resultante = id_cliente
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en convertir_prospecto_a_cliente: {e}", exc_info=True)
+        return False
+
+
+# ============================================================
+# --- Actividad Comercial: registro de visitas / llamadas ---
+# ============================================================
+
+TIPOS_ACTIVIDAD_COMERCIAL = ["Visita presencial", "Llamada", "Videollamada", "Email", "Reunión"]
+
+
+def procesar_form_actividad_comercial(dataForm):
+    """Registra una actividad comercial (Cliente O Prospecto, exactamente uno).
+    Si se eligio 'Prospecto nuevo', lo crea en la misma transaccion."""
+    try:
+        id_empleado = dataForm.get("id_empleado")
+        tipo_actividad = (dataForm.get("tipo_actividad") or "").strip()
+        fecha_hora_inicio_str = dataForm.get("fecha_hora_inicio")
+        fecha_hora_fin_str = dataForm.get("fecha_hora_fin")
+        alcance = (dataForm.get("alcance") or "").strip()
+        resultado = (dataForm.get("resultado") or "").strip() or None
+        proximo_paso = (dataForm.get("proximo_paso") or "").strip() or None
+        tipo_referencia = dataForm.get("tipo_referencia")
+
+        if not all([id_empleado, tipo_actividad, fecha_hora_inicio_str, alcance]):
+            return False, "Vendedor, tipo de actividad, fecha/hora de inicio y alcance son requeridos."
+        if tipo_actividad not in TIPOS_ACTIVIDAD_COMERCIAL:
+            return False, "Tipo de actividad no valido."
+        if not db.session.query(Empleados).filter_by(id_empleado=id_empleado).first():
+            return False, "El vendedor seleccionado no existe."
+
+        try:
+            fecha_hora_inicio = datetime.strptime(fecha_hora_inicio_str, "%Y-%m-%dT%H:%M")
+        except (ValueError, TypeError):
+            return False, "Fecha y hora de inicio invalida."
+        fecha_hora_fin = None
+        if fecha_hora_fin_str:
+            try:
+                fecha_hora_fin = datetime.strptime(fecha_hora_fin_str, "%Y-%m-%dT%H:%M")
+            except (ValueError, TypeError):
+                return False, "Fecha y hora de fin invalida."
+            if fecha_hora_fin < fecha_hora_inicio:
+                return False, "La hora de fin no puede ser anterior a la de inicio."
+
+        id_cliente = None
+        id_prospecto = None
+        if tipo_referencia == "cliente":
+            id_cliente_raw = dataForm.get("id_cliente")
+            if not id_cliente_raw:
+                return False, "Debe seleccionar un cliente."
+            if not db.session.query(Clientes).filter_by(id_cliente=id_cliente_raw, fecha_borrado=None).first():
+                return False, "El cliente seleccionado no existe."
+            id_cliente = int(id_cliente_raw)
+        elif tipo_referencia == "prospecto_existente":
+            id_prospecto_raw = dataForm.get("id_prospecto")
+            if not id_prospecto_raw:
+                return False, "Debe seleccionar un prospecto."
+            if not db.session.query(Prospecto).filter_by(id_prospecto=id_prospecto_raw, fecha_borrado=None).first():
+                return False, "El prospecto seleccionado no existe."
+            id_prospecto = int(id_prospecto_raw)
+        elif tipo_referencia == "prospecto_nuevo":
+            nombre_nuevo = (dataForm.get("nombre_prospecto_nuevo") or "").strip()
+            if not nombre_nuevo:
+                return False, "Debe indicar el nombre del prospecto nuevo."
+            nuevo_prospecto = Prospecto(
+                nombre_prospecto=nombre_nuevo,
+                empresa_prospecto=(dataForm.get("empresa_prospecto_nuevo") or "").strip() or None,
+                telefono_prospecto=(dataForm.get("telefono_prospecto_nuevo") or "").strip() or None,
+                email_prospecto=(dataForm.get("email_prospecto_nuevo") or "").strip() or None,
+                id_usuario_registro=session.get("user_id")
+            )
+            db.session.add(nuevo_prospecto)
+            db.session.flush()
+            id_prospecto = nuevo_prospecto.id_prospecto
+        else:
+            return False, "Debe indicar si la actividad es con un Cliente o un Prospecto."
+
+        actividad = ActividadComercial(
+            id_empleado=id_empleado,
+            id_cliente=id_cliente,
+            id_prospecto=id_prospecto,
+            tipo_actividad=tipo_actividad,
+            fecha_hora_inicio=fecha_hora_inicio,
+            fecha_hora_fin=fecha_hora_fin,
+            alcance=alcance,
+            resultado=resultado,
+            proximo_paso=proximo_paso,
+            id_usuario_registro=session.get("user_id")
+        )
+        db.session.add(actividad)
+        db.session.commit()
+        return True, "Actividad comercial registrada correctamente."
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_form_actividad_comercial: {e}", exc_info=True)
+        return False, "Error interno al registrar la actividad comercial."
+
+
+def buscar_actividad_comercial_bd(vendedor_filter, tipo_filter, fecha_filter, start, length, order_info):
+    """Lista server-side (DataTables) de actividad comercial."""
+    try:
+        ClienteRef = aliased(Clientes)
+        query = db.session.query(
+            ActividadComercial.id_actividad_comercial,
+            func.concat(Empleados.nombre_empleado, " ", func.coalesce(Empleados.apellido_empleado, "")).label("vendedor"),
+            ActividadComercial.tipo_actividad,
+            func.coalesce(ClienteRef.nombre_cliente, Prospecto.nombre_prospecto).label("nombre_referencia"),
+            db.case((ActividadComercial.id_cliente.isnot(None), "Cliente"), else_="Prospecto").label("tipo_referencia"),
+            ActividadComercial.alcance,
+            ActividadComercial.fecha_hora_inicio,
+        ).select_from(ActividadComercial) \
+         .join(Empleados, ActividadComercial.id_empleado == Empleados.id_empleado) \
+         .outerjoin(ClienteRef, ActividadComercial.id_cliente == ClienteRef.id_cliente) \
+         .outerjoin(Prospecto, ActividadComercial.id_prospecto == Prospecto.id_prospecto) \
+         .filter(ActividadComercial.fecha_borrado.is_(None))
+
+        total_records = db.session.query(ActividadComercial).filter(ActividadComercial.fecha_borrado.is_(None)).count()
+
+        if vendedor_filter:
+            query = query.filter(func.concat(Empleados.nombre_empleado, " ", func.coalesce(Empleados.apellido_empleado, "")).ilike(f"%{vendedor_filter}%"))
+        if tipo_filter:
+            query = query.filter(ActividadComercial.tipo_actividad == tipo_filter)
+        if fecha_filter:
+            try:
+                fecha_obj = datetime.strptime(fecha_filter, "%Y-%m-%d").date()
+                query = query.filter(func.date(ActividadComercial.fecha_hora_inicio) == fecha_obj)
+            except ValueError:
+                pass
+
+        filtered_records = query.count()
+        query = query.order_by(desc(ActividadComercial.fecha_hora_inicio)).offset(start).limit(length)
+        filas = query.all()
+
+        data = [{
+            "id_actividad_comercial": f.id_actividad_comercial,
+            "vendedor": (f.vendedor or "").strip(),
+            "tipo_actividad": f.tipo_actividad,
+            "nombre_referencia": f.nombre_referencia or "N/A",
+            "tipo_referencia": f.tipo_referencia,
+            "alcance": f.alcance,
+            "fecha_hora_inicio": f.fecha_hora_inicio.strftime("%Y-%m-%d %H:%M") if f.fecha_hora_inicio else "",
+        } for f in filas]
+        return data, total_records, filtered_records
+    except Exception as e:
+        app.logger.error(f"Error en buscar_actividad_comercial_bd: {e}", exc_info=True)
+        return [], 0, 0
+
+
+def buscar_actividad_comercial_unico(id_actividad_comercial):
+    """Datos de una actividad comercial para el formulario de edicion."""
+    try:
+        a = db.session.query(ActividadComercial).filter_by(id_actividad_comercial=id_actividad_comercial).first()
+        if not a:
+            return None
+        empleado = a.empleado
+        return {
+            "id_actividad_comercial": a.id_actividad_comercial,
+            "id_empleado": a.id_empleado,
+            "nombre_empleado": f"{empleado.nombre_empleado} {empleado.apellido_empleado or ''}".strip() if empleado else "",
+            "tipo_actividad": a.tipo_actividad,
+            "id_cliente": a.id_cliente,
+            "nombre_cliente": a.cliente.nombre_cliente if a.cliente else None,
+            "id_prospecto": a.id_prospecto,
+            "nombre_prospecto": a.prospecto.nombre_prospecto if a.prospecto else None,
+            "fecha_hora_inicio": a.fecha_hora_inicio.strftime("%Y-%m-%dT%H:%M") if a.fecha_hora_inicio else "",
+            "fecha_hora_fin": a.fecha_hora_fin.strftime("%Y-%m-%dT%H:%M") if a.fecha_hora_fin else "",
+            "alcance": a.alcance,
+            "resultado": a.resultado or "",
+            "proximo_paso": a.proximo_paso or "",
+        }
+    except Exception as e:
+        app.logger.error(f"Error en buscar_actividad_comercial_unico: {e}", exc_info=True)
+        return None
+
+
+def procesar_actualizacion_actividad_comercial(dataForm):
+    """Actualiza una actividad comercial existente (permite cambiar Cliente/Prospecto)."""
+    try:
+        id_actividad_comercial = dataForm.get("id_actividad_comercial")
+        actividad = db.session.query(ActividadComercial).filter_by(id_actividad_comercial=id_actividad_comercial).first()
+        if not actividad:
+            return False, "Actividad comercial no encontrada."
+
+        tipo_actividad = (dataForm.get("tipo_actividad") or "").strip()
+        fecha_hora_inicio_str = dataForm.get("fecha_hora_inicio")
+        alcance = (dataForm.get("alcance") or "").strip()
+        if not all([tipo_actividad, fecha_hora_inicio_str, alcance]):
+            return False, "Tipo de actividad, fecha/hora de inicio y alcance son requeridos."
+        if tipo_actividad not in TIPOS_ACTIVIDAD_COMERCIAL:
+            return False, "Tipo de actividad no valido."
+
+        try:
+            fecha_hora_inicio = datetime.strptime(fecha_hora_inicio_str, "%Y-%m-%dT%H:%M")
+        except (ValueError, TypeError):
+            return False, "Fecha y hora de inicio invalida."
+        fecha_hora_fin = None
+        fecha_hora_fin_str = dataForm.get("fecha_hora_fin")
+        if fecha_hora_fin_str:
+            try:
+                fecha_hora_fin = datetime.strptime(fecha_hora_fin_str, "%Y-%m-%dT%H:%M")
+            except (ValueError, TypeError):
+                return False, "Fecha y hora de fin invalida."
+            if fecha_hora_fin < fecha_hora_inicio:
+                return False, "La hora de fin no puede ser anterior a la de inicio."
+
+        tipo_referencia = dataForm.get("tipo_referencia")
+        id_cliente = None
+        id_prospecto = None
+        if tipo_referencia == "cliente":
+            id_cliente_raw = dataForm.get("id_cliente")
+            if not id_cliente_raw:
+                return False, "Debe seleccionar un cliente."
+            id_cliente = int(id_cliente_raw)
+        elif tipo_referencia == "prospecto_existente":
+            id_prospecto_raw = dataForm.get("id_prospecto")
+            if not id_prospecto_raw:
+                return False, "Debe seleccionar un prospecto."
+            id_prospecto = int(id_prospecto_raw)
+        else:
+            return False, "Debe indicar si la actividad es con un Cliente o un Prospecto."
+
+        if dataForm.get("id_empleado"):
+            actividad.id_empleado = int(dataForm.get("id_empleado"))
+        actividad.tipo_actividad = tipo_actividad
+        actividad.fecha_hora_inicio = fecha_hora_inicio
+        actividad.fecha_hora_fin = fecha_hora_fin
+        actividad.alcance = alcance
+        actividad.resultado = (dataForm.get("resultado") or "").strip() or None
+        actividad.proximo_paso = (dataForm.get("proximo_paso") or "").strip() or None
+        actividad.id_cliente = id_cliente
+        actividad.id_prospecto = id_prospecto
+
+        db.session.commit()
+        return True, "Actividad comercial actualizada correctamente."
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_actualizacion_actividad_comercial: {e}", exc_info=True)
+        return False, "Error interno al actualizar la actividad comercial."
+
+
+def eliminar_actividad_comercial(id_actividad_comercial):
+    try:
+        actividad = db.session.query(ActividadComercial).filter_by(id_actividad_comercial=id_actividad_comercial).first()
+        if not actividad:
+            return False
+        actividad.fecha_borrado = datetime.now()
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en eliminar_actividad_comercial: {e}", exc_info=True)
+        return False
+
+
+# ============================================================
+# --- Metas de Actividad Comercial (cuotas + alerta de inactividad) ---
+# ============================================================
+
+def obtener_config_metas_vendedores():
+    """Empleados activos con su meta de actividad comercial (o valores por defecto)."""
+    try:
+        empleados = db.session.query(Empleados).filter(
+            Empleados.fecha_borrado.is_(None)
+        ).order_by(Empleados.nombre_empleado.asc()).all()
+
+        configs = {m.id_empleado: m for m in db.session.query(MetaActividadVendedor).all()}
+        listas = db.session.query(ListasCorreos).order_by(ListasCorreos.nombre_lista.asc()).all()
+
+        filas = []
+        for e in empleados:
+            cfg = configs.get(e.id_empleado)
+            filas.append({
+                "id_empleado": e.id_empleado,
+                "nombre_empleado": f"{e.nombre_empleado or ''} {e.apellido_empleado or ''}".strip(),
+                "actividades_semana_min": cfg.actividades_semana_min if cfg else 10,
+                "dias_sin_actividad_alerta": cfg.dias_sin_actividad_alerta if cfg else 5,
+                "id_lista": cfg.id_lista if cfg else None,
+                "activo": bool(cfg.activo) if cfg else False
+            })
+        return {
+            "empleados": filas,
+            "listas": [{"id_lista": l.id_lista, "nombre_lista": l.nombre_lista} for l in listas]
+        }
+    except Exception as e:
+        app.logger.error(f"Error en obtener_config_metas_vendedores: {e}", exc_info=True)
+        return {"empleados": [], "listas": []}
+
+
+def guardar_config_metas_vendedores(items):
+    """Upsert de la meta de actividad comercial por vendedor."""
+    try:
+        for it in items:
+            try:
+                id_emp = int(it.get("id_empleado"))
+            except (TypeError, ValueError):
+                continue
+            if not db.session.query(Empleados).filter_by(id_empleado=id_emp, fecha_borrado=None).first():
+                continue
+
+            def _int(v, defecto):
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    return defecto
+
+            actividades_min = max(0, _int(it.get("actividades_semana_min"), 10))
+            dias_alerta = max(1, _int(it.get("dias_sin_actividad_alerta"), 5))
+            id_lista_raw = it.get("id_lista")
+            id_lista = int(id_lista_raw) if str(id_lista_raw).strip().isdigit() else None
+            activo = bool(it.get("activo"))
+
+            reg = db.session.query(MetaActividadVendedor).filter_by(id_empleado=id_emp).first()
+            if not reg:
+                reg = MetaActividadVendedor(id_empleado=id_emp)
+                db.session.add(reg)
+            reg.actividades_semana_min = actividades_min
+            reg.dias_sin_actividad_alerta = dias_alerta
+            reg.id_lista = id_lista
+            reg.activo = activo
+
+        db.session.commit()
+        return {"status": "ok", "message": "Metas de vendedores guardadas correctamente"}
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error guardando metas de vendedores: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+def _resolver_destinatarios_meta(cfg, empleado):
+    """Destinatarios de la alerta: la lista configurada, o el correo del propio
+    vendedor si no hay lista asignada."""
+    destinatarios = {}
+    if cfg.id_lista:
+        miembros = db.session.query(ListasMiembros).filter_by(id_lista=cfg.id_lista).all()
+        for m in miembros:
+            emp = db.session.query(Empleados).get(m.id_empleado)
+            if emp and emp.email_empleado:
+                nombre = f"{emp.nombre_empleado or ''} {emp.apellido_empleado or ''}".strip()
+                destinatarios[emp.email_empleado] = nombre or "Colaborador"
+    if not destinatarios and empleado.email_empleado:
+        nombre = f"{empleado.nombre_empleado or ''} {empleado.apellido_empleado or ''}".strip()
+        destinatarios[empleado.email_empleado] = nombre or "Colaborador"
+    return destinatarios
+
+
+def procesar_alertas_comercial(dry_run=False):
+    """Revisa las metas activas de cada vendedor y envia:
+    - Alerta de INACTIVIDAD: sin actividad comercial hace >= dias_sin_actividad_alerta.
+    - Alerta de CUOTA SEMANAL incumplida: la semana anterior completa (lunes-domingo)
+      tuvo menos actividades que actividades_semana_min.
+    Pensado para ejecutarse por cron (ver enviar_alertas_comercial.py)."""
+    ahora = datetime.now()
+    hoy = ahora.date()
+    enviadas = 0
+    errores = 0
+    try:
+        configs = db.session.query(MetaActividadVendedor).filter_by(activo=True).all()
+        if not configs:
+            app.logger.info("Alertas comerciales: no hay vendedores con meta activa.")
+            return {"status": "ok", "message": "No hay vendedores con meta activa", "enviadas": 0}
+
+        lunes_esta_semana = hoy - timedelta(days=hoy.weekday())
+        lunes_semana_pasada = lunes_esta_semana - timedelta(days=7)
+        domingo_semana_pasada = lunes_esta_semana - timedelta(days=1)
+
+        for cfg in configs:
+            empleado = db.session.query(Empleados).get(cfg.id_empleado)
+            if not empleado or empleado.fecha_borrado is not None:
+                continue
+            nombre_emp = f"{empleado.nombre_empleado or ''} {empleado.apellido_empleado or ''}".strip()
+
+            ultima = db.session.query(ActividadComercial).filter_by(
+                id_empleado=cfg.id_empleado, fecha_borrado=None
+            ).order_by(ActividadComercial.fecha_hora_inicio.desc()).first()
+
+            fecha_base = ultima.fecha_hora_inicio.date() if ultima else (
+                empleado.fecha_registro.date() if empleado.fecha_registro else hoy)
+            dias_inactivo = (hoy - fecha_base).days
+            if dias_inactivo >= cfg.dias_sin_actividad_alerta:
+                ultimo_aviso = db.session.query(AlertaComercialLog).filter_by(
+                    id_empleado=cfg.id_empleado, tipo_alerta="inactividad"
+                ).order_by(AlertaComercialLog.fecha_envio.desc()).first()
+                ya_avisado = ultimo_aviso and (ahora - ultimo_aviso.fecha_envio).days < cfg.dias_sin_actividad_alerta
+                if not ya_avisado:
+                    destinatarios = _resolver_destinatarios_meta(cfg, empleado)
+                    if destinatarios:
+                        asunto = f"Alerta: {nombre_emp} sin actividad comercial hace {dias_inactivo} dias"
+                        cuerpo = (
+                            "Hola {nombre_destino},\n\n"
+                            f"El vendedor {nombre_emp} no registra actividad comercial "
+                            f"(visitas o llamadas) desde hace {dias_inactivo} dias.\n\n"
+                            "Mensaje automatico del sistema."
+                        )
+                        if dry_run:
+                            app.logger.info(f"[DRY-RUN] Alerta inactividad: {nombre_emp} -> {list(destinatarios.keys())}")
+                            enviadas += 1
+                        else:
+                            ok, msg = _enviar_correo_alerta_sincrono(destinatarios, asunto, cuerpo)
+                            if ok:
+                                db.session.add(AlertaComercialLog(
+                                    id_empleado=cfg.id_empleado, tipo_alerta="inactividad",
+                                    destinatarios=", ".join(destinatarios.keys())
+                                ))
+                                db.session.commit()
+                                enviadas += 1
+                            else:
+                                errores += 1
+                                app.logger.error(f"Fallo alerta inactividad {nombre_emp}: {msg}")
+
+            ya_evaluada = db.session.query(AlertaComercialLog).filter(
+                AlertaComercialLog.id_empleado == cfg.id_empleado,
+                AlertaComercialLog.tipo_alerta == "cuota_semanal",
+                AlertaComercialLog.fecha_envio >= datetime.combine(lunes_esta_semana, datetime.min.time())
+            ).first()
+            if not ya_evaluada:
+                conteo_semana_pasada = db.session.query(ActividadComercial).filter(
+                    ActividadComercial.id_empleado == cfg.id_empleado,
+                    ActividadComercial.fecha_borrado.is_(None),
+                    func.date(ActividadComercial.fecha_hora_inicio) >= lunes_semana_pasada,
+                    func.date(ActividadComercial.fecha_hora_inicio) <= domingo_semana_pasada
+                ).count()
+                if conteo_semana_pasada < cfg.actividades_semana_min:
+                    destinatarios = _resolver_destinatarios_meta(cfg, empleado)
+                    if destinatarios:
+                        asunto = f"Alerta: {nombre_emp} no cumplio la cuota semanal de actividad comercial"
+                        cuerpo = (
+                            "Hola {nombre_destino},\n\n"
+                            f"El vendedor {nombre_emp} registro {conteo_semana_pasada} actividad(es) comercial(es) "
+                            f"la semana del {lunes_semana_pasada} al {domingo_semana_pasada}, "
+                            f"por debajo de la meta de {cfg.actividades_semana_min}.\n\n"
+                            "Mensaje automatico del sistema."
+                        )
+                        if dry_run:
+                            app.logger.info(f"[DRY-RUN] Alerta cuota semanal: {nombre_emp} ({conteo_semana_pasada}/{cfg.actividades_semana_min}) -> {list(destinatarios.keys())}")
+                            enviadas += 1
+                        else:
+                            ok, msg = _enviar_correo_alerta_sincrono(destinatarios, asunto, cuerpo)
+                            if ok:
+                                db.session.add(AlertaComercialLog(
+                                    id_empleado=cfg.id_empleado, tipo_alerta="cuota_semanal",
+                                    destinatarios=", ".join(destinatarios.keys())
+                                ))
+                                db.session.commit()
+                                enviadas += 1
+                            else:
+                                errores += 1
+                                app.logger.error(f"Fallo alerta cuota semanal {nombre_emp}: {msg}")
+
+        clave_resumen = "se_enviarian" if dry_run else "enviadas"
+        resumen = {"status": "ok", "dry_run": dry_run, clave_resumen: enviadas, "errores": errores}
+        app.logger.info(f"Alertas comerciales finalizado: {resumen}")
+        return resumen
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error en procesar_alertas_comercial: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}

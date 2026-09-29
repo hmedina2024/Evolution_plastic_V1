@@ -1,4 +1,17 @@
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+<style>
+  /* Etiquetas de dominio del menu (Operacion / Comercial / Administracion).
+     Estilo autocontenido: no toca la hoja de estilos compartida. */
+  .snav-group-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #8a94a6;
+    padding: 14px 1.4rem 2px;
+    margin: 0;
+  }
+</style>
 
   {# ── Header: logo, nunca scrollea ── #}
   <div class="sidebar-header">
@@ -14,12 +27,14 @@
 
   {# Variables para auto-expandir la sección activa #}
   {% set control_paths = ['/registrar-operacion', '/lista-de-operaciones', '/registrar-op', '/lista-de-op', '/registrar-odi', '/lista-de-odi', '/registrar-jornada', '/lista-de-jornadas'] %}
+  {% set comercial_paths = ['/registrar-actividad-comercial', '/lista-actividad-comercial', '/lista-prospectos', '/admin/metas-vendedores'] %}
   {% set admin_paths   = ['/registrar-empleado', '/lista-de-empleados', '/registrar-proceso', '/lista-de-procesos', '/registrar-cliente', '/lista-de-clientes', '/registrar-actividad', '/lista-de-actividades', '/registrar-empresa', '/lista-de-empresas', '/planificador-personal', '/matriz-dificultad', '/alertas-procesos'] %}
   {% set user_paths    = ['/register-user', '/lista-de-usuarios', '/logs-acceso'] %}
 
-  {% set control_open  = request.path in control_paths %}
-  {% set admin_open    = request.path in admin_paths %}
-  {% set usuarios_open = request.path in user_paths or request.path.startswith('/roles-permisos') %}
+  {% set control_open   = request.path in control_paths %}
+  {% set comercial_open = request.path in comercial_paths %}
+  {% set admin_open     = request.path in admin_paths %}
+  {% set usuarios_open  = request.path in user_paths or request.path.startswith('/roles-permisos') %}
 
   {# ── Navegación: scrolleable (menu-inner requerido por el JS del framework Sneat) ── #}
   <nav class="sidebar-nav menu-inner">
@@ -32,6 +47,7 @@
                       or tiene_permiso('odi.ver') or tiene_permiso('odi.crear')
                       or tiene_permiso('jornadas.ver') or tiene_permiso('jornadas.crear') %}
     {% if ver_control %}
+    <div class="snav-group-label">Operación</div>
     <div>
       <button class="snav-toggle"
               data-bs-target="#nav-control"
@@ -90,6 +106,49 @@
     </div>
     {% endif %}
 
+    {# ── Comercial ── #}
+    {% set ver_comercial = tiene_permiso('comercial.ver') or tiene_permiso('comercial.crear')
+                        or tiene_permiso('prospectos.ver') or tiene_permiso('metas_comercial.ver') %}
+    {% if ver_comercial %}
+    <div class="snav-group-label">Comercial</div>
+    <div>
+      <button class="snav-toggle"
+              data-bs-target="#nav-comercial"
+              aria-expanded="{{ 'true' if comercial_open else 'false' }}"
+              aria-controls="nav-comercial">
+        <span class="snav-toggle-left">
+          <i class="bi bi-graph-up-arrow"></i>
+          Comercial
+        </span>
+        <i class="bi bi-chevron-right snav-chevron"></i>
+      </button>
+      <div class="collapse {% if comercial_open %}show{% endif %}" id="nav-comercial">
+        <ul class="snav-sublist">
+          {% if tiene_permiso('comercial.crear') %}
+          <li><a href="{{ url_for('viewFormActividadComercial') }}"
+                 class="snav-subitem {% if request.path == '/registrar-actividad-comercial' %}is-active{% endif %}">
+            <i class="bi bi-geo-alt-fill"></i> Registrar Visita/Llamada</a></li>
+          {% endif %}
+          {% if tiene_permiso('comercial.ver') %}
+          <li><a href="{{ url_for('lista_actividad_comercial') }}"
+                 class="snav-subitem {% if request.path == '/lista-actividad-comercial' %}is-active{% endif %}">
+            <i class="bi bi-clipboard2-data-fill"></i> Actividad Comercial</a></li>
+          {% endif %}
+          {% if tiene_permiso('prospectos.ver') %}
+          <li><a href="{{ url_for('lista_prospectos') }}"
+                 class="snav-subitem {% if request.path == '/lista-prospectos' %}is-active{% endif %}">
+            <i class="bi bi-person-lines-fill"></i> Prospectos</a></li>
+          {% endif %}
+          {% if tiene_permiso('metas_comercial.ver') %}
+          <li><a href="{{ url_for('metas_vendedores') }}"
+                 class="snav-subitem {% if request.path == '/admin/metas-vendedores' %}is-active{% endif %}">
+            <i class="bi bi-bullseye"></i> Metas de Vendedores</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
     {# ── Administrar ── #}
     {% set ver_admin = tiene_permiso('empleados.ver') or tiene_permiso('empleados.crear')
                     or tiene_permiso('procesos.ver') or tiene_permiso('procesos.crear')
@@ -97,6 +156,7 @@
                     or tiene_permiso('actividades.ver') or tiene_permiso('actividades.crear')
                     or tiene_permiso('empresas.ver') or tiene_permiso('empresas.crear') %}
     {% if ver_admin %}
+    <div class="snav-group-label">Administración</div>
     <div>
       <button class="snav-toggle"
               data-bs-target="#nav-admin"
@@ -206,12 +266,12 @@
               <i class="bi bi-bar-chart-line-fill"></i> Órdenes de Producción
             </a>
           </li>
-          <!-- <li>
+          <li>
             <a href="{{ url_for('dashboard_operaciones') }}"
                class="snav-subitem {% if request.path == '/dashboard-operaciones' %}is-active{% endif %}">
               <i class="bi bi-clipboard-data-fill"></i> Operaciones
             </a>
-          </li> -->
+          </li> 
         </ul>
       </div>
     </div>

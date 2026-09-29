@@ -1,0 +1,122 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Actividad Comercial{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/my_style.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="card" style="border-radius: 0px !important">
+  <div class="row justify-content-center mb-2">
+    <div class="col-md-12 mb-0">
+      <h3 class="text-center mt-0 mb-3">ACTIVIDAD COMERCIAL (VISITAS Y LLAMADAS)</h3>
+      <hr />
+    </div>
+
+    <div class="row justify-content-end mb-2">
+      <div class="col-md-2 mt-0 py-3">
+        <a href="{{ url_for('viewFormActividadComercial') }}" class="btn btn-info btn-sm">
+          <i class="bi bi-plus-circle me-1"></i> Registrar Actividad
+        </a>
+      </div>
+      <div class="col-md-2 mt-0 py-3">
+        <a href="{{ url_for('lista_prospectos') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-person-lines-fill me-1"></i> Ver Prospectos
+        </a>
+      </div>
+      <div class="col-md-2 position-relative mt-0 py-3">
+        <label class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Vendedor</label>
+        <input type="text" id="filterVendedor" class="form-control" placeholder="Filtrar por vendedor">
+      </div>
+      <div class="col-md-2 position-relative mt-0 py-3">
+        <label class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Tipo</label>
+        <select id="filterTipo" class="form-control">
+          <option value="">Todos</option>
+          {% for t in tipos_actividad %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 position-relative mt-0 py-3">
+        <label class="form-label small text-muted" style="position: absolute; top: -10px; left: 10px; background: white; padding: 0 5px;">Fecha</label>
+        <input type="date" id="filterFecha" class="form-control">
+      </div>
+    </div>
+
+    <div class="row justify-content-center mb-2">
+      <div class="table-responsive text-nowrap table-hover">
+        <table id="tbl_actividad" class="table table-striped table-bordered" cellspacing="0" width="100%">
+          <thead>
+            <tr>
+              <th>Vendedor</th>
+              <th>Tipo</th>
+              <th>Cliente / Prospecto</th>
+              <th>Alcance</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    var table = $('#tbl_actividad').DataTable({
+        "serverSide": true,
+        "ajax": {
+            "url": "/buscando-actividad-comercial",
+            "type": "POST",
+            "contentType": "application/json",
+            "data": function(d) {
+                d.vendedor = $('#filterVendedor').val();
+                d.tipo_actividad = $('#filterTipo').val();
+                d.fecha = $('#filterFecha').val();
+                return JSON.stringify(d);
+            },
+            "dataSrc": function(json) {
+                if (json.error) { console.error(json.error); return []; }
+                return json.data;
+            }
+        },
+        "columns": [
+            { "data": "vendedor" },
+            { "data": "tipo_actividad" },
+            { "data": null, "render": function(row) {
+                return '<span class="badge bg-label-secondary me-1">' + row.tipo_referencia + '</span>' + row.nombre_referencia;
+            }},
+            { "data": "alcance", "render": function(data) {
+                if (!data) return '';
+                return data.length > 60 ? data.substring(0, 60) + '...' : data;
+            }},
+            { "data": "fecha_hora_inicio" },
+            { "data": null, "orderable": false, "render": function(row) {
+                return '<a href="/editar-actividad-comercial/' + row.id_actividad_comercial + '" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>'
+                     + '<button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarActividad(' + row.id_actividad_comercial + ')"><i class="bi bi-trash"></i></button>';
+            }}
+        ],
+        "searching": false,
+        "dom": 'lfrtip'
+    });
+
+    var debounceTimer;
+    $('#filterVendedor').on('keyup', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() { table.ajax.reload(); }, 300);
+    });
+    $('#filterTipo, #filterFecha').on('change', function() { table.ajax.reload(); });
+});
+
+function eliminarActividad(id) {
+    postDelete('/borrar-actividad-comercial/' + id, '¿Estás seguro de eliminar esta actividad comercial?');
+}
+</script>
+{% endblock %}

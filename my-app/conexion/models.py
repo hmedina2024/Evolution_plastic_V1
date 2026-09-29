@@ -456,6 +456,73 @@ class CorreosFijos(db.Model):
     activo = db.Column(db.Boolean, default=True)
 
 
+class Prospecto(db.Model):
+    """Cliente potencial: aún no tiene documento/NIT ni es Cliente formal."""
+    __tablename__ = 'tbl_prospectos'
+    id_prospecto = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_prospecto = db.Column(db.String(150), nullable=False)
+    empresa_prospecto = db.Column(db.String(150), nullable=True)
+    telefono_prospecto = db.Column(db.String(50), nullable=True)
+    email_prospecto = db.Column(db.String(100), nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    convertido = db.Column(db.Boolean, nullable=False, default=False)
+    fecha_conversion = db.Column(db.DateTime, nullable=True)
+    id_cliente_resultante = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    cliente_resultante = db.relationship('Clientes', foreign_keys=[id_cliente_resultante], lazy=True)
+
+
+class ActividadComercial(db.Model):
+    """Bitácora unificada de actividad comercial (visitas, llamadas, etc.)
+    de un vendedor contra un Cliente o un Prospecto (exactamente uno)."""
+    __tablename__ = 'tbl_actividad_comercial'
+    id_actividad_comercial = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado'), nullable=False)
+    id_cliente = db.Column(db.Integer, db.ForeignKey('tbl_clientes.id_cliente'), nullable=True)
+    id_prospecto = db.Column(db.Integer, db.ForeignKey('tbl_prospectos.id_prospecto'), nullable=True)
+    tipo_actividad = db.Column(db.String(30), nullable=False)  # Visita presencial, Llamada, Videollamada, Email, Reunión
+    fecha_hora_inicio = db.Column(db.DateTime, nullable=False)
+    fecha_hora_fin = db.Column(db.DateTime, nullable=True)
+    alcance = db.Column(db.Text, nullable=False)
+    resultado = db.Column(db.Text, nullable=True)
+    proximo_paso = db.Column(db.Text, nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    id_usuario_registro = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    fecha_borrado = db.Column(db.DateTime, nullable=True)
+
+    empleado = db.relationship('Empleados', lazy=True)
+    cliente = db.relationship('Clientes', lazy=True)
+    prospecto = db.relationship('Prospecto', lazy=True)
+
+
+class MetaActividadVendedor(db.Model):
+    """Cuota semanal de actividad comercial por vendedor + config de alerta de inactividad."""
+    __tablename__ = 'tbl_metas_actividad_vendedor'
+    id_meta = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado', ondelete='CASCADE'), nullable=False, unique=True)
+    actividades_semana_min = db.Column(db.Integer, nullable=False, default=10)
+    dias_sin_actividad_alerta = db.Column(db.Integer, nullable=False, default=5)
+    id_lista = db.Column(db.Integer, db.ForeignKey('tbl_listas_correos.id_lista', ondelete='SET NULL'), nullable=True)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
+    fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)
+    fecha_actualizacion = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+
+    empleado = db.relationship('Empleados', lazy=True)
+    lista = db.relationship('ListasCorreos', lazy=True)
+
+
+class AlertaComercialLog(db.Model):
+    """Historial de alertas comerciales enviadas (control de reenvío / anti-spam)."""
+    __tablename__ = 'tbl_alertas_comercial_log'
+    id_log = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_empleado = db.Column(db.Integer, db.ForeignKey('tbl_empleados.id_empleado', ondelete='CASCADE'), nullable=False)
+    tipo_alerta = db.Column(db.String(30), nullable=False)  # 'inactividad' | 'cuota_semanal'
+    fecha_envio = db.Column(db.DateTime, default=func.now(), nullable=False)
+    destinatarios = db.Column(db.Text, nullable=True)
+
+
 class AlertaProceso(db.Model):
     """Configuración de la alerta de documentos faltantes para un proceso."""
     __tablename__ = 'tbl_alertas_proceso'

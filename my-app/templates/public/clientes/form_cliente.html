@@ -15,6 +15,13 @@
   <div class="card-body p-4">
     <form method="POST" action="/form-registrar-cliente" autocomplete="off" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if prefill %}
+      <input type="hidden" name="id_prospecto" value="{{ prefill.id_prospecto }}">
+      <div class="alert alert-info">
+        <i class="bi bi-arrow-repeat me-1"></i> Estás convirtiendo el prospecto
+        <strong>{{ prefill.nombre }}</strong> en Cliente. Completa el documento y confirma los demás datos.
+      </div>
+      {% endif %}
       <div class="row g-4">
         <div class="col-md-3">
           <label for="tipo_cliente" class="form-label fw-bold text-primary">Tipo Documento</label>
@@ -32,17 +39,17 @@
         </div>
         <div class="col-md-4">
           <label for="nombre_cliente" class="form-label fw-bold text-primary">Nombre del Cliente</label>
-          <input type="text" name="nombre_cliente" class="form-control" required />
+          <input type="text" name="nombre_cliente" class="form-control" value="{{ prefill.nombre if prefill else '' }}" required />
         </div>
       </div>
       <div class="row g-4 mt-3">
         <div class="col-md-4">
           <label for="telefono_cliente" class="form-label fw-bold text-primary">Teléfono del Cliente</label>
-          <input class="form-control" type="text" name="telefono_cliente" id="cantidad" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
+          <input class="form-control" type="text" name="telefono_cliente" id="cantidad" value="{{ prefill.telefono if prefill else '' }}" required pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57"/>
         </div>
         <div class="col-md-4">
           <label for="email_cliente" class="form-label fw-bold text-primary">Email del Cliente</label>
-          <input class="form-control" type="email" name="email_cliente" required />
+          <input class="form-control" type="email" name="email_cliente" value="{{ prefill.email if prefill else '' }}" required />
         </div>
       </div>
       <div class="row g-4 mt-3">

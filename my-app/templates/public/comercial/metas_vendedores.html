@@ -1,0 +1,118 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Metas de Vendedores{% endblock %}
+
+{% block body %}
+<div class="row mb-4">
+  <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-bullseye me-2 text-primary"></i>Metas de Actividad Comercial por Vendedor</h3>
+      <p class="text-muted mb-0">
+        Cuota mínima de actividades (visitas/llamadas) por semana y umbral de días
+        sin actividad para alertar. Sin lista asignada, se notifica al propio vendedor.
+      </p>
+    </div>
+    <button class="btn btn-success" id="btnGuardar">
+      <i class="bi bi-save me-1"></i>Guardar cambios
+    </button>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if not empleados %}
+      <div class="alert alert-warning mb-0">No hay empleados registrados.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width:200px;">Vendedor</th>
+            <th class="text-center" style="min-width:150px;">Actividades / semana (mín.)</th>
+            <th class="text-center" style="min-width:150px;">Días sin actividad (alerta)</th>
+            <th style="min-width:220px;">Lista de correos (opcional)</th>
+            <th class="text-center" style="min-width:90px;">Activa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in empleados %}
+          <tr data-empleado="{{ e.id_empleado }}">
+            <td class="fw-semibold">{{ e.nombre_empleado }}</td>
+            <td>
+              <input type="number" min="0" step="1"
+                     class="form-control form-control-sm text-center inp-actividades-min"
+                     value="{{ e.actividades_semana_min }}">
+            </td>
+            <td>
+              <input type="number" min="1" step="1"
+                     class="form-control form-control-sm text-center inp-dias-alerta"
+                     value="{{ e.dias_sin_actividad_alerta }}">
+            </td>
+            <td>
+              <select class="form-select form-select-sm inp-lista">
+                <option value="">— Sin lista (notificar al vendedor) —</option>
+                {% for l in listas %}
+                <option value="{{ l.id_lista }}" {% if e.id_lista == l.id_lista %}selected{% endif %}>{{ l.nombre_lista }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input inp-activo" type="checkbox" {% if e.activo %}checked{% endif %}>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script>
+(function() {
+  'use strict';
+  const API_SAVE = "{{ url_for('api_guardar_metas_vendedores') }}";
+  const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+  const btn = document.getElementById('btnGuardar');
+  if (!btn) return;
+
+  btn.addEventListener('click', function() {
+    const items = [];
+    document.querySelectorAll('tr[data-empleado]').forEach(row => {
+      items.push({
+        id_empleado: parseInt(row.dataset.empleado),
+        actividades_semana_min: parseInt(row.querySelector('.inp-actividades-min').value) || 0,
+        dias_sin_actividad_alerta: parseInt(row.querySelector('.inp-dias-alerta').value) || 1,
+        id_lista: row.querySelector('.inp-lista').value || null,
+        activo: row.querySelector('.inp-activo').checked
+      });
+    });
+
+    if (!items.length) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+    fetch(API_SAVE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+      body: JSON.stringify({ items: items })
+    })
+      .then(r => r.json())
+      .then(data => {
+        alert(data.status === 'ok' ? '✓ ' + data.message : 'Error: ' + (data.message || 'No se pudo guardar'));
+      })
+      .catch(e => alert('Error: ' + e.message))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i>Guardar cambios';
+      });
+  });
+})();
+</script>
+{% endblock %}

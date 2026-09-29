@@ -10,7 +10,7 @@ from controllers.funciones_home import sql_lista_empleadosBD, get_total_empleado
 from controllers.funciones_home import sql_lista_procesos_bd, get_total_procesos
 from controllers.funciones_home import sql_lista_actividades_bd, get_total_actividades
 from controllers.funciones_home import sql_lista_usuarios_bd, get_total_usuarios, buscar_usuarios_bd
-from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado,ListasCorreos,ListasMiembros, Clientes
+from conexion.models import db, OPLog, Empresa, Empleados, OrdenProduccion, Tipo_Empleado,ListasCorreos,ListasMiembros, Clientes, Prospecto, ActividadComercial, MetaActividadVendedor
 from sqlalchemy import func, and_
 from controllers.funciones_home import get_novedades_actividades, get_empleados_paginados, get_piezas_paginados,get_procesos_paginados, get_actividades_paginados,get_actividades_paginados_op, get_ordenes_paginadas, get_clientes_paginados
 
@@ -32,6 +32,10 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         procesar_form_operacion, sql_lista_operaciones_bd, sql_detalles_operaciones_bd, buscar_operacion_unico,
                                         procesar_actualizacion_operacion, eliminar_operacion, procesar_form_op, validar_cod_op, sql_lista_op_bd,
                                         sql_detalles_op_bd,  procesar_actualizar_form_op, eliminar_op, obtener_vendedor, obtener_op, exportar_op_excel,
+                                        get_prospectos_paginados, procesar_form_prospecto, buscar_prospectos_bd, convertir_prospecto_a_cliente,
+                                        procesar_form_actividad_comercial, buscar_actividad_comercial_bd, buscar_actividad_comercial_unico,
+                                        procesar_actualizacion_actividad_comercial, eliminar_actividad_comercial,
+                                        obtener_config_metas_vendedores, guardar_config_metas_vendedores, TIPOS_ACTIVIDAD_COMERCIAL,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
@@ -573,7 +577,19 @@ def borrar_proceso(id_proceso):
 def viewFormCliente():
     tipo_documento = obtener_tipo_documento()
     if 'conectado' in session:
-        return render_template('public/clientes/form_cliente.html', tipo_documento=tipo_documento)
+        prefill = None
+        id_prospecto = request.args.get('id_prospecto')
+        if id_prospecto and id_prospecto.isdigit():
+            prospecto = db.session.query(Prospecto).filter_by(
+                id_prospecto=int(id_prospecto), fecha_borrado=None, convertido=False).first()
+            if prospecto:
+                prefill = {
+                    'id_prospecto': prospecto.id_prospecto,
+                    'nombre': prospecto.nombre_prospecto,
+                    'telefono': prospecto.telefono_prospecto or '',
+                    'email': prospecto.email_prospecto or ''
+                }
+        return render_template('public/clientes/form_cliente.html', tipo_documento=tipo_documento, prefill=prefill)
     else:
         flash('primero debes iniciar sesión.', 'error')
         return redirect(url_for('inicio'))
@@ -2204,6 +2220,165 @@ def api_guardar_alertas_procesos():
     if not items:
         return jsonify({'status': 'error', 'message': 'No hay datos que guardar'}), 400
     resultado = guardar_config_alertas(items)
+    return jsonify(resultado)
+
+
+# ============================================================
+# --- Actividad Comercial (Visitas / Llamadas) ---
+# ============================================================
+
+@app.route("/registrar-actividad-comercial", methods=["GET"])
+@requiere_permiso("comercial.crear")
+def viewFormActividadComercial():
+    return render_template("public/comercial/form_actividad.html", tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL)
+
+
+@app.route("/form-registrar-actividad-comercial", methods=["POST"])
+@requiere_permiso("comercial.crear")
+def form_actividad_comercial():
+    exito, mensaje = procesar_form_actividad_comercial(request.form)
+    if exito:
+        flash(mensaje, "success")
+        return redirect(url_for("lista_actividad_comercial"))
+    flash(mensaje, "error")
+    return render_template("public/comercial/form_actividad.html")
+
+
+@app.route("/lista-actividad-comercial", methods=["GET"])
+@requiere_permiso("comercial.ver")
+def lista_actividad_comercial():
+    return render_template("public/comercial/lista_actividad.html",
+                           tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL)
+
+
+@app.route("/buscando-actividad-comercial", methods=["POST"])
+@csrf.exempt
+def buscando_actividad_comercial():
+    if "conectado" not in session:
+        return jsonify({"error": "No autorizado", "data": []}), 401
+    datos = request.get_json() or {}
+    draw = datos.get("draw", 1)
+    start = datos.get("start", 0)
+    length = datos.get("length", 10)
+    vendedor_filter = datos.get("vendedor", "")
+    tipo_filter = datos.get("tipo_actividad", "")
+    fecha_filter = datos.get("fecha", "")
+    order_info = datos.get("order", [])
+
+    data, total_records, filtered_records = buscar_actividad_comercial_bd(
+        vendedor_filter, tipo_filter, fecha_filter, start, length, order_info)
+
+    return jsonify({
+        "draw": int(draw),
+        "recordsTotal": total_records,
+        "recordsFiltered": filtered_records,
+        "data": data
+    })
+
+
+@app.route("/editar-actividad-comercial/<int:id_actividad_comercial>", methods=["GET"])
+@requiere_permiso("comercial.editar")
+def viewEditarActividadComercial(id_actividad_comercial):
+    respuesta = buscar_actividad_comercial_unico(id_actividad_comercial)
+    if not respuesta:
+        flash("La actividad comercial no existe.", "error")
+        return redirect(url_for("lista_actividad_comercial"))
+    return render_template("public/comercial/form_actividad_update.html",
+                           actividad=respuesta, tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL)
+
+
+@app.route("/actualizar-actividad-comercial", methods=["POST"])
+@requiere_permiso("comercial.editar")
+def actualizar_actividad_comercial():
+    exito, mensaje = procesar_actualizacion_actividad_comercial(request.form)
+    flash(mensaje, "success" if exito else "error")
+    return redirect(url_for("lista_actividad_comercial"))
+
+
+@app.route("/borrar-actividad-comercial/<int:id_actividad_comercial>", methods=["POST"])
+@requiere_permiso("comercial.eliminar")
+def borrar_actividad_comercial(id_actividad_comercial):
+    if eliminar_actividad_comercial(id_actividad_comercial):
+        flash("Actividad comercial eliminada.", "success")
+    else:
+        flash("No se pudo eliminar la actividad comercial.", "error")
+    return redirect(url_for("lista_actividad_comercial"))
+
+
+# ============================================================
+# --- Prospectos (clientes potenciales, antes de tener documento/NIT) ---
+# ============================================================
+
+@app.route("/api/prospectos", methods=["GET"])
+def api_prospectos():
+    """Select2 paginado: prospectos no convertidos, para el formulario de actividad comercial."""
+    if "conectado" not in session:
+        return jsonify({"results": [], "pagination": {"more": False}}), 401
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+    search = request.args.get("search", "", type=str)
+    return jsonify(get_prospectos_paginados(page, per_page, search))
+
+
+@app.route("/lista-prospectos", methods=["GET"])
+@requiere_permiso("prospectos.ver")
+def lista_prospectos():
+    return render_template("public/comercial/lista_prospectos.html")
+
+
+@app.route("/buscando-prospectos", methods=["POST"])
+@csrf.exempt
+def buscando_prospectos():
+    if "conectado" not in session:
+        return jsonify({"error": "No autorizado", "data": []}), 401
+    datos = request.get_json() or {}
+    draw = datos.get("draw", 1)
+    start = datos.get("start", 0)
+    length = datos.get("length", 10)
+    nombre_filter = datos.get("nombre", "")
+    convertido_filter = datos.get("convertido", "")
+    order_info = datos.get("order", [])
+
+    data, total_records, filtered_records = buscar_prospectos_bd(
+        nombre_filter, convertido_filter, start, length, order_info)
+
+    return jsonify({
+        "draw": int(draw),
+        "recordsTotal": total_records,
+        "recordsFiltered": filtered_records,
+        "data": data
+    })
+
+
+@app.route("/form-registrar-prospecto", methods=["POST"])
+@requiere_permiso("prospectos.crear")
+def form_registrar_prospecto():
+    """Creacion rapida de un prospecto (usada desde la lista de prospectos)."""
+    exito, mensaje, prospecto = procesar_form_prospecto(request.form)
+    flash(mensaje, "success" if exito else "error")
+    return redirect(url_for("lista_prospectos"))
+
+
+# ============================================================
+# --- Metas de Actividad Comercial por Vendedor (admin) ---
+# ============================================================
+
+@app.route("/admin/metas-vendedores", methods=["GET"])
+@requiere_permiso("metas_comercial.ver")
+def metas_vendedores():
+    data = obtener_config_metas_vendedores()
+    return render_template("public/comercial/metas_vendedores.html",
+                           empleados=data["empleados"], listas=data["listas"])
+
+
+@app.route("/api/metas-vendedores/guardar", methods=["POST"])
+@requiere_permiso("metas_comercial.editar")
+def api_guardar_metas_vendedores():
+    data = request.get_json() or {}
+    items = data.get("items", [])
+    if not items:
+        return jsonify({"status": "error", "message": "No hay datos que guardar"}), 400
+    resultado = guardar_config_metas_vendedores(items)
     return jsonify(resultado)
 
 

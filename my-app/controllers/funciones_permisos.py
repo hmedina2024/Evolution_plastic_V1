@@ -34,6 +34,9 @@ CATALOGO_MODULOS = [
     ('reportes',    'Reportes',                     ['ver']),
     ('auditoria',   'Auditoría (Logs de acceso)',   ['ver']),
     ('permisos',    'Roles y Permisos',             ['ver', 'editar']),
+    ('comercial',   'Actividad Comercial',          ['ver', 'crear', 'editar', 'eliminar']),
+    ('prospectos',  'Prospectos',                   ['ver', 'crear', 'editar']),
+    ('metas_comercial', 'Metas de Actividad Comercial', ['ver', 'editar']),
 ]
 
 ACCION_LABELS = {'ver': 'Ver', 'crear': 'Crear', 'editar': 'Editar', 'eliminar': 'Eliminar'}
@@ -57,12 +60,17 @@ DEFAULT_SUPERVISOR = (
     | _claves('empresas', ['ver'])
     | _claves('usuarios', ['ver'])
     | _claves('reportes', ['ver'])
+    | _claves('comercial', ['ver', 'crear', 'editar', 'eliminar'])
+    | _claves('prospectos', ['ver', 'crear', 'editar'])
+    | _claves('metas_comercial', ['ver', 'editar'])
 )
 
 DEFAULT_OPERARIO = (
     _claves('dashboard', ['ver'])
     | _claves('operaciones', ['ver', 'crear', 'editar'])
     | _claves('jornadas', ['ver', 'crear', 'editar'])
+    | _claves('comercial', ['ver', 'crear', 'editar'])
+    | _claves('prospectos', ['ver', 'crear', 'editar'])
 )
 
 # Mapa de fallback (mismo que la semilla) para roles no-admin.

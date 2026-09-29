@@ -1,0 +1,189 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Actualizar Actividad Comercial{% endblock %}
+
+{% block customCSS %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+  .select2-container { max-width: 100%; }
+  #wrap_cliente .select2-container,
+  #wrap_prospecto_existente .select2-container { width: 100% !important; display: block; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm" style="border-radius: 10px;">
+  <div class="card-header bg-primary text-white text-center">
+    <h3 class="fw-bold">ACTUALIZAR ACTIVIDAD COMERCIAL</h3>
+  </div>
+  <div class="card-body p-4">
+    <form class="form-horizontal mx-auto" method="POST" action="/actualizar-actividad-comercial" autocomplete="off" id="actualizarActividadForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="id_actividad_comercial" value="{{ actividad.id_actividad_comercial }}">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <label for="id_empleado" class="form-label fw-bold text-primary">Vendedor <span class="text-danger">*</span></label>
+          <select name="id_empleado" id="id_empleado" class="form-control select2" required>
+            <option value="{{ actividad.id_empleado }}" selected>{{ actividad.nombre_empleado }}</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="tipo_actividad" class="form-label fw-bold text-primary">Tipo de Actividad <span class="text-danger">*</span></label>
+          <select name="tipo_actividad" id="tipo_actividad" class="form-control" required>
+            {% for t in tipos_actividad %}
+            <option value="{{ t }}" {% if t == actividad.tipo_actividad %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold text-primary d-block">Referencia <span class="text-danger">*</span></label>
+          <div class="btn-group btn-group-sm w-100" role="group">
+            <input type="radio" class="btn-check" name="tipo_referencia" id="tipo_cliente" value="cliente" {% if actividad.id_cliente %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="tipo_cliente">Cliente</label>
+            <input type="radio" class="btn-check" name="tipo_referencia" id="tipo_prospecto_existente" value="prospecto_existente" {% if actividad.id_prospecto %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="tipo_prospecto_existente">Prospecto</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-12">
+          <div id="wrap_cliente">
+            <select name="id_cliente" id="id_cliente" class="form-control select2" style="width:100%">
+              {% if actividad.id_cliente %}<option value="{{ actividad.id_cliente }}" selected>{{ actividad.nombre_cliente }}</option>{% endif %}
+            </select>
+          </div>
+          <div id="wrap_prospecto_existente" style="display:none;">
+            <select name="id_prospecto" id="id_prospecto" class="form-control select2" style="width:100%">
+              {% if actividad.id_prospecto %}<option value="{{ actividad.id_prospecto }}" selected>{{ actividad.nombre_prospecto }}</option>{% endif %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="fecha_hora_inicio" class="form-label fw-bold text-primary">Fecha y Hora Inicio <span class="text-danger">*</span></label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_inicio" id="fecha_hora_inicio" value="{{ actividad.fecha_hora_inicio }}" required />
+        </div>
+        <div class="col-md-6">
+          <label for="fecha_hora_fin" class="form-label fw-bold text-primary">Fecha y Hora Fin <span class="text-muted small">(opcional)</span></label>
+          <input class="form-control" type="datetime-local" name="fecha_hora_fin" id="fecha_hora_fin" value="{{ actividad.fecha_hora_fin }}" />
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-12">
+          <label for="alcance" class="form-label fw-bold text-primary">Alcance / Objetivo de la Actividad <span class="text-danger">*</span></label>
+          <textarea class="form-control" name="alcance" id="alcance" rows="2" required>{{ actividad.alcance }}</textarea>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="resultado" class="form-label fw-bold text-primary">Resultado / Observaciones</label>
+          <textarea class="form-control" name="resultado" id="resultado" rows="2">{{ actividad.resultado }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label for="proximo_paso" class="form-label fw-bold text-primary">Próximo Paso Sugerido</label>
+          <textarea class="form-control" name="proximo_paso" id="proximo_paso" rows="2">{{ actividad.proximo_paso }}</textarea>
+        </div>
+      </div>
+
+      <div class="row mt-4">
+        <div class="col-12 text-end">
+          <a href="{{ url_for('lista_actividad_comercial') }}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Actualizar Actividad</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(function() {
+  function setupSelect2(selectId, url, placeholder, dataKey, idField, textField) {
+    $(`#${selectId}`).select2({
+      placeholder: placeholder, allowClear: true, minimumInputLength: 0, width: '100%',
+      ajax: {
+        url: url, dataType: 'json', delay: 250,
+        data: params => ({ search: params.term || '', page: params.page || 1, per_page: 10 }),
+        processResults: (data, params) => {
+          params.page = params.page || 1;
+          return {
+            results: data[dataKey].map(item => ({ id: item[idField], text: item[textField] })),
+            pagination: { more: (params.page * 10) < data.total }
+          };
+        },
+        cache: true
+      }
+    });
+  }
+
+  setupSelect2('id_empleado', '/api/empleados', 'Buscar vendedor...', 'empleados', 'id_empleado', 'nombre_empleado');
+
+  $('#id_cliente').select2({
+    placeholder: 'Buscar cliente...', allowClear: true, minimumInputLength: 0, width: '100%',
+    ajax: {
+      url: '/api/clientes', dataType: 'json', delay: 250,
+      data: params => ({ search: params.term || '', page: params.page || 1, per_page: 10 }),
+      processResults: (data, params) => {
+        params.page = params.page || 1;
+        return {
+          results: data.clientes.map(c => ({ id: c.id_cliente, text: c.nombre_cliente })),
+          pagination: { more: data.pagination && data.pagination.more }
+        };
+      },
+      cache: true
+    }
+  });
+
+  $('#id_prospecto').select2({
+    placeholder: 'Buscar prospecto...', allowClear: true, minimumInputLength: 0, width: '100%',
+    ajax: {
+      url: '/api/prospectos', dataType: 'json', delay: 250,
+      data: params => ({ search: params.term || '', page: params.page || 1, per_page: 10 }),
+      processResults: data => data,
+      cache: true
+    }
+  });
+
+  function aplicarTipoReferencia() {
+    const tipo = $('input[name="tipo_referencia"]:checked').val();
+    if (tipo === 'prospecto_existente') {
+      $('#wrap_cliente').hide();
+      $('#wrap_prospecto_existente').show();
+    } else {
+      $('#wrap_prospecto_existente').hide();
+      $('#wrap_cliente').show();
+    }
+  }
+  $('input[name="tipo_referencia"]').on('change', aplicarTipoReferencia);
+  aplicarTipoReferencia();
+
+  function referenciaValida() {
+    const tipo = $('input[name="tipo_referencia"]:checked').val();
+    if (tipo === 'prospecto_existente') return !!$('#id_prospecto').val();
+    return !!$('#id_cliente').val();
+  }
+
+  $('#actualizarActividadForm').on('submit', function(e) {
+    const form = this;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      e.preventDefault();
+      return;
+    }
+    if (!referenciaValida()) {
+      e.preventDefault();
+      alert('Debe seleccionar un Cliente o un Prospecto.');
+      return;
+    }
+    $('#submitBtn').prop('disabled', true).text('Guardando...');
+  });
+});
+</script>
+{% endblock %}
