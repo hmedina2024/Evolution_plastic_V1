@@ -4946,6 +4946,35 @@ def get_supervisores_paginados(page, per_page, search=None):
         app.logger.error(f"Error en get_supervisores_paginados: {e}")
         return []
     
+def get_vendedores_comerciales_paginados(page, per_page, search=None):
+    """Empleados con cargo Vendedor o Gerente, para los selectores del
+    modulo de Actividad Comercial (quien registra la visita/llamada)."""
+    try:
+        query = db.session.query(Empleados).filter(
+            Empleados.fecha_borrado.is_(None),
+            Empleados.cargo.in_(["VENDEDOR", "GERENTE"])
+        ).order_by(Empleados.nombre_empleado.asc())
+        if search:
+            search_like = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Empleados.nombre_empleado.like(search_like),
+                    Empleados.apellido_empleado.like(search_like),
+                    db.text("CONCAT(nombre_empleado, ' ', apellido_empleado) LIKE :search").params(
+                        search=search_like)
+                )
+            )
+        total = query.count()
+        empleados = query.paginate(page=page, per_page=per_page, error_out=False).items
+        data = [{"id_empleado": e.id_empleado,
+                 "nombre_empleado": f"{e.nombre_empleado} {e.apellido_empleado or ''}".strip()}
+                for e in empleados]
+        return data, total
+    except Exception as e:
+        app.logger.error(f"Error en get_vendedores_comerciales_paginados: {e}")
+        return [], 0
+
+
 def get_disenadores_graficos_paginados(page, per_page, search=None):
     try:
         offset = (page - 1) * per_page
@@ -8200,10 +8229,12 @@ def eliminar_actividad_comercial(id_actividad_comercial):
 # ============================================================
 
 def obtener_config_metas_vendedores():
-    """Empleados activos con su meta de actividad comercial (o valores por defecto)."""
+    """Empleados con cargo Vendedor o Gerente y su meta de actividad
+    comercial (o valores por defecto)."""
     try:
         empleados = db.session.query(Empleados).filter(
-            Empleados.fecha_borrado.is_(None)
+            Empleados.fecha_borrado.is_(None),
+            Empleados.cargo.in_(["VENDEDOR", "GERENTE"])
         ).order_by(Empleados.nombre_empleado.asc()).all()
 
         configs = {m.id_empleado: m for m in db.session.query(MetaActividadVendedor).all()}

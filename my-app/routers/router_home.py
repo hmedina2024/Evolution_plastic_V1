@@ -35,7 +35,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         get_prospectos_paginados, procesar_form_prospecto, buscar_prospectos_bd, convertir_prospecto_a_cliente,
                                         procesar_form_actividad_comercial, buscar_actividad_comercial_bd, buscar_actividad_comercial_unico,
                                         procesar_actualizacion_actividad_comercial, eliminar_actividad_comercial,
-                                        obtener_config_metas_vendedores, guardar_config_metas_vendedores, TIPOS_ACTIVIDAD_COMERCIAL,
+                                        obtener_config_metas_vendedores, guardar_config_metas_vendedores, TIPOS_ACTIVIDAD_COMERCIAL, get_vendedores_comerciales_paginados,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
@@ -1571,6 +1571,20 @@ def api_all_empleados():
         empleados = get_all_empleados()
         return jsonify(empleados)
     return jsonify({"error": "No autorizado"}), 401
+
+
+@app.route('/api/vendedores-comerciales', methods=['GET'])
+@cache.cached(query_string=True)
+def api_vendedores_comerciales():
+    """Empleados con cargo Vendedor o Gerente, para el modulo de Actividad Comercial."""
+    if 'conectado' not in session:
+        return jsonify({"error": "No autorizado"}), 401
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str)
+    vendedores, total = get_vendedores_comerciales_paginados(page, per_page, search)
+    more = (page * per_page) < total
+    return jsonify({'empleados': vendedores, 'pagination': {'more': more}, 'total': total})
 
 
 @app.route('/api/supervisores', methods=['GET'])
