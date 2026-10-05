@@ -2740,7 +2740,8 @@ def validar_cod_op(codigo_op):
         return False
 
 
-def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None):
+def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None,
+                     search_disenador_grafico=None, search_disenador_industrial=None, search_proceso=None, search_estado_proyecto=None):
     try:
         # Construir la consulta base
         query = db.session.query(OrdenProduccion).join(Clientes, OrdenProduccion.id_cliente == Clientes.id_cliente).filter(
@@ -2765,6 +2766,20 @@ def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fe
         if search_fecha:
             query = query.filter(db.func.date(
                 OrdenProduccion.fecha_registro) == search_fecha)
+
+        # --- Filtros avanzados ---
+        if search_disenador_grafico:
+            query = query.filter(OrdenProduccion.id_disenador_grafico == search_disenador_grafico)
+
+        if search_disenador_industrial:
+            query = query.filter(OrdenProduccion.id_disenador_industrial == search_disenador_industrial)
+
+        if search_proceso:
+            query = query.join(OrdenProduccion.procesos_globales).filter(
+                Procesos.id_proceso == search_proceso)
+
+        if search_estado_proyecto:
+            query = query.filter(OrdenProduccion.estado_proyecto.ilike(f"%{search_estado_proyecto}%"))
 
         # Contar el total de registros (sin paginación, pero con filtros)
         records_filtered = query.count()
@@ -2814,7 +2829,8 @@ def sql_lista_op_bd(draw=1, start=0, length=10, search_codigo_op=None, search_fe
         }
 
 
-def exportar_op_excel(search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None):
+def exportar_op_excel(search_codigo_op=None, search_fecha=None, search_nombre_cliente=None, search_producto=None,
+                      search_disenador_grafico=None, search_disenador_industrial=None, search_proceso=None, search_estado_proyecto=None):
     """Genera un Excel (en memoria, sin escribir a disco) con las OP que
     cumplen los mismos filtros de la lista de OP (Cod. OP, Cliente,
     Producto, Fecha de registro). Sin paginación: exporta todo lo filtrado."""
@@ -2831,6 +2847,14 @@ def exportar_op_excel(search_codigo_op=None, search_fecha=None, search_nombre_cl
             query = query.filter(OrdenProduccion.producto.ilike(f"%{search_producto}%"))
         if search_fecha:
             query = query.filter(db.func.date(OrdenProduccion.fecha_registro) == search_fecha)
+        if search_disenador_grafico:
+            query = query.filter(OrdenProduccion.id_disenador_grafico == search_disenador_grafico)
+        if search_disenador_industrial:
+            query = query.filter(OrdenProduccion.id_disenador_industrial == search_disenador_industrial)
+        if search_proceso:
+            query = query.join(OrdenProduccion.procesos_globales).filter(Procesos.id_proceso == search_proceso)
+        if search_estado_proyecto:
+            query = query.filter(OrdenProduccion.estado_proyecto.ilike(f"%{search_estado_proyecto}%"))
 
         ordenes = query.order_by(OrdenProduccion.codigo_op.desc()).all()
 

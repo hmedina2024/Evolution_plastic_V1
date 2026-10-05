@@ -129,9 +129,15 @@
         </div>
 
         <div class="col-md-6">
-          <label for="diseno_o_producto" class="form-label fw-bold text-primary">DISEÑO O PRODUCCiÓN</label>
-          <input type="text" name="diseno_o_producto" id="diseno_o_producto"
-            class="form-control" placeholder="Diseño o producción">
+          <label for="diseno_o_producto" class="form-label fw-bold text-primary">DISEÑO O PRODUCCIÓN</label>
+          <select name="diseno_o_producto" id="diseno_o_producto" class="form-control">
+            <option value="">Seleccione...</option>
+            <option value="DISEÑO">DISEÑO</option>
+            <option value="PRODUCCIÓN">PRODUCCIÓN</option>
+          </select>
+          <small class="text-muted" id="diseno_o_producto_legacy_hint" style="display:none;">
+            Valor historico fuera de las opciones actuales. Al guardar quedara tal cual, salvo que lo cambies.
+          </small>
         </div>
 
         <!-- Documentos existentes -->
@@ -367,7 +373,7 @@ $(document).ready(function () {
   }
 
   setupSelect2('#id_cliente',              "{{ url_for('api_clientes') }}",              'Seleccionar Cliente',              'clientes',              'id_cliente',  'nombre_cliente');
-  setupSelect2('#id_empleado',             "{{ url_for('api_empleados') }}",             'Seleccionar Comercial',            'empleados',             'id_empleado', 'nombre_empleado');
+  setupSelect2('#id_empleado',             "{{ url_for('api_vendedores_comerciales') }}", 'Seleccionar Comercial',            'empleados',             'id_empleado', 'nombre_empleado');
   setupSelect2('#id_disenador_industrial', "{{ url_for('api_disenadores_industriales') }}", 'Seleccionar Diseñador Industrial', 'disenadores_industriales', 'id_empleado', 'nombre_empleado');
   setupSelect2('#id_disenador_grafico',    "{{ url_for('api_disenadores_graficos') }}",    'Seleccionar Diseñador Gráfico',    'disenadores_graficos',    'id_empleado', 'nombre_empleado');
 
@@ -378,7 +384,17 @@ $(document).ready(function () {
     $('#fecha_brif').val(datosOdi.fecha_brif || '');
     $('#fecha_entrega').val(datosOdi.fecha_entrega || '');
     $('#fecha_produccion').val(datosOdi.fecha_produccion || '');
-    $('#diseno_o_producto').val(datosOdi.diseno_o_producto || '');
+    // Si el valor historico no coincide con DISEÑO/PRODUCCIÓN (datos antiguos como
+    // 'CONSUMOS', 'PRODUCCION' sin tilde, etc.), se agrega como opcion temporal
+    // seleccionada para no perderlo ni sobrescribirlo sin que el usuario lo decida.
+    var valorDisenoProd = datosOdi.diseno_o_producto || '';
+    var $selDisenoProd = $('#diseno_o_producto');
+    if (valorDisenoProd && $selDisenoProd.find('option[value="' + valorDisenoProd.replace(/"/g, '') + '"]').length === 0) {
+      $selDisenoProd.append(new Option(valorDisenoProd, valorDisenoProd, true, true));
+      $('#diseno_o_producto_legacy_hint').show();
+    } else {
+      $selDisenoProd.val(valorDisenoProd);
+    }
     $('#estado').val(datosOdi.estado || '');
 
     // Select2 con AJAX: Cliente
@@ -427,7 +443,7 @@ $(document).ready(function () {
   });
 
   // ── Convertir a mayúsculas ──
-  $('#proyecto, #pieza, #diseno_o_producto').on('input', function () {
+  $('#proyecto, #pieza, #diseno_o_producto').on('input change', function () {
     $(this).val($(this).val().toUpperCase());
   });
 

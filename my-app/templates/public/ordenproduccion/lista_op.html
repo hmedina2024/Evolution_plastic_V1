@@ -4,6 +4,7 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
 <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/my_style.css') }}">
 {% endblock %}
 
@@ -40,10 +41,56 @@
     </div>
 
     <div class="row justify-content-end mb-2">
-      <div class="col-md-3 d-flex justify-content-end">
+      <div class="col-md-5 d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm" type="button"
+                data-bs-toggle="collapse" data-bs-target="#panelFiltrosAvanzados"
+                aria-expanded="false" aria-controls="panelFiltrosAvanzados">
+          <i class="bi bi-sliders me-1"></i> Filtros avanzados
+          <span class="badge bg-primary ms-1" id="badgeFiltrosAvanzados" style="display:none;">0</span>
+        </button>
         <button type="button" id="btnDescargarExcel" class="btn btn-success btn-sm">
           <i class="bi bi-file-earmark-excel me-1"></i> Descargar Excel
         </button>
+      </div>
+    </div>
+
+    <div class="row justify-content-end mb-2">
+      <div class="col-md-12">
+        <div class="collapse" id="panelFiltrosAvanzados">
+          <div class="card card-body bg-light">
+            <div class="row g-3">
+              <div class="col-md-3 position-relative">
+                <label for="filterDisenadorGrafico" class="form-label small text-muted mb-1">Diseñador Gráfico</label>
+                <select id="filterDisenadorGrafico" class="form-control select2" style="width:100%"></select>
+              </div>
+              <div class="col-md-3 position-relative">
+                <label for="filterDisenadorIndustrial" class="form-label small text-muted mb-1">Diseñador Industrial</label>
+                <select id="filterDisenadorIndustrial" class="form-control select2" style="width:100%"></select>
+              </div>
+              <div class="col-md-3 position-relative">
+                <label for="filterProceso" class="form-label small text-muted mb-1">Procesos Asociados</label>
+                <select id="filterProceso" class="form-control select2" style="width:100%"></select>
+              </div>
+              <div class="col-md-3 position-relative">
+                <label for="filterEstadoProyecto" class="form-label small text-muted mb-1">Estado Proyecto</label>
+                <select id="filterEstadoProyecto" class="form-control">
+                  <option value="">Todos</option>
+                  <option value="Artes pendientes">Artes pendientes</option>
+                  <option value="Artes aprobadas">Artes aprobadas</option>
+                  <option value="Estructura aprobada">Estructura aprobada</option>
+                  <option value="Diseño 100% aprobado">Diseño 100% aprobado</option>
+                  <option value="Lineas de troquel pendientes">Lineas de troquel pendientes</option>
+                  <option value="Lineas de troquel aprobadas">Lineas de troquel aprobadas</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-end mt-2">
+              <button type="button" id="btnLimpiarFiltrosAvanzados" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-x-circle me-1"></i> Limpiar filtros avanzados
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -73,6 +120,7 @@
 {% block customJS %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
     var table = $('#tbl_ordenproduccion').DataTable({
@@ -86,6 +134,10 @@ $(document).ready(function() {
                 d.fecha = $('#filterFecha').val();
                 d.nombre_cliente = $('#filterCliente').val(); // Enviar el nombre del cliente
                 d.producto = $('#filterProducto').val(); // Enviar el producto
+                d.disenador_grafico = $('#filterDisenadorGrafico').val() || '';
+                d.disenador_industrial = $('#filterDisenadorIndustrial').val() || '';
+                d.proceso = $('#filterProceso').val() || '';
+                d.estado_proyecto = $('#filterEstadoProyecto').val() || '';
                 return JSON.stringify(d);
             },
             "dataSrc": function(json) {
@@ -192,9 +244,64 @@ $(document).ready(function() {
             codigo_op: $('#filterCodOP').val() || '',
             fecha: $('#filterFecha').val() || '',
             nombre_cliente: $('#filterCliente').val() || '',
-            producto: $('#filterProducto').val() || ''
+            producto: $('#filterProducto').val() || '',
+            disenador_grafico: $('#filterDisenadorGrafico').val() || '',
+            disenador_industrial: $('#filterDisenadorIndustrial').val() || '',
+            proceso: $('#filterProceso').val() || '',
+            estado_proyecto: $('#filterEstadoProyecto').val() || ''
         });
         window.location.href = '/exportar-op-excel?' + params.toString();
+    });
+
+    // --- Filtros avanzados: Select2 + eventos ---
+    function setupSelect2Filtro(selectId, url, placeholder, dataKey, idField, textField) {
+        $('#' + selectId).select2({
+            placeholder: placeholder,
+            allowClear: true,
+            minimumInputLength: 0,
+            width: '100%',
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ search: params.term || '', page: params.page || 1, per_page: 10 }),
+                processResults: (data, params) => {
+                    params.page = params.page || 1;
+                    return {
+                        results: data[dataKey].map(item => ({ id: item[idField], text: item[textField] })),
+                        pagination: { more: (params.page * 10) < (data.total || 0) }
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+    setupSelect2Filtro('filterDisenadorGrafico', '/api/disenadores_graficos', 'Buscar diseñador gráfico...', 'disenadores_graficos', 'id_empleado', 'nombre_empleado');
+    setupSelect2Filtro('filterDisenadorIndustrial', '/api/disenadores_industriales', 'Buscar diseñador industrial...', 'disenadores_industriales', 'id_empleado', 'nombre_empleado');
+    setupSelect2Filtro('filterProceso', '/api/procesos', 'Buscar proceso...', 'procesos', 'id_proceso', 'nombre_proceso');
+
+    function actualizarBadgeFiltrosAvanzados() {
+        var activos = 0;
+        if ($('#filterDisenadorGrafico').val()) activos++;
+        if ($('#filterDisenadorIndustrial').val()) activos++;
+        if ($('#filterProceso').val()) activos++;
+        if ($('#filterEstadoProyecto').val()) activos++;
+        var $badge = $('#badgeFiltrosAvanzados');
+        if (activos > 0) { $badge.text(activos).show(); } else { $badge.hide(); }
+    }
+
+    $('#filterDisenadorGrafico, #filterDisenadorIndustrial, #filterProceso').on('change', function() {
+        actualizarBadgeFiltrosAvanzados();
+        table.ajax.reload();
+    });
+    $('#filterEstadoProyecto').on('change', function() {
+        actualizarBadgeFiltrosAvanzados();
+        table.ajax.reload();
+    });
+
+    $('#btnLimpiarFiltrosAvanzados').on('click', function() {
+        $('#filterDisenadorGrafico, #filterDisenadorIndustrial, #filterProceso').val(null).trigger('change');
+        $('#filterEstadoProyecto').val('').trigger('change');
     });
 });
 

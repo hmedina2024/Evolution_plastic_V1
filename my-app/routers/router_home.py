@@ -1246,6 +1246,10 @@ def buscando_ordenes_produccion():
     search_fecha = request.json.get('fecha', '')
     search_nombre_cliente = request.json.get('nombre_cliente', '')
     search_producto = request.json.get('producto', '')
+    search_disenador_grafico = request.json.get('disenador_grafico', '')
+    search_disenador_industrial = request.json.get('disenador_industrial', '')
+    search_proceso = request.json.get('proceso', '')
+    search_estado_proyecto = request.json.get('estado_proyecto', '')
 
     # Llamar a la función ajustada
     result = sql_lista_op_bd(
@@ -1255,7 +1259,11 @@ def buscando_ordenes_produccion():
         search_codigo_op=search_codigo_op,
         search_fecha=search_fecha,
         search_nombre_cliente=search_nombre_cliente,
-        search_producto=search_producto
+        search_producto=search_producto,
+        search_disenador_grafico=search_disenador_grafico,
+        search_disenador_industrial=search_disenador_industrial,
+        search_proceso=search_proceso,
+        search_estado_proyecto=search_estado_proyecto
     )
 
     return jsonify(result)
@@ -1274,12 +1282,20 @@ def exportar_ordenes_produccion_excel():
     search_fecha = request.args.get('fecha', '')
     search_nombre_cliente = request.args.get('nombre_cliente', '')
     search_producto = request.args.get('producto', '')
+    search_disenador_grafico = request.args.get('disenador_grafico', '')
+    search_disenador_industrial = request.args.get('disenador_industrial', '')
+    search_proceso = request.args.get('proceso', '')
+    search_estado_proyecto = request.args.get('estado_proyecto', '')
 
     buffer = exportar_op_excel(
         search_codigo_op=search_codigo_op,
         search_fecha=search_fecha,
         search_nombre_cliente=search_nombre_cliente,
-        search_producto=search_producto
+        search_producto=search_producto,
+        search_disenador_grafico=search_disenador_grafico,
+        search_disenador_industrial=search_disenador_industrial,
+        search_proceso=search_proceso,
+        search_estado_proyecto=search_estado_proyecto
     )
     if buffer is None:
         flash('Error al generar el reporte Excel.', 'error')

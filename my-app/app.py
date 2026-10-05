@@ -47,16 +47,23 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password
 # Límite de tamaño de archivos: 10 MB
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
-# Sesiones permanentes expiran en 24 horas
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# Sesiones permanentes: el usuario pidio poder dejar la app abierta el
+# tiempo que necesite sin que lo saque sola. Se extiende a 30 dias en vez
+# de 24 horas. Nota de seguridad: una sesion mas longeva es mas sensible
+# si el equipo queda desatendido; aceptable para un sistema interno.
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 # Cache-busting: token único generado al arrancar el servidor.
 # Cada reinicio (nuevo despliegue) cambia el valor y los navegadores
 # descartan el caché de CSS/JS propios sin que el usuario haga nada.
 app.jinja_env.globals['STATIC_V'] = str(int(_time.time()))
 
-# CSRF
-app.config['WTF_CSRF_TIME_LIMIT'] = 3600
+# CSRF: sin limite de tiempo (antes 1 hora). Un formulario largo (ej. una
+# OP con varias piezas) que tarda mas de 1h en diligenciarse fallaba al
+# guardar con "token expirado", lo que el usuario percibia como que la
+# app se cerraba y perdia el trabajo. El token sigue invalidandose igual
+# al cerrar sesion o reiniciar el servidor.
+app.config['WTF_CSRF_TIME_LIMIT'] = None
 csrf = CSRFProtect(app)
 
 # Rate limiting — máx 10 intentos de login por minuto por IP
