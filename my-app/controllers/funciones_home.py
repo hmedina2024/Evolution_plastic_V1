@@ -7926,6 +7926,8 @@ def procesar_form_prospecto(dataForm):
         prospecto = Prospecto(
             nombre_prospecto=nombre,
             empresa_prospecto=(dataForm.get("empresa_prospecto") or "").strip() or None,
+            cargo_prospecto=(dataForm.get("cargo_prospecto") or "").strip() or None,
+            medio_contacto=(dataForm.get("medio_contacto") or "").strip() or None,
             telefono_prospecto=(dataForm.get("telefono_prospecto") or "").strip() or None,
             email_prospecto=(dataForm.get("email_prospecto") or "").strip() or None,
             id_usuario_registro=session.get("user_id")
@@ -7969,6 +7971,8 @@ def buscar_prospectos_bd(nombre_filter, convertido_filter, start, length, order_
                 "id_prospecto": p.id_prospecto,
                 "nombre_prospecto": p.nombre_prospecto,
                 "empresa_prospecto": p.empresa_prospecto or "",
+                "cargo_prospecto": p.cargo_prospecto or "",
+                "medio_contacto": p.medio_contacto or "",
                 "telefono_prospecto": p.telefono_prospecto or "",
                 "email_prospecto": p.email_prospecto or "",
                 "total_actividades": total_actividades,
@@ -8003,6 +8007,7 @@ def convertir_prospecto_a_cliente(id_prospecto, id_cliente):
 # ============================================================
 
 TIPOS_ACTIVIDAD_COMERCIAL = ["Visita presencial", "Llamada", "Videollamada", "Email", "Reunión"]
+MEDIOS_CONTACTO_PROSPECTO = ["Teléfono", "Email", "WhatsApp", "Presencial", "Videollamada", "Referido", "Redes sociales", "Otro"]
 
 
 def procesar_form_actividad_comercial(dataForm):
@@ -8061,6 +8066,8 @@ def procesar_form_actividad_comercial(dataForm):
             nuevo_prospecto = Prospecto(
                 nombre_prospecto=nombre_nuevo,
                 empresa_prospecto=(dataForm.get("empresa_prospecto_nuevo") or "").strip() or None,
+                cargo_prospecto=(dataForm.get("cargo_prospecto_nuevo") or "").strip() or None,
+                medio_contacto=(dataForm.get("medio_contacto_nuevo") or "").strip() or None,
                 telefono_prospecto=(dataForm.get("telefono_prospecto_nuevo") or "").strip() or None,
                 email_prospecto=(dataForm.get("email_prospecto_nuevo") or "").strip() or None,
                 id_usuario_registro=session.get("user_id")

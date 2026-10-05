@@ -43,6 +43,8 @@
             <tr>
               <th>Nombre</th>
               <th>Empresa</th>
+              <th>Cargo</th>
+              <th>Medio</th>
               <th>Teléfono</th>
               <th>Email</th>
               <th>Actividades</th>
@@ -74,6 +76,19 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Empresa</label>
             <input type="text" name="empresa_prospecto" class="form-control" placeholder="Empresa donde trabaja el contacto (opcional)">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Cargo</label>
+            <input type="text" name="cargo_prospecto" class="form-control" placeholder="Cargo del contacto, ej: Gerente de compras (opcional)">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">¿Cómo se consiguió?</label>
+            <select name="medio_contacto" class="form-control">
+              <option value="" selected>Seleccione... (opcional)</option>
+              {% for m in medios_contacto %}
+              <option value="{{ m }}">{{ m }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Teléfono</label>
@@ -120,6 +135,8 @@ $(document).ready(function() {
         "columns": [
             { "data": "nombre_prospecto" },
             { "data": "empresa_prospecto" },
+            { "data": "cargo_prospecto" },
+            { "data": "medio_contacto" },
             { "data": "telefono_prospecto" },
             { "data": "email_prospecto" },
             { "data": "total_actividades" },

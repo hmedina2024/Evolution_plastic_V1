@@ -462,6 +462,8 @@ class Prospecto(db.Model):
     id_prospecto = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre_prospecto = db.Column(db.String(150), nullable=False)
     empresa_prospecto = db.Column(db.String(150), nullable=True)
+    cargo_prospecto = db.Column(db.String(100), nullable=True)
+    medio_contacto = db.Column(db.String(50), nullable=True)  # Como se consiguio el prospecto: Teléfono, Email, WhatsApp, Referido, etc.
     telefono_prospecto = db.Column(db.String(50), nullable=True)
     email_prospecto = db.Column(db.String(100), nullable=True)
     fecha_registro = db.Column(db.DateTime, default=func.now(), nullable=False)

@@ -35,7 +35,7 @@ from controllers.funciones_home import (get_empresas_paginadas, get_tipos_emplea
                                         get_prospectos_paginados, procesar_form_prospecto, buscar_prospectos_bd, convertir_prospecto_a_cliente,
                                         procesar_form_actividad_comercial, buscar_actividad_comercial_bd, buscar_actividad_comercial_unico,
                                         procesar_actualizacion_actividad_comercial, eliminar_actividad_comercial,
-                                        obtener_config_metas_vendedores, guardar_config_metas_vendedores, TIPOS_ACTIVIDAD_COMERCIAL, get_vendedores_comerciales_paginados,
+                                        obtener_config_metas_vendedores, guardar_config_metas_vendedores, TIPOS_ACTIVIDAD_COMERCIAL, MEDIOS_CONTACTO_PROSPECTO, get_vendedores_comerciales_paginados,
                                         procesar_form_jornada, sql_lista_jornadas_bd, sql_detalles_jornadas_bd, buscar_jornada_unico, procesar_actualizacion_jornada,
                                         eliminar_jornada, generar_codigo_op, get_jornadas_serverside,
                                         get_detalles_pieza_maestra_options, # Nueva función para el modal
@@ -2260,7 +2260,8 @@ def api_guardar_alertas_procesos():
 @app.route("/registrar-actividad-comercial", methods=["GET"])
 @requiere_permiso("comercial.crear")
 def viewFormActividadComercial():
-    return render_template("public/comercial/form_actividad.html", tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL)
+    return render_template("public/comercial/form_actividad.html", tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL,
+                           medios_contacto=MEDIOS_CONTACTO_PROSPECTO)
 
 
 @app.route("/form-registrar-actividad-comercial", methods=["POST"])
@@ -2271,7 +2272,8 @@ def form_actividad_comercial():
         flash(mensaje, "success")
         return redirect(url_for("lista_actividad_comercial"))
     flash(mensaje, "error")
-    return render_template("public/comercial/form_actividad.html")
+    return render_template("public/comercial/form_actividad.html", tipos_actividad=TIPOS_ACTIVIDAD_COMERCIAL,
+                           medios_contacto=MEDIOS_CONTACTO_PROSPECTO)
 
 
 @app.route("/lista-actividad-comercial", methods=["GET"])
@@ -2353,7 +2355,7 @@ def api_prospectos():
 @app.route("/lista-prospectos", methods=["GET"])
 @requiere_permiso("prospectos.ver")
 def lista_prospectos():
-    return render_template("public/comercial/lista_prospectos.html")
+    return render_template("public/comercial/lista_prospectos.html", medios_contacto=MEDIOS_CONTACTO_PROSPECTO)
 
 
 @app.route("/buscando-prospectos", methods=["POST"])

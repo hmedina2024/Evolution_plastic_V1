@@ -56,16 +56,27 @@
           </div>
           <div id="wrap_prospecto_nuevo" style="display:none;">
             <div class="row g-3">
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <input type="text" name="nombre_prospecto_nuevo" id="nombre_prospecto_nuevo" class="form-control" placeholder="Nombre de la persona de contacto, ej: Juan Pérez *">
               </div>
               <div class="col-md-3">
                 <input type="text" name="empresa_prospecto_nuevo" class="form-control" placeholder="Empresa donde trabaja el contacto (opcional)">
               </div>
               <div class="col-md-2">
+                <input type="text" name="cargo_prospecto_nuevo" class="form-control" placeholder="Cargo, ej: Gerente de compras (opcional)">
+              </div>
+              <div class="col-md-2">
                 <input type="text" name="telefono_prospecto_nuevo" class="form-control" placeholder="Teléfono de contacto (opcional)">
               </div>
-              <div class="col-md-3">
+              <div class="col-12">
+                <select name="medio_contacto_nuevo" id="medio_contacto_nuevo" class="form-control">
+                  <option value="" selected>¿Cómo se consiguió este prospecto? (opcional)</option>
+                  {% for m in medios_contacto %}
+                  <option value="{{ m }}">{{ m }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
                 <input type="email" name="email_prospecto_nuevo" class="form-control" placeholder="Correo de contacto (opcional)">
               </div>
             </div>
@@ -180,11 +191,13 @@ $(function() {
     if (tipo === 'cliente') {
       $('#wrap_cliente').show();
       $('#id_prospecto').val(null).trigger('change');
-      $('input[name="nombre_prospecto_nuevo"], input[name="empresa_prospecto_nuevo"], input[name="telefono_prospecto_nuevo"], input[name="email_prospecto_nuevo"]').val('');
+      $('input[name="nombre_prospecto_nuevo"], input[name="empresa_prospecto_nuevo"], input[name="cargo_prospecto_nuevo"], input[name="telefono_prospecto_nuevo"], input[name="email_prospecto_nuevo"]').val('');
+      $('#medio_contacto_nuevo').val('');
     } else if (tipo === 'prospecto_existente') {
       $('#wrap_prospecto_existente').show();
       $('#id_cliente').val(null).trigger('change');
-      $('input[name="nombre_prospecto_nuevo"], input[name="empresa_prospecto_nuevo"], input[name="telefono_prospecto_nuevo"], input[name="email_prospecto_nuevo"]').val('');
+      $('input[name="nombre_prospecto_nuevo"], input[name="empresa_prospecto_nuevo"], input[name="cargo_prospecto_nuevo"], input[name="telefono_prospecto_nuevo"], input[name="email_prospecto_nuevo"]').val('');
+      $('#medio_contacto_nuevo').val('');
     } else {
       $('#wrap_prospecto_nuevo').show();
       $('#nombre_prospecto_nuevo').prop('required', true);
